@@ -1,0 +1,15 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+env/
+
+# Entorno y Secretos (¡Muy importante si usas MySQL!)
+.env
+
+# Datos (No subas CSVs gigantes si no es necesario)
+*.csv
+*.xlsx
+
+# VS Code
+.vscode/
