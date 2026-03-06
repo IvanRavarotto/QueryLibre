@@ -19,9 +19,14 @@ Librerías Clave: Pandas (Procesamiento), SQLAlchemy (ORM/Conexión), PyYAML/Dot
 Para mantener el código organizado y escalable, QueryLibre sigue esta arquitectura: <br>
 QueryLibre <br>
 ├── src/ # Código fuente del motor de transformación<br>
+│   ├── logic/ # Aquí irá el motor (lo que procesa los datos)<br>
+│   │   └── extractor.py<br>
+│   ├── gui/ # Aquí irá el código de la ventana<br>
+│   │   └── main_window.py<br>
 │   ├── extract/ # Conectores para CSV, Excel y SQL<br>
 │   ├── transform/ # Lógica de limpieza y tipos de datos<br>
 │   └── load/ # Scripts de carga a MySQL<br>
+├── main.py # Este es el archivo que ejecutará todo<br>
 ├── config/ # Archivos de configuración y credenciales<br>
 ├── data/ # Muestras de datos para pruebas (CSVs/JSONs)<br>
 ├── notebooks/ # Prototipado rápido de funciones con Jupyter<br>
