@@ -1,12 +1,12 @@
-QueryLibre 📊
+# QueryLibre 📊
 Una herramienta robusta de ETL inspirada en la potencia de Power Query, desarrollada íntegramente en Python.
 
-🚀 Sobre el Proyecto
+## 🚀 Sobre el Proyecto
 QueryLibre nace de la necesidad de automatizar procesos de limpieza, transformación y carga de datos (ETL) sin depender exclusivamente de software privativo. El objetivo es recrear la experiencia intuitiva de Power Query de Excel, aprovechando la flexibilidad de Python y la robustez de MySQL.
 
 Este proyecto está diseñado tanto para uso personal en la optimización de flujos de trabajo como para demostrar habilidades avanzadas en ingeniería de datos y desarrollo de software.
 
-🛠️ Tecnologías Principales
+## 🛠️ Tecnologías Principales
 Lenguaje: Python 3.x
 
 Entorno de Desarrollo: VS Code
@@ -15,7 +15,7 @@ Base de Datos: MySQL
 
 Librerías Clave: Pandas (Procesamiento), SQLAlchemy (ORM/Conexión), PyYAML/Dotenv (Configuración).
 
-📂 Estructura del Proyecto
+## 📂 Estructura del Proyecto
 Para mantener el código organizado y escalable, QueryLibre sigue esta arquitectura: <br>
 QueryLibre <br>
 ├── src/ # Código fuente del motor de transformación<br>
@@ -34,9 +34,15 @@ QueryLibre <br>
 ├── requirements.txt # Dependencias del proyecto<br>
 └── README.md
 
-🎯 Objetivos de la Fase Inicial
+## 🎯 Objetivos de la Fase Inicial
 Conectividad: Establecer un puente sólido entre archivos planos (CSV) y MySQL.
 
 Modularidad: Crear funciones independientes para tareas comunes como eliminación de duplicados, tipado dinámico e imputación de nulos.
 
 Interfaz: Implementar una lógica de "pasos aplicados" para auditar cada cambio en el dataset.
+
+## ✅ Funcionalidades Actuales
+* **Interfaz Gráfica Moderna:** Desarrollada con CustomTkinter, con soporte para modo oscuro/claro.
+* **Carga de Datos Multi-formato:** Soporte nativo para lectura de archivos `.csv`, `.xlsx` y `.xls` mediante Pandas.
+* **Vista Previa en Tiempo Real:** Visualización instantánea de los primeros registros del dataset cargado directamente en la aplicación.
+* **Validación de Carga:** Sistema de notificaciones visuales para confirmar el éxito de la operación o detectar errores de formato.

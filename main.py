@@ -1,4 +1,7 @@
 import customtkinter as ctk
+from tkinter import filedialog  # Necesario para abrir el explorador de archivos
+import pandas as pd             # El motor de QueryLibre
+import os
 
 # Configuración inicial del tema (estilo Power BI / Moderno)
 ctk.set_appearance_mode("System")  # Se adapta al tema de Windows (Dark/Light)
@@ -43,12 +46,57 @@ class QueryLibreApp(ctk.CTk):
 
         self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
         self.welcome_label.pack(expand=True)
+        
+        self.main_frame = ctk.CTkFrame(self, corner_radius=10)
+        self.main_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
-    # ---- FUNCIONES (Lógica de los botones) ----
+        # Mensaje de bienvenida
+        self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
+        self.welcome_label.pack(expand=True)
+
+        # NUEVO: Cuadro de texto para la vista previa (oculto al inicio)
+        self.preview_text = ctk.CTkTextbox(self.main_frame, font=("Consolas", 11), state="disabled")
+
     def cargar_archivo(self):
-        print("Botón presionado: Aquí abriremos el explorador de archivos")
-        self.welcome_label.configure(text="Abriendo explorador de archivos...")
+        # Filtramos para aceptar tanto CSV como Excel
+        file_path = filedialog.askopenfilename(
+            title="Seleccionar Dataset",
+            filetypes=[("Archivos de datos", "*.csv *.xlsx *.xls"), ("Todos los archivos", "*.*")]
+        )
+
+        if file_path:
+            try:
+                # Detectar extensión y leer correctamente
+                extension = os.path.splitext(file_path)[1].lower()
+                
+                if extension == '.csv':
+                    self.df = pd.read_csv(file_path)
+                else:
+                    self.df = pd.read_excel(file_path) # Requiere openpyxl
+
+                # 1. Quitar el mensaje de bienvenida y mostrar la tabla
+                self.welcome_label.pack_forget()
+                self.preview_text.pack(expand=True, fill="both", padx=20, pady=(10, 20))
+
+                # 2. Insertar vista previa de los datos
+                self.preview_text.configure(state="normal")
+                self.preview_text.delete("1.0", "end")
+                # Mostramos las primeras 10 filas de forma legible
+                self.preview_text.insert("1.0", self.df.head(10).to_string())
+                self.preview_text.configure(state="disabled")
+
+                # 3. Actualizar estado de la interfaz
+                nombre_archivo = os.path.basename(file_path)
+                print(f"✅ {nombre_archivo} cargado con éxito.")
+                self.btn_transformar.configure(state="normal")
+                
+            except Exception as e:
+                self.welcome_label.configure(text=f"❌ Error al cargar:\n{str(e)}", text_color="red")
+        else:
+            print("Operación cancelada.")
 
 if __name__ == "__main__":
     app = QueryLibreApp()
     app.mainloop()
+    
+    
