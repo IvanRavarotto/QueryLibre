@@ -11,20 +11,22 @@ class QueryLibreApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        # Variable para almacenar los datos globalmente en la app
+        self.df = None 
+
         # Configuración de la ventana principal
         self.title("QueryLibre - Motor de Transformación de Datos")
         self.geometry("900x600")
         self.minsize(800, 500)
 
         # ---- LAYOUT PRINCIPAL (Sistema de grilla) ----
-        # Dividimos la pantalla en 2 columnas: un panel lateral y el área principal
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
         # ---- PANEL LATERAL (Menú) ----
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
-        self.sidebar_frame.grid_rowconfigure(4, weight=1) # Espacio vacío al fondo
+        self.sidebar_frame.grid_rowconfigure(4, weight=1)
 
         # Título del panel lateral
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre", font=ctk.CTkFont(size=20, weight="bold"))
@@ -40,13 +42,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar a MySQL", state="disabled")
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
 
-        # ---- ÁREA PRINCIPAL (Visor de Datos) ----
-        self.main_frame = ctk.CTkFrame(self, corner_radius=10)
-        self.main_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
-
-        self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
-        self.welcome_label.pack(expand=True)
-        
+        # ---- ÁREA PRINCIPAL ----
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
         self.main_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
@@ -54,8 +50,22 @@ class QueryLibreApp(ctk.CTk):
         self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
         self.welcome_label.pack(expand=True)
 
-        # NUEVO: Cuadro de texto para la vista previa (oculto al inicio)
+        # NUEVO: Barra de herramientas (oculta al inicio)
+        self.toolbar_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        
+        # Botones de transformación rápida
+        self.btn_dup = ctk.CTkButton(self.toolbar_frame, text="Eliminar Duplicados", 
+                                     command=self.eliminar_duplicados, width=140, fg_color="#34495e")
+        self.btn_dup.pack(side="left", padx=5)
+
+        self.btn_nulos = ctk.CTkButton(self.toolbar_frame, text="Limpiar Nulos", 
+                                       command=self.limpiar_nulos, width=140, fg_color="#34495e")
+        self.btn_nulos.pack(side="left", padx=5)
+
+        # Cuadro de texto para la vista previa (oculto al inicio)
         self.preview_text = ctk.CTkTextbox(self.main_frame, font=("Consolas", 11), state="disabled")
+
+    # ---- MÉTODOS DE LA APLICACIÓN ----
 
     def cargar_archivo(self):
         # Filtramos para aceptar tanto CSV como Excel
@@ -74,29 +84,48 @@ class QueryLibreApp(ctk.CTk):
                 else:
                     self.df = pd.read_excel(file_path) # Requiere openpyxl
 
-                # 1. Quitar el mensaje de bienvenida y mostrar la tabla
+                # 1. Quitar el mensaje de bienvenida y mostrar la interfaz
                 self.welcome_label.pack_forget()
-                self.preview_text.pack(expand=True, fill="both", padx=20, pady=(10, 20))
+                self.toolbar_frame.pack(fill="x", padx=20, pady=(10, 0)) 
+                self.preview_text.pack(expand=True, fill="both", padx=20, pady=20)
 
-                # 2. Insertar vista previa de los datos
-                self.preview_text.configure(state="normal")
-                self.preview_text.delete("1.0", "end")
-                # Mostramos las primeras 10 filas de forma legible
-                self.preview_text.insert("1.0", self.df.head(10).to_string())
-                self.preview_text.configure(state="disabled")
-
-                # 3. Actualizar estado de la interfaz
+                # 2. Actualizar estado de la interfaz
                 nombre_archivo = os.path.basename(file_path)
                 print(f"✅ {nombre_archivo} cargado con éxito.")
                 self.btn_transformar.configure(state="normal")
                 
+                # 3. Mostrar los datos
+                self.actualizar_vista_previa()
+                
             except Exception as e:
+                self.welcome_label.pack(expand=True) # Vuelve a mostrar el texto en caso de error
                 self.welcome_label.configure(text=f"❌ Error al cargar:\n{str(e)}", text_color="red")
         else:
             print("Operación cancelada.")
 
+    def actualizar_vista_previa(self):
+        """Refresca el cuadro de texto con el estado actual de self.df"""
+        self.preview_text.configure(state="normal")
+        self.preview_text.delete("1.0", "end")
+        if self.df is not None:
+            # Mostramos las primeras 15 filas de forma legible
+            self.preview_text.insert("1.0", self.df.head(15).to_string())
+        self.preview_text.configure(state="disabled")
+
+    def eliminar_duplicados(self):
+        if self.df is not None:
+            antes = len(self.df)
+            self.df = self.df.drop_duplicates()
+            despues = len(self.df)
+            print(f"Transformación: Se eliminaron {antes - despues} filas duplicadas.")
+            self.actualizar_vista_previa()
+
+    def limpiar_nulos(self):
+        if self.df is not None:
+            self.df = self.df.dropna()
+            print("Transformación: Filas con valores nulos eliminadas.")
+            self.actualizar_vista_previa()
+
 if __name__ == "__main__":
     app = QueryLibreApp()
     app.mainloop()
-    
-    
