@@ -46,3 +46,5 @@ Interfaz: Implementar una lógica de "pasos aplicados" para auditar cada cambio 
 * **Carga de Datos Multi-formato:** Soporte nativo para lectura de archivos `.csv`, `.xlsx` y `.xls` mediante Pandas.
 * **Vista Previa en Tiempo Real:** Visualización instantánea de los primeros registros del dataset cargado directamente en la aplicación.
 * **Validación de Carga:** Sistema de notificaciones visuales para confirmar el éxito de la operación o detectar errores de formato.
+* **Transformación Dinámica:** Herramientas integradas para la limpieza de datos con un solo clic (eliminación de valores nulos y registros duplicados).
+* **Historial de Pasos Aplicados:** Panel de auditoría que registra secuencialmente cada transformación realizada sobre el dataset original, permitiendo la trazabilidad del proceso ETL.

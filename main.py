@@ -1,25 +1,25 @@
 import customtkinter as ctk
-from tkinter import filedialog  # Necesario para abrir el explorador de archivos
-import pandas as pd             # El motor de QueryLibre
+from tkinter import filedialog
+import pandas as pd
 import os
 
-# Configuración inicial del tema (estilo Power BI / Moderno)
-ctk.set_appearance_mode("System")  # Se adapta al tema de Windows (Dark/Light)
-ctk.set_default_color_theme("blue") # Color de acento para los botones
+ctk.set_appearance_mode("System")
+ctk.set_default_color_theme("blue")
 
 class QueryLibreApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Variable para almacenar los datos globalmente en la app
+        # Variables de estado de la aplicación
         self.df = None 
+        self.historial_pasos = [] # NUEVO: Memoria de los pasos aplicados
 
         # Configuración de la ventana principal
         self.title("QueryLibre - Motor de Transformación de Datos")
-        self.geometry("900x600")
-        self.minsize(800, 500)
+        self.geometry("1000x600") # Un poco más ancha para que entre el panel
+        self.minsize(900, 500)
 
-        # ---- LAYOUT PRINCIPAL (Sistema de grilla) ----
+        # ---- LAYOUT PRINCIPAL ----
         self.grid_columnconfigure(1, weight=1)
         self.grid_rowconfigure(0, weight=1)
 
@@ -28,11 +28,9 @@ class QueryLibreApp(ctk.CTk):
         self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
 
-        # Título del panel lateral
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
-        # Botones del menú
         self.btn_cargar = ctk.CTkButton(self.sidebar_frame, text="📁 Cargar Archivo", command=self.cargar_archivo)
         self.btn_cargar.grid(row=1, column=0, padx=20, pady=10)
 
@@ -46,14 +44,12 @@ class QueryLibreApp(ctk.CTk):
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
         self.main_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
-        # Mensaje de bienvenida
         self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
         self.welcome_label.pack(expand=True)
 
-        # NUEVO: Barra de herramientas (oculta al inicio)
+        # Barra de herramientas (oculta al inicio)
         self.toolbar_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
-        # Botones de transformación rápida
         self.btn_dup = ctk.CTkButton(self.toolbar_frame, text="Eliminar Duplicados", 
                                      command=self.eliminar_duplicados, width=140, fg_color="#34495e")
         self.btn_dup.pack(side="left", padx=5)
@@ -62,13 +58,34 @@ class QueryLibreApp(ctk.CTk):
                                        command=self.limpiar_nulos, width=140, fg_color="#34495e")
         self.btn_nulos.pack(side="left", padx=5)
 
-        # Cuadro de texto para la vista previa (oculto al inicio)
-        self.preview_text = ctk.CTkTextbox(self.main_frame, font=("Consolas", 11), state="disabled")
+        # NUEVO: Contenedor dividido para Tabla + Historial
+        self.content_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        
+        # 1. Tabla de Vista Previa (Izquierda) - Le agregamos wrap="none" para que las tablas no se rompan
+        self.preview_text = ctk.CTkTextbox(self.content_frame, font=("Consolas", 11), state="disabled", wrap="none")
+
+        # 2. Panel de Pasos Aplicados (Derecha)
+        self.history_frame = ctk.CTkFrame(self.content_frame, width=200)
+        self.history_label = ctk.CTkLabel(self.history_frame, text="📋 Pasos Aplicados", font=ctk.CTkFont(weight="bold"))
+        self.history_label.pack(pady=(10, 5))
+        self.history_text = ctk.CTkTextbox(self.history_frame, font=("Arial", 11), state="disabled", width=200)
+        self.history_text.pack(expand=True, fill="both", padx=10, pady=(0, 10))
 
     # ---- MÉTODOS DE LA APLICACIÓN ----
 
+    def registrar_paso(self, descripcion):
+        """Agrega un paso al historial visual y a la memoria."""
+        self.historial_pasos.append(descripcion)
+        self.history_text.configure(state="normal")
+        self.history_text.delete("1.0", "end")
+        
+        # Escribimos todos los pasos numerados
+        for i, paso in enumerate(self.historial_pasos, 1):
+            self.history_text.insert("end", f"{i}. {paso}\n\n")
+            
+        self.history_text.configure(state="disabled")
+
     def cargar_archivo(self):
-        # Filtramos para aceptar tanto CSV como Excel
         file_path = filedialog.askopenfilename(
             title="Seleccionar Dataset",
             filetypes=[("Archivos de datos", "*.csv *.xlsx *.xls"), ("Todos los archivos", "*.*")]
@@ -76,39 +93,39 @@ class QueryLibreApp(ctk.CTk):
 
         if file_path:
             try:
-                # Detectar extensión y leer correctamente
                 extension = os.path.splitext(file_path)[1].lower()
-                
                 if extension == '.csv':
                     self.df = pd.read_csv(file_path)
                 else:
-                    self.df = pd.read_excel(file_path) # Requiere openpyxl
+                    self.df = pd.read_excel(file_path)
 
-                # 1. Quitar el mensaje de bienvenida y mostrar la interfaz
+                # Reiniciamos el historial al cargar un archivo nuevo
+                self.historial_pasos = []
+
+                # Ocultamos bienvenida y mostramos la interfaz de trabajo
                 self.welcome_label.pack_forget()
                 self.toolbar_frame.pack(fill="x", padx=20, pady=(10, 0)) 
-                self.preview_text.pack(expand=True, fill="both", padx=20, pady=20)
-
-                # 2. Actualizar estado de la interfaz
-                nombre_archivo = os.path.basename(file_path)
-                print(f"✅ {nombre_archivo} cargado con éxito.")
-                self.btn_transformar.configure(state="normal")
+                self.content_frame.pack(expand=True, fill="both", padx=20, pady=20)
                 
-                # 3. Mostrar los datos
+                # Empaquetamos Tabla a la izquierda e Historial a la derecha
+                self.preview_text.pack(side="left", expand=True, fill="both", padx=(0, 10))
+                self.history_frame.pack(side="right", fill="y")
+
+                self.btn_transformar.configure(state="normal")
                 self.actualizar_vista_previa()
                 
+                # Registramos el primer paso
+                nombre_archivo = os.path.basename(file_path)
+                self.registrar_paso(f"Origen: {nombre_archivo}")
+                
             except Exception as e:
-                self.welcome_label.pack(expand=True) # Vuelve a mostrar el texto en caso de error
+                self.welcome_label.pack(expand=True)
                 self.welcome_label.configure(text=f"❌ Error al cargar:\n{str(e)}", text_color="red")
-        else:
-            print("Operación cancelada.")
 
     def actualizar_vista_previa(self):
-        """Refresca el cuadro de texto con el estado actual de self.df"""
         self.preview_text.configure(state="normal")
         self.preview_text.delete("1.0", "end")
         if self.df is not None:
-            # Mostramos las primeras 15 filas de forma legible
             self.preview_text.insert("1.0", self.df.head(15).to_string())
         self.preview_text.configure(state="disabled")
 
@@ -117,13 +134,27 @@ class QueryLibreApp(ctk.CTk):
             antes = len(self.df)
             self.df = self.df.drop_duplicates()
             despues = len(self.df)
-            print(f"Transformación: Se eliminaron {antes - despues} filas duplicadas.")
+            filas_eliminadas = antes - despues
+            
+            if filas_eliminadas > 0:
+                self.registrar_paso(f"Se eliminaron {filas_eliminadas} filas duplicadas")
+            else:
+                self.registrar_paso("Eliminar duplicados (0 filas)")
+                
             self.actualizar_vista_previa()
 
     def limpiar_nulos(self):
         if self.df is not None:
+            antes = len(self.df)
             self.df = self.df.dropna()
-            print("Transformación: Filas con valores nulos eliminadas.")
+            despues = len(self.df)
+            filas_eliminadas = antes - despues
+            
+            if filas_eliminadas > 0:
+                self.registrar_paso(f"Se eliminaron {filas_eliminadas} filas con nulos")
+            else:
+                self.registrar_paso("Limpiar nulos (0 filas)")
+                
             self.actualizar_vista_previa()
 
 if __name__ == "__main__":
