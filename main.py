@@ -12,11 +12,12 @@ class QueryLibreApp(ctk.CTk):
 
         # Variables de estado de la aplicación
         self.df = None 
-        self.historial_pasos = [] # NUEVO: Memoria de los pasos aplicados
+        self.historial_pasos = []
+        self.df_history = [] # NUEVO: La "caja" donde guardaremos los DataFrames anteriores
 
         # Configuración de la ventana principal
         self.title("QueryLibre - Motor de Transformación de Datos")
-        self.geometry("1000x600") # Un poco más ancha para que entre el panel
+        self.geometry("1000x600")
         self.minsize(900, 500)
 
         # ---- LAYOUT PRINCIPAL ----
@@ -58,32 +59,42 @@ class QueryLibreApp(ctk.CTk):
                                        command=self.limpiar_nulos, width=140, fg_color="#34495e")
         self.btn_nulos.pack(side="left", padx=5)
 
-        # NUEVO: Contenedor dividido para Tabla + Historial
+        # Contenedor dividido para Tabla + Historial
         self.content_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
-        # 1. Tabla de Vista Previa (Izquierda) - Le agregamos wrap="none" para que las tablas no se rompan
+        # 1. Tabla de Vista Previa (Izquierda)
         self.preview_text = ctk.CTkTextbox(self.content_frame, font=("Consolas", 11), state="disabled", wrap="none")
 
         # 2. Panel de Pasos Aplicados (Derecha)
         self.history_frame = ctk.CTkFrame(self.content_frame, width=200)
         self.history_label = ctk.CTkLabel(self.history_frame, text="📋 Pasos Aplicados", font=ctk.CTkFont(weight="bold"))
         self.history_label.pack(pady=(10, 5))
+        
         self.history_text = ctk.CTkTextbox(self.history_frame, font=("Arial", 11), state="disabled", width=200)
-        self.history_text.pack(expand=True, fill="both", padx=10, pady=(0, 10))
+        self.history_text.pack(expand=True, fill="both", padx=10, pady=5)
+
+        # NUEVO: Botón de Deshacer en el panel derecho
+        self.btn_deshacer = ctk.CTkButton(self.history_frame, text="↩️ Deshacer Último", 
+                                          command=self.deshacer_paso, state="disabled", 
+                                          fg_color="#e74c3c", hover_color="#c0392b") # Color rojo estilo "peligro/borrar"
+        self.btn_deshacer.pack(pady=(5, 15), padx=10, fill="x")
 
     # ---- MÉTODOS DE LA APLICACIÓN ----
 
     def registrar_paso(self, descripcion):
-        """Agrega un paso al historial visual y a la memoria."""
+        """Agrega un paso al historial visual y evalúa si activa el botón deshacer."""
         self.historial_pasos.append(descripcion)
         self.history_text.configure(state="normal")
         self.history_text.delete("1.0", "end")
         
-        # Escribimos todos los pasos numerados
         for i, paso in enumerate(self.historial_pasos, 1):
             self.history_text.insert("end", f"{i}. {paso}\n\n")
             
         self.history_text.configure(state="disabled")
+
+        # Si hay más de un paso (es decir, hicimos algo además de cargar el archivo), activamos "Deshacer"
+        if len(self.historial_pasos) > 1:
+            self.btn_deshacer.configure(state="normal")
 
     def cargar_archivo(self):
         file_path = filedialog.askopenfilename(
@@ -99,22 +110,21 @@ class QueryLibreApp(ctk.CTk):
                 else:
                     self.df = pd.read_excel(file_path)
 
-                # Reiniciamos el historial al cargar un archivo nuevo
+                # Reiniciamos las memorias al cargar un archivo nuevo
                 self.historial_pasos = []
+                self.df_history = []
+                self.btn_deshacer.configure(state="disabled")
 
-                # Ocultamos bienvenida y mostramos la interfaz de trabajo
                 self.welcome_label.pack_forget()
                 self.toolbar_frame.pack(fill="x", padx=20, pady=(10, 0)) 
                 self.content_frame.pack(expand=True, fill="both", padx=20, pady=20)
                 
-                # Empaquetamos Tabla a la izquierda e Historial a la derecha
                 self.preview_text.pack(side="left", expand=True, fill="both", padx=(0, 10))
                 self.history_frame.pack(side="right", fill="y")
 
                 self.btn_transformar.configure(state="normal")
                 self.actualizar_vista_previa()
                 
-                # Registramos el primer paso
                 nombre_archivo = os.path.basename(file_path)
                 self.registrar_paso(f"Origen: {nombre_archivo}")
                 
@@ -129,8 +139,36 @@ class QueryLibreApp(ctk.CTk):
             self.preview_text.insert("1.0", self.df.head(15).to_string())
         self.preview_text.configure(state="disabled")
 
+    # NUEVO: Lógica de la máquina del tiempo
+    def deshacer_paso(self):
+        """Revierte la última transformación usando el historial almacenado."""
+        if self.df_history and len(self.historial_pasos) > 1:
+            # 1. Recuperamos el DataFrame justo como estaba antes del último cambio
+            self.df = self.df_history.pop()
+            
+            # 2. Borramos el texto del último paso
+            paso_eliminado = self.historial_pasos.pop()
+            print(f"Deshacer: Se eliminó el paso '{paso_eliminado}'")
+            
+            # 3. Reescribimos la lista visual de pasos
+            self.history_text.configure(state="normal")
+            self.history_text.delete("1.0", "end")
+            for i, paso in enumerate(self.historial_pasos, 1):
+                self.history_text.insert("end", f"{i}. {paso}\n\n")
+            self.history_text.configure(state="disabled")
+            
+            # 4. Actualizamos la tabla
+            self.actualizar_vista_previa()
+            
+            # 5. Si volvemos al inicio (solo queda "Origen"), apagamos el botón
+            if len(self.historial_pasos) == 1:
+                self.btn_deshacer.configure(state="disabled")
+
     def eliminar_duplicados(self):
         if self.df is not None:
+            # ¡CLAVE! Guardamos una copia exacta antes de modificar
+            self.df_history.append(self.df.copy()) 
+            
             antes = len(self.df)
             self.df = self.df.drop_duplicates()
             despues = len(self.df)
@@ -145,6 +183,9 @@ class QueryLibreApp(ctk.CTk):
 
     def limpiar_nulos(self):
         if self.df is not None:
+            # ¡CLAVE! Guardamos una copia exacta antes de modificar
+            self.df_history.append(self.df.copy())
+            
             antes = len(self.df)
             self.df = self.df.dropna()
             despues = len(self.df)
@@ -159,4 +200,4 @@ class QueryLibreApp(ctk.CTk):
 
 if __name__ == "__main__":
     app = QueryLibreApp()
-    app.mainloop()
+    app.mainloop()  
