@@ -10,14 +10,12 @@ class QueryLibreApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        # Variables de estado de la aplicación
         self.df = None 
         self.historial_pasos = []
-        self.df_history = [] # NUEVO: La "caja" donde guardaremos los DataFrames anteriores
+        self.df_history = [] 
 
-        # Configuración de la ventana principal
         self.title("QueryLibre - Motor de Transformación de Datos")
-        self.geometry("1000x600")
+        self.geometry("1100x650") # Un poco más ancha para los nuevos botones
         self.minsize(900, 500)
 
         # ---- LAYOUT PRINCIPAL ----
@@ -48,24 +46,28 @@ class QueryLibreApp(ctk.CTk):
         self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
         self.welcome_label.pack(expand=True)
 
-        # Barra de herramientas (oculta al inicio)
+        # ---- BARRA DE HERRAMIENTAS (Arsenal Expandido) ----
         self.toolbar_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
-        self.btn_dup = ctk.CTkButton(self.toolbar_frame, text="Eliminar Duplicados", 
-                                     command=self.eliminar_duplicados, width=140, fg_color="#34495e")
+        self.btn_dup = ctk.CTkButton(self.toolbar_frame, text="Eliminar Duplicados", command=self.eliminar_duplicados, width=130, fg_color="#34495e")
         self.btn_dup.pack(side="left", padx=5)
 
-        self.btn_nulos = ctk.CTkButton(self.toolbar_frame, text="Limpiar Nulos", 
-                                       command=self.limpiar_nulos, width=140, fg_color="#34495e")
+        self.btn_nulos = ctk.CTkButton(self.toolbar_frame, text="Limpiar Nulos", command=self.limpiar_nulos, width=120, fg_color="#34495e")
         self.btn_nulos.pack(side="left", padx=5)
 
-        # Contenedor dividido para Tabla + Historial
+        # NUEVO: Botón Eliminar Columna
+        self.btn_eliminar_col = ctk.CTkButton(self.toolbar_frame, text="🗑️ Eliminar Columna", command=self.eliminar_columna, width=140, fg_color="#c0392b", hover_color="#922b21")
+        self.btn_eliminar_col.pack(side="left", padx=5)
+
+        # NUEVO: Botón Renombrar Columna
+        self.btn_renombrar_col = ctk.CTkButton(self.toolbar_frame, text="✏️ Renombrar Columna", command=self.renombrar_columna, width=150, fg_color="#2980b9", hover_color="#1f618d")
+        self.btn_renombrar_col.pack(side="left", padx=5)
+
+        # ---- CONTENEDOR TABLA + HISTORIAL ----
         self.content_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
-        # 1. Tabla de Vista Previa (Izquierda)
         self.preview_text = ctk.CTkTextbox(self.content_frame, font=("Consolas", 11), state="disabled", wrap="none")
 
-        # 2. Panel de Pasos Aplicados (Derecha)
         self.history_frame = ctk.CTkFrame(self.content_frame, width=200)
         self.history_label = ctk.CTkLabel(self.history_frame, text="📋 Pasos Aplicados", font=ctk.CTkFont(weight="bold"))
         self.history_label.pack(pady=(10, 5))
@@ -73,16 +75,12 @@ class QueryLibreApp(ctk.CTk):
         self.history_text = ctk.CTkTextbox(self.history_frame, font=("Arial", 11), state="disabled", width=200)
         self.history_text.pack(expand=True, fill="both", padx=10, pady=5)
 
-        # NUEVO: Botón de Deshacer en el panel derecho
-        self.btn_deshacer = ctk.CTkButton(self.history_frame, text="↩️ Deshacer Último", 
-                                          command=self.deshacer_paso, state="disabled", 
-                                          fg_color="#e74c3c", hover_color="#c0392b") # Color rojo estilo "peligro/borrar"
+        self.btn_deshacer = ctk.CTkButton(self.history_frame, text="↩️ Deshacer Último", command=self.deshacer_paso, state="disabled", fg_color="#e74c3c", hover_color="#c0392b")
         self.btn_deshacer.pack(pady=(5, 15), padx=10, fill="x")
 
     # ---- MÉTODOS DE LA APLICACIÓN ----
 
     def registrar_paso(self, descripcion):
-        """Agrega un paso al historial visual y evalúa si activa el botón deshacer."""
         self.historial_pasos.append(descripcion)
         self.history_text.configure(state="normal")
         self.history_text.delete("1.0", "end")
@@ -92,15 +90,11 @@ class QueryLibreApp(ctk.CTk):
             
         self.history_text.configure(state="disabled")
 
-        # Si hay más de un paso (es decir, hicimos algo además de cargar el archivo), activamos "Deshacer"
         if len(self.historial_pasos) > 1:
             self.btn_deshacer.configure(state="normal")
 
     def cargar_archivo(self):
-        file_path = filedialog.askopenfilename(
-            title="Seleccionar Dataset",
-            filetypes=[("Archivos de datos", "*.csv *.xlsx *.xls"), ("Todos los archivos", "*.*")]
-        )
+        file_path = filedialog.askopenfilename(title="Seleccionar Dataset", filetypes=[("Archivos de datos", "*.csv *.xlsx *.xls"), ("Todos los archivos", "*.*")])
 
         if file_path:
             try:
@@ -110,7 +104,6 @@ class QueryLibreApp(ctk.CTk):
                 else:
                     self.df = pd.read_excel(file_path)
 
-                # Reiniciamos las memorias al cargar un archivo nuevo
                 self.historial_pasos = []
                 self.df_history = []
                 self.btn_deshacer.configure(state="disabled")
@@ -139,36 +132,24 @@ class QueryLibreApp(ctk.CTk):
             self.preview_text.insert("1.0", self.df.head(15).to_string())
         self.preview_text.configure(state="disabled")
 
-    # NUEVO: Lógica de la máquina del tiempo
     def deshacer_paso(self):
-        """Revierte la última transformación usando el historial almacenado."""
         if self.df_history and len(self.historial_pasos) > 1:
-            # 1. Recuperamos el DataFrame justo como estaba antes del último cambio
             self.df = self.df_history.pop()
+            self.historial_pasos.pop()
             
-            # 2. Borramos el texto del último paso
-            paso_eliminado = self.historial_pasos.pop()
-            print(f"Deshacer: Se eliminó el paso '{paso_eliminado}'")
-            
-            # 3. Reescribimos la lista visual de pasos
             self.history_text.configure(state="normal")
             self.history_text.delete("1.0", "end")
             for i, paso in enumerate(self.historial_pasos, 1):
                 self.history_text.insert("end", f"{i}. {paso}\n\n")
             self.history_text.configure(state="disabled")
             
-            # 4. Actualizamos la tabla
             self.actualizar_vista_previa()
-            
-            # 5. Si volvemos al inicio (solo queda "Origen"), apagamos el botón
             if len(self.historial_pasos) == 1:
                 self.btn_deshacer.configure(state="disabled")
 
     def eliminar_duplicados(self):
         if self.df is not None:
-            # ¡CLAVE! Guardamos una copia exacta antes de modificar
             self.df_history.append(self.df.copy()) 
-            
             antes = len(self.df)
             self.df = self.df.drop_duplicates()
             despues = len(self.df)
@@ -178,14 +159,11 @@ class QueryLibreApp(ctk.CTk):
                 self.registrar_paso(f"Se eliminaron {filas_eliminadas} filas duplicadas")
             else:
                 self.registrar_paso("Eliminar duplicados (0 filas)")
-                
             self.actualizar_vista_previa()
 
     def limpiar_nulos(self):
         if self.df is not None:
-            # ¡CLAVE! Guardamos una copia exacta antes de modificar
             self.df_history.append(self.df.copy())
-            
             antes = len(self.df)
             self.df = self.df.dropna()
             despues = len(self.df)
@@ -195,9 +173,40 @@ class QueryLibreApp(ctk.CTk):
                 self.registrar_paso(f"Se eliminaron {filas_eliminadas} filas con nulos")
             else:
                 self.registrar_paso("Limpiar nulos (0 filas)")
-                
             self.actualizar_vista_previa()
+
+    # ---- NUEVAS FUNCIONES FASE 6 ----
+
+    def eliminar_columna(self):
+        if self.df is not None:
+            dialog = ctk.CTkInputDialog(text="Escribe el nombre EXACTO de la columna a eliminar:", title="Eliminar Columna")
+            col_name = dialog.get_input()
+            
+            if col_name and col_name in self.df.columns:
+                self.df_history.append(self.df.copy())
+                self.df = self.df.drop(columns=[col_name])
+                self.registrar_paso(f"Columna eliminada: '{col_name}'")
+                self.actualizar_vista_previa()
+            elif col_name:
+                print(f"La columna '{col_name}' no existe. Revisa espacios o mayúsculas.")
+
+    def renombrar_columna(self):
+        if self.df is not None:
+            dialog_old = ctk.CTkInputDialog(text="Nombre ACTUAL de la columna:", title="Renombrar Columna (Paso 1/2)")
+            old_name = dialog_old.get_input()
+            
+            if old_name and old_name in self.df.columns:
+                dialog_new = ctk.CTkInputDialog(text=f"NUEVO nombre para '{old_name}':", title="Renombrar Columna (Paso 2/2)")
+                new_name = dialog_new.get_input()
+                
+                if new_name:
+                    self.df_history.append(self.df.copy())
+                    self.df = self.df.rename(columns={old_name: new_name})
+                    self.registrar_paso(f"Columna renombrada: '{old_name}' ➔ '{new_name}'")
+                    self.actualizar_vista_previa()
+            elif old_name:
+                print(f"La columna '{old_name}' no existe. Revisa espacios o mayúsculas.")
 
 if __name__ == "__main__":
     app = QueryLibreApp()
-    app.mainloop()  
+    app.mainloop()

@@ -42,9 +42,10 @@ Modularidad: Crear funciones independientes para tareas comunes como eliminació
 Interfaz: Implementar una lógica de "pasos aplicados" para auditar cada cambio en el dataset.
 
 ## ✅ Funcionalidades Actuales
-* **Interfaz Gráfica Moderna:** Desarrollada con CustomTkinter, con soporte para modo oscuro/claro.
+* **Interfaz Gráfica Moderna:** Desarrollada con CustomTkinter, con soporte para modo oscuro/claro y diseño responsivo.
 * **Carga de Datos Multi-formato:** Soporte nativo para lectura de archivos `.csv`, `.xlsx` y `.xls` mediante Pandas.
-* **Vista Previa en Tiempo Real:** Visualización instantánea de los primeros registros del dataset cargado directamente en la aplicación.
-* **Validación de Carga:** Sistema de notificaciones visuales para confirmar el éxito de la operación o detectar errores de formato.
-* **Transformación Dinámica:** Herramientas integradas para la limpieza de datos con un solo clic (eliminación de valores nulos y registros duplicados).
-* **Historial de Pasos Aplicados:** Panel de auditoría que registra secuencialmente cada transformación realizada sobre el dataset original, permitiendo la trazabilidad del proceso ETL.
+* **Transformación Dinámica y Limpieza:** * Eliminación de valores nulos (NaN) y registros duplicados.
+  * Eliminación de columnas innecesarias.
+  * Renombramiento de columnas mediante cuadros de diálogo interactivos.
+* **Historial de Pasos Aplicados:** Panel de auditoría que registra secuencialmente cada transformación realizada sobre el dataset, permitiendo la trazabilidad del proceso ETL.
+* **Motor de Deshacer (Máquina del Tiempo):** Implementación de una pila de estados (State Stack) en memoria que permite revertir transformaciones secuencialmente sin pérdida de datos ni dependencias de disco.

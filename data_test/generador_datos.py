@@ -1,47 +1,54 @@
 import pandas as pd
 import numpy as np
 import os
+import random
 
-# 1. Creamos un diccionario con datos base limpios (y algunos nulos intencionales)
+# 1. Generamos una base más grande (20 registros)
+random.seed(42)
+np.random.seed(42)
+n_records = 20
+
+productos = ['Laptop Dell XPS', 'Monitor LG 27"', 'Teclado Mecánico', 'Mouse Inalámbrico', 'Auriculares Sony']
+clientes = ['Empresa A', 'Empresa B', 'Empresa C', 'Startup X', 'Corporación Y']
+
+# Creamos columnas con errores típicos de formato
 datos = {
-    'ID_Transaccion': ['TRX-001', 'TRX-002', 'TRX-003', 'TRX-004', 'TRX-005'],
-    'Producto': ['Laptop Dell XPS', 'Monitor LG 27"', np.nan, 'Teclado Mecánico', 'Mouse Inalámbrico'],
-    'Cantidad': [2, 5, 1, np.nan, 10],
-    'Precio_Unitario': [1200.50, 250.00, 15.99, 85.50, 25.00],
-    'Cliente': ['Empresa A', 'Empresa B', 'Empresa C', np.nan, 'Empresa A']
+    ' ID Transaccion ': [f'TRX-{str(i).zfill(3)}' for i in range(1, n_records + 1)], # Espacios molestos al inicio y final
+    'Producto_Nombre': [random.choice(productos) for _ in range(n_records)],
+    'Cantidad': [str(random.randint(1, 10)) for _ in range(n_records)], # Guardado como texto en vez de número
+    'precio_unitario_usd': [f"${random.uniform(15.0, 1500.0):.2f}" for _ in range(n_records)], # Trae el símbolo "$" incrustado
+    'Fecha Compra': pd.date_range(start='2026-01-01', periods=n_records).strftime('%Y-%m-%d').tolist(), # Espacio en el nombre
+    'Cliente': [random.choice(clientes) for _ in range(n_records)],
+    'Notas_Internas': ['Borrar esta columna' for _ in range(n_records)] # Columna inútil para probar "Eliminar Columna"
 }
 
 df_base = pd.DataFrame(datos)
 
-# 2. Forzamos filas duplicadas (Copiamos las transacciones 001 y 002 al final)
-df_sucios = pd.concat([df_base, df_base.iloc[[0, 1]]], ignore_index=True)
+# 2. Ensuciamos los datos a propósito
+# Añadimos Nulos
+df_base.loc[2, 'Producto_Nombre'] = np.nan
+df_base.loc[5, 'Cantidad'] = np.nan
+df_base.loc[12, 'Cliente'] = np.nan
 
-# 3. Añadimos una fila completamente vacía (puro NaN)
-fila_vacia = pd.DataFrame([[np.nan] * 5], columns=df_base.columns)
-df_final = pd.concat([df_sucios, fila_vacia], ignore_index=True)
+# Rompemos el formato de algunas fechas
+df_base.loc[1, 'Fecha Compra'] = '01/01/2026' 
+df_base.loc[8, 'Fecha Compra'] = '15-01-2026'
 
-# 4. Desordenamos un poco el índice para que sea más realista
-df_final = df_final.sample(frac=1).reset_index(drop=True)
+# 3. Forzamos duplicados (Copiamos 3 transacciones al azar al final)
+df_sucios = pd.concat([df_base, df_base.iloc[[0, 4, 7]]], ignore_index=True)
 
-# ---- NUEVA LÓGICA DE CARPETAS ----
+# 4. Desordenamos todo
+df_final = df_sucios.sample(frac=1).reset_index(drop=True)
 
-# Definimos el nombre de la carpeta
+# 5. Guardamos en la carpeta data_test
 carpeta_destino = 'data_test'
-
-# Le decimos a Python: "Si la carpeta no existe, créala"
 os.makedirs(carpeta_destino, exist_ok=True)
+ruta_archivo = os.path.join(carpeta_destino, 'dataset_caotico_v2.csv')
 
-# Unimos la carpeta con el nombre del archivo
-ruta_archivo = os.path.join(carpeta_destino, 'datos_prueba_sucios.csv')
-
-# Exportamos el resultado
 df_final.to_csv(ruta_archivo, index=False)
 
-# Verificamos la ruta final
-ruta_absoluta = os.path.abspath(ruta_archivo)
-print("-" * 40)
-print(f"✅ ¡Datos generados y guardados correctamente!")
-print(f"📁 Carpeta: {carpeta_destino}/")
-print(f"📄 Archivo: datos_prueba_sucios.csv")
-print(f"📍 Ruta exacta: {ruta_absoluta}")
-print("-" * 40)
+print("-" * 50)
+print(f"✅ ¡Nuevo dataset caótico generado con éxito!")
+print(f"📁 Archivo: {ruta_archivo}")
+print(f"📊 Total de filas para probar: {len(df_final)}")
+print("-" * 50)
