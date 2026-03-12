@@ -41,11 +41,28 @@ Modularidad: Crear funciones independientes para tareas comunes como eliminació
 
 Interfaz: Implementar una lógica de "pasos aplicados" para auditar cada cambio en el dataset.
 
-## ✅ Funcionalidades Actuales
-* **Interfaz Gráfica Moderna:** Desarrollada con CustomTkinter, con soporte para modo oscuro/claro y diseño responsivo.
-* **Carga de Datos Multi-formato:** Soporte nativo para lectura de archivos `.csv`, `.xlsx` y `.xls` mediante Pandas.
-* **Transformación Dinámica y Limpieza:** * Eliminación de valores nulos (NaN) y registros duplicados.
-  * Eliminación de columnas innecesarias.
-  * Renombramiento de columnas mediante cuadros de diálogo interactivos.
-* **Historial de Pasos Aplicados:** Panel de auditoría que registra secuencialmente cada transformación realizada sobre el dataset, permitiendo la trazabilidad del proceso ETL.
-* **Motor de Deshacer (Máquina del Tiempo):** Implementación de una pila de estados (State Stack) en memoria que permite revertir transformaciones secuencialmente sin pérdida de datos ni dependencias de disco.
+# ⚙️ QueryLibre - Motor de Transformación de Datos (ETL)
+
+QueryLibre es una aplicación de escritorio desarrollada en Python, diseñada para simplificar y visualizar el proceso de Extracción y Transformación de datos (Fases E y T de un proceso ETL). Emula la lógica visual de herramientas como Power Query, permitiendo limpiar y estructurar datasets sin necesidad de escribir código en cada paso.
+
+## 🚀 Funcionalidades Principales
+
+* **Interfaz Gráfica Interactiva (GUI):** Desarrollada con `CustomTkinter`, ofrece un diseño moderno (Modo Oscuro nativo) y una grilla de datos interactiva (`Treeview`) para explorar el dataset en tiempo real.
+* **Carga Multi-formato:** Extracción nativa de archivos `.csv`, `.xlsx` y `.xls` mediante Pandas.
+* **Arsenal de Limpieza y Transformación:**
+  * 🧹 Eliminación de valores nulos (NaN) y registros duplicados.
+  * 🗑️ Eliminación y renombramiento dinámico de columnas.
+  * 🧮 **Columnas Calculadas (Smart Parsing):** Motor matemático que detecta y limpia automáticamente símbolos de moneda (ej: `$`, `,`) antes de operar, previniendo errores de casteo.
+  * 🔗 **Combinación de Textos:** Fusión de múltiples columnas de texto con selección de separadores personalizados.
+* **Trazabilidad (Panel de Auditoría):** Registro secuencial y visual de cada transformación aplicada al dataset, fundamental para la transparencia del modelo de datos.
+* **Máquina del Tiempo (Deshacer):** Implementación de una pila de estados (State Stack) en memoria que permite revertir cualquier transformación al instante sin pérdida de datos.
+* **Protección Anti-Errores:** Escudos de validación que evitan la sobreescritura accidental de columnas y el colapso de la aplicación ante errores de formato.
+
+## 🛠️ Stack Tecnológico
+* **Lenguaje:** Python 3.x
+* **Manipulación de Datos:** Pandas, NumPy
+* **Interfaz Gráfica:** CustomTkinter, Tkinter (Treeview)
+
+## 📌 Próximos Pasos (En Desarrollo)
+* [ ] Fase Load (L): Exportación directa del dataset limpio a una base de datos MySQL mediante SQLAlchemy.
+* [ ] Creación de un instalador ejecutable (.exe).
