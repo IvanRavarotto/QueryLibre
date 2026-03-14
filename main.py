@@ -33,7 +33,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_cargar = ctk.CTkButton(self.sidebar_frame, text="📁 Cargar Archivo", command=self.cargar_archivo)
         self.btn_cargar.grid(row=1, column=0, padx=20, pady=10)
 
-        self.btn_transformar = ctk.CTkButton(self.sidebar_frame, text="⚙️ Transformar", state="disabled")
+        self.btn_transformar = ctk.CTkButton(self.sidebar_frame, text="🔗 Unir Datasets", state="disabled", command=self.unir_datasets)
         self.btn_transformar.grid(row=2, column=0, padx=20, pady=10)
 
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar a MySQL", state="disabled")
@@ -402,6 +402,124 @@ class QueryLibreApp(ctk.CTk):
 
             btn_aplicar = ctk.CTkButton(dialog, text="Aplicar Combinación", command=aplicar_combinacion, fg_color="#27ae60", hover_color="#2ecc71")
             btn_aplicar.pack(pady=20)
+            
+    # ---- NUEVA FUNCIÓN FASE 8: UNIR DATASETS (MERGE / JOIN) ----
+    def unir_datasets(self):
+        if self.df is not None:
+            dialog = ctk.CTkToplevel(self)
+            dialog.title("Unir Datasets (Merge / JOIN)")
+            dialog.geometry("650x650") # 📏 Ventana más grande para la mini-tabla
+            dialog.transient(self)
+            dialog.grab_set()
+
+            self.df2 = None
+
+            ctk.CTkLabel(dialog, text="1. Cargar Segundo Dataset (Tabla Dimensional)", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(15, 5))
+            
+            lbl_df2_info = ctk.CTkLabel(dialog, text="Ningún archivo cargado", text_color="gray")
+            
+            btn_cargar_df2 = ctk.CTkButton(dialog, text="📁 Buscar Archivo 2", fg_color="#8e44ad", hover_color="#732d91")
+            btn_cargar_df2.pack(pady=5)
+            lbl_df2_info.pack(pady=5)
+
+            # --- NUEVO: Mini Vista Previa del Dataset 2 ---
+            preview_frame = ctk.CTkFrame(dialog, height=120)
+            preview_frame.pack(fill="x", padx=20, pady=5)
+            
+            tree_scroll_y2 = ctk.CTkScrollbar(preview_frame)
+            tree_scroll_y2.pack(side="right", fill="y")
+            tree_scroll_x2 = ctk.CTkScrollbar(preview_frame, orientation="horizontal")
+            tree_scroll_x2.pack(side="bottom", fill="x")
+
+            # Tabla pequeñita para no ocupar toda la pantalla
+            tree2 = ttk.Treeview(preview_frame, height=4, yscrollcommand=tree_scroll_y2.set, xscrollcommand=tree_scroll_x2.set, selectmode="none")
+            tree2.pack(expand=True, fill="both")
+            tree_scroll_y2.configure(command=tree2.yview)
+            tree_scroll_x2.configure(command=tree2.xview)
+            # ---------------------------------------------
+
+            opciones_frame = ctk.CTkFrame(dialog, fg_color="transparent")
+
+            def cargar_df2():
+                file_path = filedialog.askopenfilename(title="Seleccionar Dataset 2", filetypes=[("Archivos de datos", "*.csv *.xlsx *.xls")])
+                if file_path:
+                    try:
+                        ext = os.path.splitext(file_path)[1].lower()
+                        if ext == '.csv':
+                            self.df2 = pd.read_csv(file_path)
+                        else:
+                            self.df2 = pd.read_excel(file_path)
+                        
+                        nombre = os.path.basename(file_path)
+                        lbl_df2_info.configure(text=f"✅ Archivo listo: {nombre} ({len(self.df2.columns)} columnas)", text_color="#27ae60")
+                        
+                        # --- NUEVO: Llenar la mini tabla con los datos ---
+                        tree2.delete(*tree2.get_children())
+                        df_preview = self.df2.head(5).fillna("") # Mostramos 5 filas
+                        tree2["column"] = list(df_preview.columns)
+                        tree2["show"] = "headings"
+                        for col in tree2["column"]:
+                            tree2.heading(col, text=col)
+                            tree2.column(col, width=100, anchor="center")
+                        for index, row in df_preview.iterrows():
+                            tree2.insert("", "end", values=list(row))
+                        # -------------------------------------------------
+
+                        col2_combo.configure(values=list(self.df2.columns))
+                        col2_combo.set(list(self.df2.columns)[0])
+                        
+                        opciones_frame.pack(fill="both", expand=True, padx=20, pady=10)
+                        
+                    except Exception as e:
+                        lbl_df2_info.configure(text=f"❌ Error al cargar: {str(e)}", text_color="red")
+            
+            btn_cargar_df2.configure(command=cargar_df2)
+
+            # --- Opciones de Cruce (dentro del frame) ---
+            ctk.CTkLabel(opciones_frame, text="2. Configurar el Cruce (JOIN)", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(15, 10))
+
+            ctk.CTkLabel(opciones_frame, text="Llave en Dataset Principal:").pack(pady=(5, 0))
+            col1_combo = ctk.CTkComboBox(opciones_frame, values=list(self.df.columns))
+            col1_combo.pack(pady=5)
+
+            ctk.CTkLabel(opciones_frame, text="Llave en Dataset 2:").pack(pady=(5, 0))
+            col2_combo = ctk.CTkComboBox(opciones_frame, values=["Esperando archivo..."])
+            col2_combo.pack(pady=5)
+
+            ctk.CTkLabel(opciones_frame, text="Tipo de Unión (JOIN):").pack(pady=(5, 0))
+            tipo_combo = ctk.CTkComboBox(opciones_frame, values=["Izquierda (Left Join)", "Interna (Inner Join)"])
+            tipo_combo.pack(pady=5)
+
+            error_label = ctk.CTkLabel(opciones_frame, text="", text_color="#e74c3c", font=ctk.CTkFont(weight="bold"))
+            error_label.pack(pady=(10, 5))
+
+            def aplicar_union():
+                error_label.configure(text="")
+                if self.df2 is None:
+                    error_label.configure(text="⚠️ Primero debes cargar el Dataset 2.")
+                    return
+                
+                k1 = col1_combo.get()
+                k2 = col2_combo.get()
+                tipo_str = tipo_combo.get()
+                
+                how_join = "left" if "Left" in tipo_str else "inner"
+
+                try:
+                    self.df_history.append(self.df.copy()) 
+                    
+                    self.df = pd.merge(self.df, self.df2, left_on=k1, right_on=k2, how=how_join)
+                    
+                    self.registrar_paso(f"Unión ({how_join}): usando '{k1}' = '{k2}'")
+                    self.actualizar_vista_previa()
+                    dialog.destroy()
+                except Exception as e:
+                    error_label.configure(text="⚠️ Error. Revisa que las llaves tengan el mismo tipo de dato.")
+                    print(f"Error Merge: {e}")
+                    self.df_history.pop()
+
+            btn_aplicar = ctk.CTkButton(opciones_frame, text="Aplicar Unión", command=aplicar_union, fg_color="#27ae60", hover_color="#2ecc71")
+            btn_aplicar.pack(pady=15)
 if __name__ == "__main__":
     app = QueryLibreApp()
     app.mainloop()
