@@ -36,7 +36,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_transformar = ctk.CTkButton(self.sidebar_frame, text="🔗 Unir Datasets", state="disabled", command=self.unir_datasets)
         self.btn_transformar.grid(row=2, column=0, padx=20, pady=10)
 
-        self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar a MySQL", state="disabled")
+        self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
 
         # ---- ÁREA PRINCIPAL ----
@@ -150,6 +150,7 @@ class QueryLibreApp(ctk.CTk):
                 # Ya no necesitamos empaquetar aquí porque lo fijamos en el __init__
 
                 self.btn_transformar.configure(state="normal")
+                self.btn_exportar.configure(state="normal")
                 self.actualizar_vista_previa()
                 
                 nombre_archivo = os.path.basename(file_path)
@@ -520,6 +521,62 @@ class QueryLibreApp(ctk.CTk):
 
             btn_aplicar = ctk.CTkButton(opciones_frame, text="Aplicar Unión", command=aplicar_union, fg_color="#27ae60", hover_color="#2ecc71")
             btn_aplicar.pack(pady=15)
+            
+    # ---- NUEVA FUNCIÓN FASE 9: EXPORTAR DATOS (LOAD) ----
+    def exportar_datos(self):
+        if self.df is None:
+            return
+
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Exportar Datos")
+        dialog.geometry("400x300")
+        dialog.transient(self) # Escudo anti-ventanas invasivas
+        dialog.grab_set()
+
+        ctk.CTkLabel(dialog, text="💾 Seleccionar formato de exportación", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(20, 10))
+
+        # Menú desplegable con los tres formatos estrella
+        formato_combo = ctk.CTkComboBox(dialog, values=["Archivo CSV (.csv)", "Archivo Excel (.xlsx)", "Base de Datos SQLite (.db)"])
+        formato_combo.pack(pady=10)
+
+        error_label = ctk.CTkLabel(dialog, text="", text_color="#e74c3c", font=ctk.CTkFont(weight="bold"))
+        error_label.pack(pady=5)
+
+        def guardar():
+            formato = formato_combo.get()
+            
+            try:
+                if "CSV" in formato:
+                    file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("Archivo CSV", "*.csv")])
+                    if file_path:
+                        self.df.to_csv(file_path, index=False)
+                        self.registrar_paso(f"💾 Exportado a CSV: {os.path.basename(file_path)}")
+                        dialog.destroy()
+                        
+                elif "Excel" in formato:
+                    file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Archivo Excel", "*.xlsx")])
+                    if file_path:
+                        self.df.to_excel(file_path, index=False)
+                        self.registrar_paso(f"💾 Exportado a Excel: {os.path.basename(file_path)}")
+                        dialog.destroy()
+                        
+                elif "SQLite" in formato:
+                    file_path = filedialog.asksaveasfilename(defaultextension=".db", filetypes=[("Base de Datos SQLite", "*.db")])
+                    if file_path:
+                        import sqlite3
+                        # Conecta al archivo .db (o lo crea mágicamente si no existe)
+                        conn = sqlite3.connect(file_path)
+                        # Pandas hace la magia de crear la tabla y meter los datos
+                        self.df.to_sql("datos_limpios", conn, if_exists="replace", index=False)
+                        conn.close()
+                        self.registrar_paso(f"💾 Exportado a SQLite: {os.path.basename(file_path)}")
+                        dialog.destroy()
+            except Exception as e:
+                error_label.configure(text=f"⚠️ Error al guardar. Revisa la consola.")
+                print(f"Error Export: {e}")
+
+        btn_guardar = ctk.CTkButton(dialog, text="Guardar Como...", command=guardar, fg_color="#2980b9", hover_color="#1f618d")
+        btn_guardar.pack(pady=15)
 if __name__ == "__main__":
     app = QueryLibreApp()
     app.mainloop()
