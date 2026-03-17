@@ -1,10 +1,25 @@
 import customtkinter as ctk
 from tkinter import filedialog, ttk 
+import tkinter as tk # <--- AGREGÁ ESTE IMPORT
 import pandas as pd
 import os
+import ctypes
+import sys
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
+
+def obtener_ruta(ruta_relativa):
+    """Obtiene la ruta absoluta al recurso, ya sea en desarrollo o en el .exe final"""
+    try:
+        # PyInstaller guarda los archivos en esta carpeta temporal
+        ruta_base = sys._MEIPASS
+    except Exception:
+        # Si no estamos en el .exe, usa la ruta normal de tu compu
+        ruta_base = os.path.dirname(os.path.abspath(__file__))
+    
+    return os.path.join(ruta_base, ruta_relativa)
+
 
 class QueryLibreApp(ctk.CTk):
     def __init__(self):
@@ -13,10 +28,25 @@ class QueryLibreApp(ctk.CTk):
         self.df = None 
         self.historial_pasos = []
         self.df_history = [] 
-
+        
         self.title("QueryLibre - Motor de Transformación de Datos")
         self.geometry("1100x650") 
         self.minsize(900, 500)
+        
+        ruta_icono = obtener_ruta(os.path.join("assets", "main.ico"))
+        
+        try:
+            self.iconbitmap(ruta_icono) 
+        except Exception as e:
+            print(f"Error con el ícono: {e}")
+            pass
+
+        # ---- TRUCO PARA EL ÍCONO DE LA BARRA DE TAREAS EN WINDOWS ----
+        try:
+            myappid = 'ivanravarotto.querylibre.app.1.0'
+            ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
+        except Exception:
+            pass
 
         # ---- LAYOUT PRINCIPAL ----
         self.grid_columnconfigure(1, weight=1)
@@ -38,7 +68,10 @@ class QueryLibreApp(ctk.CTk):
 
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
-
+        
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.0.0", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s") # sticky="s" lo pega al fondo (South)
+        
         # ---- ÁREA PRINCIPAL ----
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
         self.main_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
@@ -580,3 +613,4 @@ class QueryLibreApp(ctk.CTk):
 if __name__ == "__main__":
     app = QueryLibreApp()
     app.mainloop()
+    
