@@ -34,81 +34,118 @@ def obtener_ruta(ruta_relativa):
 
 
 class QueryLibreApp(ctk.CTk):
+    """
+    Clase principal de QueryLibre.
+    Gestiona la interfaz gráfica de usuario (GUI), el estado de los datos en memoria (DataFrame)
+    y el historial de transformaciones aplicadas.
+    """
     def __init__(self):
         super().__init__()
 
-        self.df = None 
-        self.historial_pasos = []
-        self.df_history = [] 
+        # ---- VARIABLES DE ESTADO (MEMORIA) ----
+        self.df = None                 # DataFrame activo (los datos actuales en pantalla)
+        self.historial_pasos = []      # Registro en texto de los cambios para mostrar en la interfaz
+        self.df_history = []           # Copias del DataFrame para hacer funcionar el botón "Deshacer"
         
+        # ---- CONFIGURACIÓN DE LA VENTANA PRINCIPAL ----
         self.title("QueryLibre - Motor de Transformación de Datos")
         self.geometry("1100x650") 
         self.minsize(900, 500)
         
+        # ---- CARGA DEL ÍCONO ----
         ruta_icono = obtener_ruta(os.path.join("assets", "main.ico"))
-        
         try:
             self.iconbitmap(ruta_icono) 
         except Exception as e:
-            print(f"Error con el ícono: {e}")
-            pass
+            # Si el ícono falla (ej. problemas de Tkinter o SO diferente), avisamos pero no crasheamos
+            print(f"Advertencia - Error con el ícono: {e}")
 
-        # ---- TRUCO PARA EL ÍCONO DE LA BARRA DE TAREAS EN WINDOWS ----
+        # ---- INTEGRACIÓN CON WINDOWS (Barra de Tareas) ----
+        # Evita que Windows agrupe la app bajo el ícono por defecto de Python.
+        # Asignamos un AppUserModelID único para forzar el uso de nuestro 'main.ico'.
         try:
             myappid = 'ivanravarotto.querylibre.app.1.0'
             ctypes.windll.shell32.SetCurrentProcessExplicitAppUserModelID(myappid)
-        except Exception:
+        except AttributeError:
+            # Si el sistema operativo no es Windows (ej. Mac o Linux), ignoramos este paso
             pass
+        
+        # ---- LAYOUT PRINCIPAL (GRILLA) ----
+        self.grid_columnconfigure(1, weight=1) # Obliga al área derecha a ocupar todo el ancho libre
+        self.grid_rowconfigure(0, weight=1)    # Obliga a la ventana a ocupar todo el alto libre
 
-        # ---- LAYOUT PRINCIPAL ----
-        self.grid_columnconfigure(1, weight=1)
-        self.grid_rowconfigure(0, weight=1)
-
-        # ---- PANEL LATERAL (Menú) ----
+        # ---- 1. PANEL LATERAL (SIDEBAR) ----
+        # Contenedor principal del menú izquierdo. Su ancho es fijo y se estira verticalmente.
         self.sidebar_frame = ctk.CTkFrame(self, width=200, corner_radius=0)
-        self.sidebar_frame.grid(row=0, column=0, sticky="nsew")
+        self.sidebar_frame.grid(row=0, column=0, sticky="nsew") # nsew: se adhiere a todos los bordes (North, South, East, West)
+        
+        # Al darle weight=1 a la fila 4, forzamos a que empuje su contenido hacia abajo
         self.sidebar_frame.grid_rowconfigure(4, weight=1)
 
+        # -- Logo / Título --
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
+        # -- Botones de Acción Principal --
         self.btn_cargar = ctk.CTkButton(self.sidebar_frame, text="📁 Cargar Archivo", command=self.cargar_archivo)
         self.btn_cargar.grid(row=1, column=0, padx=20, pady=10)
 
+        # Los botones de transformación y exportación inician bloqueados ('disabled') 
+        # hasta que se cargue exitosamente un archivo en memoria.
         self.btn_transformar = ctk.CTkButton(self.sidebar_frame, text="🔗 Unir Datasets", state="disabled", command=self.unir_datasets)
         self.btn_transformar.grid(row=2, column=0, padx=20, pady=10)
 
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
+        # -- Información de Versión --
         self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.0.0", font=ctk.CTkFont(size=11), text_color="gray")
-        self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s") # sticky="s" lo pega al fondo (South)
+        self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s") # sticky="s" (South) lo ancla al borde inferior, otras opciones: n (top), e (right), w (left).
         
-        # ---- ÁREA PRINCIPAL ----
+        # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
+        # Contenedor central donde sucede toda la acción (Barra de herramientas, Tabla, Historial).
+        # Ocupa la columna 1 (a la derecha del sidebar) y se expande en todas direcciones (nsew).
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
         self.main_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
+        # -- Mensaje de Bienvenida (Placeholder) --
+        # Se muestra centrado al iniciar la app. 
+        # Más adelante, la función cargar_archivo() usará 'pack_forget()' para ocultarlo 
+        # y darle lugar a la tabla de datos real.
         self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
-        self.welcome_label.pack(expand=True)
+        self.welcome_label.pack(expand=True) # expand=True lo centra perfectamente en todo el espacio vacío
 
-        # ---- BARRA DE HERRAMIENTAS (Arsenal Expandido) ----
+        # ---- 3. BARRA DE HERRAMIENTAS (Transformaciones Rápidas) ----
+        # Contenedor superior para los botones de acción. 
+        # fg_color="transparent" permite que se funda con el fondo del main_frame.
+        # IMPORTANTE: Este frame no se empaqueta (.pack) al iniciar. Permanece en memoria
+        # y se muestra recién cuando cargar_archivo() inyecta los datos exitosamente.
         self.toolbar_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
+        # -- Grupo 1: Limpieza a nivel Filas (Data Cleaning) --
+        # side="left" los apila de forma horizontal, uno al lado del otro.
         self.btn_dup = ctk.CTkButton(self.toolbar_frame, text="Eliminar Duplicados", command=self.eliminar_duplicados, width=130, fg_color="#34495e")
         self.btn_dup.pack(side="left", padx=5)
 
         self.btn_nulos = ctk.CTkButton(self.toolbar_frame, text="Limpiar Nulos", command=self.limpiar_nulos, width=120, fg_color="#34495e")
         self.btn_nulos.pack(side="left", padx=5)
 
+        # -- Grupo 2: Gestión a nivel Columnas (Feature Engineering) --
+        # Se aplican colores semánticos (Rojo = Destructivo, Azul = Edición) para guiar al usuario (UX).
         self.btn_eliminar_col = ctk.CTkButton(self.toolbar_frame, text="🗑️ Eliminar Columna", command=self.eliminar_columna, width=140, fg_color="#c0392b", hover_color="#922b21")
         self.btn_eliminar_col.pack(side="left", padx=5)
 
         self.btn_renombrar_col = ctk.CTkButton(self.toolbar_frame, text="✏️ Renombrar Columna", command=self.renombrar_columna, width=150, fg_color="#2980b9", hover_color="#1f618d")
         self.btn_renombrar_col.pack(side="left", padx=5)
 
-        # NUEVO: Botón Calcular Columna
+        # -- Grupo 3: Creación de Nuevas Columnas (Feature Engineering Avanzado) --
+        # Agrupamos lógicamente las funciones que generan nuevos datos a partir de los existentes.
+        # Usamos colores distintivos (Morado = Matemáticas, Naranja = Textos) para diferenciarlas.
         self.btn_calcular = ctk.CTkButton(self.toolbar_frame, text="🧮 Calcular Columna", command=self.calcular_columna, width=150, fg_color="#8e44ad", hover_color="#732d91")
         self.btn_calcular.pack(side="left", padx=5)
+
+        self.btn_combinar = ctk.CTkButton(self.toolbar_frame, text="🔗 Combinar Textos", command=self.combinar_columnas, width=150, fg_color="#d35400", hover_color="#a04000")
+        self.btn_combinar.pack(side="left", padx=5)
 
         # ---- CONTENEDOR TABLA + HISTORIAL ----
         self.content_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
@@ -154,9 +191,6 @@ class QueryLibreApp(ctk.CTk):
         style.configure("Treeview.Heading", background="#565b5e", foreground="white", relief="flat")
         style.map("Treeview.Heading", background=[('active', '#343638')])
         
-        # NUEVO: Botón Combinar Columnas (Textos)
-        self.btn_combinar = ctk.CTkButton(self.toolbar_frame, text="🔗 Combinar Textos", command=self.combinar_columnas, width=150, fg_color="#d35400", hover_color="#a04000")
-        self.btn_combinar.pack(side="left", padx=5)
 
     # ---- MÉTODOS DE LA APLICACIÓN ----
 
