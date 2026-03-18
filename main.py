@@ -1,21 +1,33 @@
-import customtkinter as ctk
-from tkinter import filedialog, ttk 
-import tkinter as tk # <--- AGREGÁ ESTE IMPORT
-import pandas as pd
+# Librerías estándar para el proyecto
 import os
-import ctypes
 import sys
+import ctypes
+import tkinter as tk
+from tkinter import filedialog, ttk
 
-ctk.set_appearance_mode("System")
-ctk.set_default_color_theme("blue")
+# Librerías que se necesitan instalar (pandas, customtkinter)
+import pandas as pd
+import customtkinter as ctk
 
+# "set_appearance_mode" sirve para que siga el modo claro/oscuro del sistema operativo. Opciones: "light", "dark", "System".
+ctk.set_appearance_mode("System") 
+# "set_default_color_theme" sirve para botones, barras de progreso, etc. No afecta a la tabla (Treeview) porque es de ttk, no de customtkinter. Opciones: "blue", "dark-blue", "green".
+ctk.set_default_color_theme("blue") 
+
+
+# ---- FUNCIÓN AUXILIAR DE EMPAQUETADO ----
 def obtener_ruta(ruta_relativa):
-    """Obtiene la ruta absoluta al recurso, ya sea en desarrollo o en el .exe final"""
+    """
+    Obtiene la ruta absoluta a los recursos estáticos (como el ícono .ico).
+    Esencial para la compatibilidad con PyInstaller:
+    - En el .exe final, PyInstaller descomprime los 'assets' en una carpeta temporal (_MEIPASS).
+    - En desarrollo (VS Code), utiliza la ruta normal del sistema de archivos.
+    """
     try:
-        # PyInstaller guarda los archivos en esta carpeta temporal
+        # Intenta buscar la carpeta temporal creada por el .exe en tiempo de ejecución
         ruta_base = sys._MEIPASS
-    except Exception:
-        # Si no estamos en el .exe, usa la ruta normal de tu compu
+    except AttributeError:
+        # Falla si estamos ejecutando el script .py directo; usa la ruta del archivo actual
         ruta_base = os.path.dirname(os.path.abspath(__file__))
     
     return os.path.join(ruta_base, ruta_relativa)
