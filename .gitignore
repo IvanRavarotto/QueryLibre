@@ -19,3 +19,7 @@ __pycache__/
 # Archivos ocultos del sistema operativo (Windows/Mac)
 Thumbs.db
 .DS_Store
+
+# Ignorar datasets de prueba generados automáticamente
+data_test/*.csv
+data_test/*.xlsx
