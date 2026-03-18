@@ -1,0 +1,9 @@
+ID_Transaccion,Producto,Cantidad,Precio_Unitario,Cliente
+TRX-001,Laptop Dell XPS,2.0,1200.5,Empresa A
+TRX-002,"Monitor LG 27""",5.0,250.0,Empresa B
+,,,,
+TRX-005,Mouse Inalámbrico,10.0,25.0,Empresa A
+TRX-002,"Monitor LG 27""",5.0,250.0,Empresa B
+TRX-004,Teclado Mecánico,,85.5,
+TRX-003,,1.0,15.99,Empresa C
+TRX-001,Laptop Dell XPS,2.0,1200.5,Empresa A

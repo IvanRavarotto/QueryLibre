@@ -1,11 +1,21 @@
-__pycache__/
-*.py[cod]
+# Entornos virtuales (¡Súper importante para no subir miles de archivos!)
 .venv/
+venv/
 env/
 
-.env
+# Archivos de compilación de PyInstaller
+build/
+dist/
+*.spec
 
-*.csv
-*.xlsx
+# Archivos de caché de Python
+__pycache__/
+*.pyc
+*.pyo
 
+# Archivos de configuración de Visual Studio Code (opcional pero recomendado)
 .vscode/
+
+# Archivos ocultos del sistema operativo (Windows/Mac)
+Thumbs.db
+.DS_Store

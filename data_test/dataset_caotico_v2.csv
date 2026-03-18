@@ -1,0 +1,24 @@
+" ID Transaccion ",Producto_Nombre,Cantidad,precio_unitario_usd,Fecha Compra,Cliente,Notas_Internas
+TRX-016,"Monitor LG 27""",2,$444.74,2026-01-16,Corporación Y,Borrar esta columna
+TRX-010,Auriculares Sony,7,$933.50,2026-01-10,Corporación Y,Borrar esta columna
+TRX-001,Laptop Dell XPS,4,$1273.53,2026-01-01,Empresa C,Borrar esta columna
+TRX-009,Laptop Dell XPS,3,$1246.67,15-01-2026,Empresa B,Borrar esta columna
+TRX-018,Auriculares Sony,7,$360.69,2026-01-18,Empresa C,Borrar esta columna
+TRX-013,Laptop Dell XPS,3,$1061.29,2026-01-13,,Borrar esta columna
+TRX-002,Laptop Dell XPS,9,$911.53,01/01/2026,Empresa B,Borrar esta columna
+TRX-014,Laptop Dell XPS,4,$83.05,2026-01-14,Startup X,Borrar esta columna
+TRX-006,"Monitor LG 27""",,$1460.08,2026-01-06,Empresa C,Borrar esta columna
+TRX-003,,7,$1213.59,2026-01-03,Empresa C,Borrar esta columna
+TRX-012,Laptop Dell XPS,5,$872.37,2026-01-12,Empresa B,Borrar esta columna
+TRX-001,Laptop Dell XPS,4,$1273.53,2026-01-01,Empresa C,Borrar esta columna
+TRX-004,"Monitor LG 27""",4,$1098.65,2026-01-04,Empresa C,Borrar esta columna
+TRX-005,"Monitor LG 27""",8,$811.30,2026-01-05,Empresa B,Borrar esta columna
+TRX-019,Laptop Dell XPS,2,$164.99,2026-01-19,Empresa A,Borrar esta columna
+TRX-017,Auriculares Sony,2,$133.49,2026-01-17,Empresa B,Borrar esta columna
+TRX-005,"Monitor LG 27""",8,$811.30,2026-01-05,Empresa B,Borrar esta columna
+TRX-008,Auriculares Sony,1,$834.78,2026-01-08,Corporación Y,Borrar esta columna
+TRX-008,Auriculares Sony,1,$834.78,2026-01-08,Corporación Y,Borrar esta columna
+TRX-011,Mouse Inalámbrico,6,$1294.63,2026-01-11,Empresa B,Borrar esta columna
+TRX-015,"Monitor LG 27""",6,$353.43,2026-01-15,Empresa C,Borrar esta columna
+TRX-020,Auriculares Sony,6,$427.79,2026-01-20,Empresa B,Borrar esta columna
+TRX-007,Laptop Dell XPS,5,$577.12,2026-01-07,Empresa A,Borrar esta columna

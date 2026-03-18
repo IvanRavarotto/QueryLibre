@@ -1,24 +1,40 @@
-# ⚙️ QueryLibre - Motor de Transformación de Datos (ETL)
+# 🔍 QueryLibre - Motor de Transformación de Datos (ETL)
 
-QueryLibre es una aplicación de escritorio desarrollada en Python, diseñada para simplificar y visualizar el proceso de Extracción, Transformación y Carga de datos (ETL). Emula la lógica visual de herramientas como Power Query, permitiendo limpiar y estructurar datasets sin necesidad de escribir código en cada paso.
+QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada 100% en Python, diseñada para democratizar la limpieza y transformación de datos. Permite a los usuarios cargar, procesar, unir y exportar bases de datos sin necesidad de escribir una sola línea de código o usar software pesado como Excel o Power Query.
 
-## 🚀 Funcionalidades Principales
+## 🚀 Características Principales
 
-* **Interfaz Gráfica Interactiva (GUI):** Desarrollada con `CustomTkinter`, ofrece un diseño moderno (Modo Oscuro nativo) y una grilla de datos interactiva (`Treeview`) para explorar el dataset en tiempo real.
-* **Extracción Multi-formato (Fase E):** Carga nativa de archivos `.csv`, `.xlsx` y `.xls` mediante Pandas.
-* **Arsenal de Transformación (Fase T):**
-  * 🧹 Eliminación de valores nulos (NaN) y registros duplicados.
-  * 🗑️ Eliminación y renombramiento dinámico de columnas.
-  * 🧮 **Columnas Calculadas (Smart Parsing):** Motor matemático que detecta y limpia automáticamente símbolos de moneda antes de operar.
-  * 🔗 **Cruce de Datos (Merge/JOIN):** Unión relacional de múltiples datasets con previsualización de tablas en tiempo real.
-  * 🛡️ **Máquina del Tiempo (Deshacer):** Pila de estados en memoria que permite revertir transformaciones sin pérdida de datos.
-* **Exportación Universal (Fase L):** Guardado del dataset procesado y limpio en formatos `.csv`, `.xlsx` o inyección directa a una base de datos relacional local `.db` (SQLite).
+* **Carga Universal:** Soporte nativo para importar datasets en formatos `.csv`, `.xlsx` y `.xls`.
+* **Limpieza de Datos con un Clic:**
+    * Eliminación automática de filas duplicadas.
+    * Depuración de valores nulos (NaN/Null).
+    * Eliminación y renombrado intuitivo de columnas.
+* **Ingeniería de Características (Feature Engineering):**
+    * Calculadora de columnas: Operaciones matemáticas (+, -, *, /) entre columnas numéricas con parseo inteligente.
+    * Fusión de textos: Combinación de columnas de texto con separadores personalizados.
+* **Cruce de Datos (Merge/JOIN):** Integración de tablas dimensionales secundarias mediante cruces relacionales (Left Join, Inner Join) de forma visual.
+* **Historial de Pasos (Time Travel):** Sistema de registro de transformaciones que permite visualizar el pipeline aplicado y "Deshacer" (Undo) acciones paso a paso.
+* **Exportación Multiformato:** Descarga de los datos limpios en `.csv`, `.xlsx` o directamente inyectados en una base de datos relacional `.db` (SQLite).
 
-## 🛠️ Stack Tecnológico
-* **Lenguaje:** Python 3.x
-* **Manipulación de Datos:** Pandas, NumPy
-* **Interfaz Gráfica:** CustomTkinter, Tkinter (Treeview)
-* **Bases de Datos:** SQLite, SQLAlchemy
+## 🛠️ Tecnologías Utilizadas
 
-## 📌 Próximos Pasos
-* [ ] Compilación y empaquetado del proyecto en un instalador ejecutable (.exe) para uso independiente (Standalone).
+* **Lógica de Datos:** `Pandas` (Manipulación intensiva y vectorizada de DataFrames).
+* **Interfaz Gráfica (GUI):** `CustomTkinter` (Diseño moderno, modo oscuro nativo) y `Tkinter` (Treeview para renderizado de tablas).
+* **Sistema y Archivos:** `os`, `sys`, `sqlite3`.
+* **Empaquetado:** `PyInstaller` (Compilación a binario ejecutable `.exe` standalone).
+
+## 📦 Instalación y Uso (Para usuarios sin Python)
+
+No es necesario instalar Python ni librerías para usar QueryLibre.
+
+1. Ve a la sección de **Releases** en este repositorio (lado derecho de la pantalla).
+2. Descarga el archivo `QueryLibre.exe`.
+3. Haz doble clic para ejecutarlo (Si Windows Defender muestra una advertencia, haz clic en "Más información" -> "Ejecutar de todas formas").
+
+## 💻 Para Desarrolladores
+
+Si deseas clonar el proyecto para ver el código o contribuir:
+
+1. Clona este repositorio: `git clone https://github.com/IvanRavarotto/QueryLibre.git`
+2. Instala las dependencias: `pip install -r requirements.txt`
+3. Ejecuta la aplicación: `python main.py`
