@@ -147,48 +147,81 @@ class QueryLibreApp(ctk.CTk):
         self.btn_combinar = ctk.CTkButton(self.toolbar_frame, text="🔗 Combinar Textos", command=self.combinar_columnas, width=150, fg_color="#d35400", hover_color="#a04000")
         self.btn_combinar.pack(side="left", padx=5)
 
-        # ---- CONTENEDOR TABLA + HISTORIAL ----
+        # ---- 4. ÁREA DE DATOS E HISTORIAL (Contenedor Inferior) ----
+        # Contenedor para la tabla de datos y el panel de historial. 
+        # Al igual que el toolbar, se mantiene oculto en memoria hasta que se carga un archivo.
         self.content_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
-        # 1. Panel de Pasos Aplicados (Derecha) -> EMPAQUETADO PRIMERO Y BLINDADO
+        # -- Panel Derecho: Historial de Pasos (Máquina del Tiempo) --
+        # IMPORTANTE: Se empaqueta PRIMERO con side="right" para asegurar su posición
+        # antes de que la tabla de datos ocupe todo el espacio sobrante.
         self.history_frame = ctk.CTkFrame(self.content_frame, width=220)
-        self.history_frame.pack_propagate(False) # 🛡️ Bloquea el ancho, la tabla no lo aplastará
+        # pack_propagate(False) evita que los widgets internos (como el TextBox) 
+        # modifiquen el ancho fijo (220px) de este contenedor. Mantiene la UI estable.
+        self.history_frame.pack_propagate(False) 
         self.history_frame.pack(side="right", fill="y")
         
         self.history_label = ctk.CTkLabel(self.history_frame, text="📋 Pasos Aplicados", font=ctk.CTkFont(weight="bold"))
         self.history_label.pack(pady=(10, 5))
         
+        # Cuadro de texto para el registro continuo de acciones. 
+        # Inicia en state="disabled" (Solo lectura) para que el usuario no pueda escribir en él manualmente.
         self.history_text = ctk.CTkTextbox(self.history_frame, font=("Arial", 11), state="disabled", width=200)
         self.history_text.pack(expand=True, fill="both", padx=10, pady=5)
 
+        # Botón para deshacer acciones (Undo). 
+        # Inicia deshabilitado porque en este punto el historial (df_history) está vacío.
         self.btn_deshacer = ctk.CTkButton(self.history_frame, text="↩️ Deshacer Último", command=self.deshacer_paso, state="disabled", fg_color="#e74c3c", hover_color="#c0392b")
         self.btn_deshacer.pack(pady=(5, 15), padx=10, fill="x")
 
-        # 2. TABLA INTERACTIVA (Izquierda) -> EMPAQUETADA SEGUNDO
+        # -- Panel Izquierdo: Vista Previa de Datos (Tabla Interactiva) --
+        # Se empaqueta DESPUÉS del historial con expand=True y fill="both". 
+        # Esto hace que absorba fluidamente todo el espacio horizontal restante.
         self.tree_frame = ctk.CTkFrame(self.content_frame)
         self.tree_frame.pack(side="left", expand=True, fill="both", padx=(0, 10))
 
-        # Barras de desplazamiento para la tabla
+        # -- Barras de Desplazamiento (Scrollbars) --
+        # IMPORTANTE (Jerarquía de Empaquetado): Las barras se deben empaquetar primero 
+        # hacia los bordes (derecha y abajo) para asegurar su posición. Si empaquetamos 
+        # la tabla primero, esta ocuparía todo el espacio y empujaría las barras fuera de la vista.
         self.tree_scroll_y = ctk.CTkScrollbar(self.tree_frame)
         self.tree_scroll_y.pack(side="right", fill="y")
+        
         self.tree_scroll_x = ctk.CTkScrollbar(self.tree_frame, orientation="horizontal")
         self.tree_scroll_x.pack(side="bottom", fill="x")
 
-        # El componente Treeview (Tabla)
+        # -- Configuración de la Tabla de Datos (Treeview) --
+        # Instanciamos la tabla y la conectamos a las barras de desplazamiento.
+        # selectmode="extended" permite al usuario seleccionar múltiples filas (con Shift o Ctrl).
         self.tree = ttk.Treeview(self.tree_frame, yscrollcommand=self.tree_scroll_y.set, 
                                  xscrollcommand=self.tree_scroll_x.set, selectmode="extended")
+        # Se empaqueta al final para que ocupe fluidamente todo el espacio que dejaron las scrollbars
         self.tree.pack(expand=True, fill="both")
 
+        # Completamos el "Enlace Bidireccional" (Two-way binding).
+        # El Treeview avisa a la barra si el usuario hace scroll con la rueda del mouse, 
+        # y la barra avisa al Treeview si el usuario arrastra el deslizador.
         self.tree_scroll_y.configure(command=self.tree.yview)
         self.tree_scroll_x.configure(command=self.tree.xview)
 
-        # Darle estilo de "Modo Oscuro" a la tabla para que encaje con QueryLibre
+        # -- Inyección de Estilos (Modo Oscuro Personalizado) --
+        # CustomTkinter no estiliza los widgets clásicos de 'ttk'. Por lo tanto, 
+        # debemos crear un motor de estilos manual para que la tabla no desentone visualmente.
         style = ttk.Style()
+        
+        # IMPORTANTE: Cambiar el tema a "default" es obligatorio para que Tkinter nos permita 
+        # sobrescribir los colores nativos y rígidos del sistema operativo (especialmente en Windows).
         style.theme_use("default")
+        
+        # 1. Colores base del cuerpo de la tabla (Fondo oscuro, texto blanco, sin bordes feos)
         style.configure("Treeview", background="#2b2b2b", foreground="white", rowheight=25, 
                         fieldbackground="#2b2b2b", borderwidth=0)
-        style.map('Treeview', background=[('selected', '#1f538d')]) # Color azul al hacer clic
+        # 2. Comportamiento Dinámico: Cambio de color al seleccionar una fila (Azul)
+        style.map('Treeview', background=[('selected', '#1f538d')]) 
+        
+        # 3. Diseño de las Cabeceras (Nombres de las columnas)
         style.configure("Treeview.Heading", background="#565b5e", foreground="white", relief="flat")
+        # 4. Efecto "Hover" al pasar el mouse o hacer clic sobre una cabecera
         style.map("Treeview.Heading", background=[('active', '#343638')])
         
 
