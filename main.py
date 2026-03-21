@@ -224,90 +224,158 @@ class QueryLibreApp(ctk.CTk):
         # 4. Efecto "Hover" al pasar el mouse o hacer clic sobre una cabecera
         style.map("Treeview.Heading", background=[('active', '#343638')])
         
-
-    # ---- MÉTODOS DE LA APLICACIÓN ----
+    # ---- MÉTODOS DEL MOTOR (LÓGICA Y TRANSFORMACIONES) ----
 
     def registrar_paso(self, descripcion):
+        """
+        Añade una acción al historial interno y actualiza el panel derecho de la UI.
+        Funciona como un 'Logger' visual para que el usuario audite la trazabilidad de sus datos.
+        """
+        # 1. Guardamos la descripción en la lista en memoria
         self.historial_pasos.append(descripcion)
-        self.history_text.configure(state="normal")
-        self.history_text.delete("1.0", "end")
         
+        # 2. Desbloqueamos temporalmente la caja de texto para inyectar el texto mediante código
+        self.history_text.configure(state="normal")
+        self.history_text.delete("1.0", "end") # Limpiamos desde la línea 1, carácter 0, hasta el final
+        
+        # 3. Reescribimos todo el historial. 
+        # enumerate(..., 1) es una práctica Pythonica para que el índice 'i' arranque en 1.
         for i, paso in enumerate(self.historial_pasos, 1):
             self.history_text.insert("end", f"{i}. {paso}\n\n")
             
+        # 4. Volvemos a bloquear la caja para mantener el modo "Solo Lectura"
         self.history_text.configure(state="disabled")
 
+        # 5. Lógica del botón "Deshacer"
+        # El Paso 1 siempre es "Origen: archivo.csv". Si hay más de 1 paso, 
+        # significa que ya se aplicó alguna transformación y habilitamos el botón.
         if len(self.historial_pasos) > 1:
             self.btn_deshacer.configure(state="normal")
 
     def cargar_archivo(self):
-        file_path = filedialog.askopenfilename(title="Seleccionar Dataset", filetypes=[("Archivos de datos", "*.csv *.xlsx *.xls"), ("Todos los archivos", "*.*")])
+        """
+        El 'Motor de Arranque' de la app. 
+        Abre el explorador de archivos, lee el dataset usando Pandas según su extensión,
+        e inyecta los datos en la memoria del programa (self.df).
+        Además, realiza la transición visual ocultando el mensaje de bienvenida 
+        y revelando las herramientas de trabajo.
+        """
+        # 1. Diálogo del Sistema Operativo para elegir el archivo
+        file_path = filedialog.askopenfilename(
+            title="Seleccionar Dataset", 
+            filetypes=[("Archivos de datos", "*.csv *.xlsx *.xls"), ("Todos los archivos", "*.*")]
+        )
 
+        # Si el usuario selecciona un archivo (y no cancela la ventana)
         if file_path:
             try:
+                # 2. Lógica de Ingesta de Datos (Pandas)
                 extension = os.path.splitext(file_path)[1].lower()
                 if extension == '.csv':
                     self.df = pd.read_csv(file_path)
                 else:
-                    self.df = pd.read_excel(file_path)
+                    self.df = pd.read_excel(file_path) # Cubre tanto .xls como .xlsx
 
+                # 3. Reseteo del Estado Interno
+                # Limpiamos memorias previas por si el usuario carga un 2do archivo sin reiniciar la app
                 self.historial_pasos = []
                 self.df_history = []
                 self.btn_deshacer.configure(state="disabled")
 
-                self.welcome_label.pack_forget()
+                # 4. Transición de la Interfaz Gráfica (UI/UX)
+                self.welcome_label.pack_forget() # Ocultamos el placeholder de bienvenida
+                
+                # Desplegamos la barra superior y el contenedor de la tabla
                 self.toolbar_frame.pack(fill="x", padx=20, pady=(10, 0)) 
                 self.content_frame.pack(expand=True, fill="both", padx=20, pady=20)
                 
-                # Ya no necesitamos empaquetar aquí porque lo fijamos en el __init__
-
+                # 5. Habilitación de Funciones Secundarias
                 self.btn_transformar.configure(state="normal")
                 self.btn_exportar.configure(state="normal")
-                self.actualizar_vista_previa()
                 
+                # 6. Disparadores Finales
+                self.actualizar_vista_previa() # Renderizamos la tabla con los datos
+                
+                # Registramos el origen de los datos como el "Paso 1"
                 nombre_archivo = os.path.basename(file_path)
                 self.registrar_paso(f"Origen: {nombre_archivo}")
                 
             except Exception as e:
+                # 7. Manejo de Errores a prueba de fallos
+                # Si el archivo está corrupto o tiene otro formato, evitamos que la app "crashee"
+                # y le devolvemos un mensaje visual al usuario.
                 self.welcome_label.pack(expand=True)
                 self.welcome_label.configure(text=f"❌ Error al cargar:\n{str(e)}", text_color="red")
 
     def actualizar_vista_previa(self):
-        # 1. Limpiar la tabla por completo antes de actualizar
+        """
+        Renderiza una muestra de los datos actuales en el Treeview (Tabla Visual).
+        Se ejecuta automáticamente al cargar el archivo y después de cada transformación 
+        para dar feedback visual en tiempo real al usuario.
+        """
+        # 1. Limpieza del Lienzo (Reset Visual)
+        # get_children() obtiene los IDs de todas las filas actuales y delete() las borra.
+        # Esto evita que los datos nuevos se sumen por debajo de los viejos.
         self.tree.delete(*self.tree.get_children())
 
         if self.df is not None:
-            # Tomamos las primeras 15 filas
+            # 2. Muestreo de Datos (Optimización de Performance)
+            # Extraemos solo las primeras 15 filas. Intentar renderizar miles de filas 
+            # de golpe congelaría el hilo principal de la interfaz gráfica (Tkinter).
             df_preview = self.df.head(15)
 
-            # 2. Configurar las columnas dinámicamente
+            # 3. Construcción Dinámica de Columnas
+            # Inyectamos los nombres de las columnas del DataFrame como cabeceras del Treeview.
             self.tree["column"] = list(df_preview.columns)
-            self.tree["show"] = "headings"
+            
+            # "show='headings'" oculta una columna fantasma vacía que Tkinter pone a la izquierda por defecto
+            self.tree["show"] = "headings" 
 
             for col in self.tree["column"]:
                 self.tree.heading(col, text=col)
-                self.tree.column(col, width=120, anchor="center") # Ancho base de las celdas
+                self.tree.column(col, width=120, anchor="center") # Ancho base de 120px y texto centrado
 
-            # 3. Insertar las filas de datos
-            # Llenamos los NaN con texto vacío para que no se vea feo en la tabla
+            # 4. Inserción de Datos (Filas)
+            # Reemplazamos los valores nulos nativos de Pandas (NaN) por cadenas vacías ("").
+            # Esto evita que el usuario vea la palabra 'NaN' repetida en la tabla, mejorando la estética.
             df_preview_filled = df_preview.fillna("") 
             
+            # Iteramos fila por fila y la insertamos al final ("end") de la tabla
             for index, row in df_preview_filled.iterrows():
                 self.tree.insert("", "end", values=list(row))
     
 
     def deshacer_paso(self):
+        """
+        Revierte la última transformación aplicada al DataFrame.
+        Funciona operando las listas de historial como una 'Pila' (Stack - LIFO), 
+        extrayendo (pop) el último estado guardado en memoria y restaurándolo.
+        """
+        # Verificamos que haya copias de seguridad en df_history y 
+        # que el historial de texto tenga más de 1 paso (el Paso 1 es intocable: el Origen)
         if self.df_history and len(self.historial_pasos) > 1:
-            self.df = self.df_history.pop()
+            
+            # 1. Reversión de los datos en memoria (Rollback)
+            # .pop() saca el último elemento de la lista y lo asigna como el DataFrame activo
+            self.df = self.df_history.pop() 
+            
+            # 2. Reversión del registro visual (borramos el último renglón)
             self.historial_pasos.pop()
             
+            # 3. Re-dibujado de la caja de texto (Historial UI)
             self.history_text.configure(state="normal")
             self.history_text.delete("1.0", "end")
+            
             for i, paso in enumerate(self.historial_pasos, 1):
                 self.history_text.insert("end", f"{i}. {paso}\n\n")
+                
             self.history_text.configure(state="disabled")
             
+            # 4. Refrescar la tabla interactiva con los datos restaurados
             self.actualizar_vista_previa()
+            
+            # 5. Bloqueo de seguridad del botón
+            # Si al deshacer volvimos al estado original (Paso 1), apagamos el botón "Deshacer"
             if len(self.historial_pasos) == 1:
                 self.btn_deshacer.configure(state="disabled")
 
