@@ -380,75 +380,159 @@ class QueryLibreApp(ctk.CTk):
                 self.btn_deshacer.configure(state="disabled")
 
     def eliminar_duplicados(self):
+        """
+        Elimina las filas que sean copias exactas dentro del DataFrame activo.
+        Guarda una instantánea del estado previo para permitir deshacer la acción,
+        y calcula métricas de impacto (cuántas filas se borraron) para el historial.
+        """
         if self.df is not None:
+            # 1. Punto de Guardado (Savepoint)
+            # Usamos .copy() para crear un clon exacto en memoria. Es vital para 
+            # aislar el historial de la mutabilidad nativa de los DataFrames de Pandas.
             self.df_history.append(self.df.copy()) 
+            
+            # 2. Captura de métrica inicial
             antes = len(self.df)
+            
+            # 3. Transformación (Motor Pandas)
+            # drop_duplicates() elimina las filas donde TODOS los valores coinciden con otra.
             self.df = self.df.drop_duplicates()
+            
+            # 4. Cálculo de impacto
             despues = len(self.df)
             filas_eliminadas = antes - despues
             
+            # 5. Registro (Logger) y actualización visual
             if filas_eliminadas > 0:
                 self.registrar_paso(f"Se eliminaron {filas_eliminadas} filas duplicadas")
             else:
                 self.registrar_paso("Eliminar duplicados (0 filas)")
+                
             self.actualizar_vista_previa()
 
     def limpiar_nulos(self):
+        """
+        Elimina cualquier fila que contenga al menos un valor nulo (NaN/NaT) en el DataFrame activo.
+        Al igual que con los duplicados, crea un punto de restauración (Savepoint) y registra 
+        el impacto cuantitativo de la limpieza en el historial.
+        """
         if self.df is not None:
+            # 1. Punto de Guardado (Savepoint)
+            # Aislamos el estado actual creando una copia independiente en memoria.
             self.df_history.append(self.df.copy())
+            
+            # 2. Captura de métrica inicial
             antes = len(self.df)
+            
+            # 3. Transformación (Motor Pandas)
+            # dropna() limpia agresivamente el dataset borrando la fila completa si detecta un nulo.
             self.df = self.df.dropna()
+            
+            # 4. Cálculo de impacto
             despues = len(self.df)
             filas_eliminadas = antes - despues
             
+            # 5. Registro (Logger) y actualización visual
             if filas_eliminadas > 0:
                 self.registrar_paso(f"Se eliminaron {filas_eliminadas} filas con nulos")
             else:
                 self.registrar_paso("Limpiar nulos (0 filas)")
+                
             self.actualizar_vista_previa()
 
     def eliminar_columna(self):
+        """
+        Elimina una columna completa del DataFrame activo.
+        Utiliza un cuadro de diálogo (Input Dialog) para interactuar con el usuario 
+        y cuenta con validación de existencia para prevenir errores de tipo 'KeyError' en Pandas.
+        """
         if self.df is not None:
+            # 1. Interfaz de Captura de Datos (Usuario)
+            # Desplegamos un popup nativo de CustomTkinter pidiendo el nombre de la columna.
             dialog = ctk.CTkInputDialog(text="Escribe el nombre EXACTO de la columna a eliminar:", title="Eliminar Columna")
             col_name = dialog.get_input()
             
+            # 2. Validación de Seguridad
+            # Verificamos dos cosas: que el usuario no haya presionado "Cancelar" (col_name no esté vacío)
+            # y que el nombre escrito coincida exactamente con una columna existente en memoria.
             if col_name and col_name in self.df.columns:
+                
+                # 3. Punto de Guardado (Savepoint)
                 self.df_history.append(self.df.copy())
+                
+                # 4. Transformación (Motor Pandas)
                 self.df = self.df.drop(columns=[col_name])
+                
+                # 5. Registro (Logger) y actualización visual
                 self.registrar_paso(f"Columna eliminada: '{col_name}'")
                 self.actualizar_vista_previa()
+                
             elif col_name:
+                # 6. Manejo de Errores Leves
+                # Si escribió algo pero no existe (ej. error de tipeo o mayúsculas).
+                # Nota técnica: Por ahora sale por consola, a futuro se podría cambiar por una alerta visual.
                 print(f"La columna '{col_name}' no existe. Revisa espacios o mayúsculas.")
 
     def renombrar_columna(self):
+        """
+        Modifica el nombre de una columna existente en el DataFrame activo.
+        Implementa un flujo interactivo de dos pasos (Two-Step Wizard) mediante cuadros de diálogo,
+        validando la existencia de la columna original antes de solicitar el nuevo nombre.
+        """
         if self.df is not None:
+            # 1. Captura y validación del nombre original (Paso 1)
             dialog_old = ctk.CTkInputDialog(text="Nombre ACTUAL de la columna:", title="Renombrar Columna (Paso 1/2)")
             old_name = dialog_old.get_input()
             
+            # Verificamos que el input no esté vacío y que la columna realmente exista en memoria
             if old_name and old_name in self.df.columns:
+                
+                # 2. Captura del nuevo nombre (Paso 2)
+                # La f-string mejora la UX mostrándole al usuario qué columna está por modificar
                 dialog_new = ctk.CTkInputDialog(text=f"NUEVO nombre para '{old_name}':", title="Renombrar Columna (Paso 2/2)")
                 new_name = dialog_new.get_input()
                 
+                # Verificamos que el usuario haya escrito algo y no haya presionado "Cancelar"
                 if new_name:
+                    
+                    # 3. Punto de Guardado (Savepoint)
                     self.df_history.append(self.df.copy())
+                    
+                    # 4. Transformación (Motor Pandas)
+                    # El método rename exige un diccionario con el mapeo {nombre_viejo: nombre_nuevo}
                     self.df = self.df.rename(columns={old_name: new_name})
+                    
+                    # 5. Registro (Logger) y actualización visual
                     self.registrar_paso(f"Columna renombrada: '{old_name}' ➔ '{new_name}'")
                     self.actualizar_vista_previa()
+                    
             elif old_name:
+                # 6. Manejo de Errores Leves (Fallo en la validación del Paso 1)
                 print(f"La columna '{old_name}' no existe. Revisa espacios o mayúsculas.")
 
-    # ---- NUEVA FUNCIÓN FASE 7: CALCULADORA ----
+
     def calcular_columna(self):
+        """
+        Crea una nueva columna resultante de aplicar una operación matemática (+, -, *, /)
+        entre dos columnas existentes. 
+        Incluye un 'Smart Parser' para limpiar formatos de moneda y convertir textos a números.
+        """
         if self.df is not None:
-            # 1. Creamos la ventana emergente
+            # 1. Interfaz de Usuario (Ventana Modal)
+            # CTkToplevel crea una ventana secundaria flotante.
             dialog = ctk.CTkToplevel(self)
             dialog.title("Nueva Columna Calculada")
             dialog.geometry("400x380")
-            dialog.attributes("-topmost", True)
+            dialog.attributes("-topmost", True) # Fuerza a la ventana a estar siempre al frente
+            
+            # grab_set() bloquea la ventana principal hasta que el usuario cierre esta ventana secundaria.
+            # Es vital para evitar que el usuario borre una columna en el fondo mientras intenta sumarla acá.
             dialog.grab_set() 
 
+            # Obtenemos las opciones disponibles dinámicamente de los datos cargados
             columnas_actuales = list(self.df.columns)
 
+            # -- Construcción del Formulario --
             ctk.CTkLabel(dialog, text="Selecciona la Columna 1:").pack(pady=(10, 0))
             col1_combo = ctk.CTkComboBox(dialog, values=columnas_actuales)
             col1_combo.pack(pady=5)
@@ -461,22 +545,25 @@ class QueryLibreApp(ctk.CTk):
             col2_combo = ctk.CTkComboBox(dialog, values=columnas_actuales)
             col2_combo.pack(pady=5)
 
-
             ctk.CTkLabel(dialog, text="Nombre de la Nueva Columna:").pack(pady=(5, 0))
             new_col_entry = ctk.CTkEntry(dialog, placeholder_text="Ej: Total_Venta")
             new_col_entry.pack(pady=5)
 
-            # --- NUEVO: Etiqueta para mensajes de error ---
+            # Contenedor dinámico para mostrar errores en rojo sin usar prints de consola
             error_label = ctk.CTkLabel(dialog, text="", text_color="#e74c3c", font=ctk.CTkFont(weight="bold"))
             error_label.pack(pady=(0, 5))
 
+            # 2. Función Anidada de Ejecución
             def aplicar_calculo():
-                error_label.configure(text="") # Limpia errores anteriores
+                error_label.configure(text="") # Limpia errores de intentos anteriores
+                
+                # Capturamos los valores del formulario
                 c1 = col1_combo.get()
                 op = op_combo.get()
                 c2 = col2_combo.get()
                 new_col = new_col_entry.get()
 
+                # -- Validaciones de Seguridad --
                 if not new_col:
                     error_label.configure(text="⚠️ Ingresa un nombre para la columna.")
                     return
@@ -485,50 +572,66 @@ class QueryLibreApp(ctk.CTk):
                     return
                 
                 try:
+                    # Savepoint
                     self.df_history.append(self.df.copy())
                     
                     # --- SMART PARSER ---
+                    # Los Excels suelen traer números con formato (ej: "$ 1,500.00"). Pandas los lee como texto.
+                    # Esta sub-función limpia los caracteres sucios y fuerza la conversión a número (float/int).
                     def limpiar_y_convertir(serie):
+                        # Convertimos a string, borramos '$' y comas, y quitamos espacios en los bordes.
                         serie_limpia = serie.astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
+                        # to_numeric con 'coerce' convierte los valores rebeldes en NaN en lugar de crashear.
                         return pd.to_numeric(serie_limpia, errors='coerce')
 
+                    # Extraemos las series (columnas) y las pasamos por el filtro limpiador
                     s1 = limpiar_y_convertir(self.df[c1])
                     s2 = limpiar_y_convertir(self.df[c2])
                     # --------------------
 
+                    # -- Ejecución del Motor Pandas --
                     if op == "+": self.df[new_col] = s1 + s2
                     elif op == "-": self.df[new_col] = s1 - s2
                     elif op == "*": self.df[new_col] = s1 * s2
                     elif op == "/": self.df[new_col] = s1 / s2
 
+                    # -- Cierre y Registro --
                     self.registrar_paso(f"Cálculo: '{new_col}' = '{c1}' {op} '{c2}'")
                     self.actualizar_vista_previa()
-                    dialog.destroy()
+                    dialog.destroy() # Cerramos la ventana modal tras el éxito
                     
                 except Exception as e:
+                    # Rollback silencioso si falla algo matemático profundo (ej: división por cero no atajada)
                     print(f"Error en el cálculo: {e}")
                     self.df_history.pop()
 
+            # Botón disparador dentro de la ventana modal
             btn_aplicar = ctk.CTkButton(dialog, text="Aplicar Cálculo", command=aplicar_calculo, fg_color="#27ae60", hover_color="#2ecc71")
             btn_aplicar.pack(pady=20)
                     
-    # ---- NUEVA FUNCIÓN: COMBINAR TEXTOS ----
     def combinar_columnas(self):
+        """
+        Concatena el contenido de dos columnas en una sola, utilizando un separador elegido por el usuario.
+        Fuerza la conversión a texto (str) para evitar errores de tipo si se mezclan números y letras,
+        y cuenta con un filtro para limpiar los artefactos de 'NaN' que Pandas genera al convertir nulos a texto.
+        """
         if self.df is not None:
+            # 1. Interfaz de Usuario (Ventana Modal)
             dialog = ctk.CTkToplevel(self)
             dialog.title("Combinar Columnas de Texto")
             dialog.geometry("400x410")
             dialog.attributes("-topmost", True)
-            dialog.grab_set() 
+            dialog.grab_set() # Bloquea interacción con la ventana principal
 
             columnas_actuales = list(self.df.columns)
 
+            # -- Construcción del Formulario --
             ctk.CTkLabel(dialog, text="Selecciona la Columna 1:").pack(pady=(10, 0))
             col1_combo = ctk.CTkComboBox(dialog, values=columnas_actuales)
             col1_combo.pack(pady=5)
 
             ctk.CTkLabel(dialog, text="Separador:").pack(pady=(5, 0))
-            # Opciones de separación típicas en limpieza de datos
+            # Ofrecemos los separadores más comunes en limpieza de datos
             sep_combo = ctk.CTkComboBox(dialog, values=["Espacio", "Guion (-)", "Coma (,)", "Sin separador"])
             sep_combo.pack(pady=5)
 
@@ -540,47 +643,57 @@ class QueryLibreApp(ctk.CTk):
             new_col_entry = ctk.CTkEntry(dialog, placeholder_text="Ej: Producto_Cliente")
             new_col_entry.pack(pady=5)
 
-            # --- NUEVO: Etiqueta para mensajes de error ---
             error_label = ctk.CTkLabel(dialog, text="", text_color="#e74c3c", font=ctk.CTkFont(weight="bold"))
             error_label.pack(pady=(0, 5))
 
+            # 2. Función Anidada de Ejecución
             def aplicar_combinacion():
-                error_label.configure(text="") # Limpia errores anteriores
+                error_label.configure(text="") # Reset de mensajes de error
+                
+                # Captura de datos del formulario
                 c1 = col1_combo.get()
                 sep_texto = sep_combo.get()
                 c2 = col2_combo.get()
                 new_col = new_col_entry.get()
 
+                # -- Validaciones de Seguridad --
                 if not new_col:
                     error_label.configure(text="⚠️ Ingresa un nombre para la columna.")
                     return
                 if new_col in self.df.columns:
                     error_label.configure(text=f"⚠️ La columna '{new_col}' ya existe.")
                     return
-                # Traducimos la selección del usuario al símbolo real
+                
+                # -- Traductor de Separadores --
+                # Mapea la selección amigable del usuario al string literal que usará Pandas
                 if sep_texto == "Espacio": separador = " "
                 elif sep_texto == "Guion (-)": separador = " - "
                 elif sep_texto == "Coma (,)": separador = ", "
                 else: separador = ""
 
                 try:
+                    # Savepoint
                     self.df_history.append(self.df.copy())
                     
-                    # Forzamos la conversión a texto (.astype(str)) para evitar errores 
-                    # si intentan combinar un número con un texto.
+                    # -- Ejecución del Motor Pandas --
+                    # 1. Fuerza la conversión de ambas columnas a String y las concatena con el separador.
                     self.df[new_col] = self.df[c1].astype(str) + separador + self.df[c2].astype(str)
 
-                    # Si habían nulos, Pandas pondrá la palabra "nan". Los limpiamos:
+                    # 2. Limpieza de Artefactos ('nan')
+                    # Si había celdas vacías, al hacer .astype(str), Pandas inyecta la palabra literal "nan".
+                    # La borramos y luego usamos .str.strip(separador) para limpiar si quedó un guion/coma suelto en los bordes.
                     self.df[new_col] = self.df[new_col].str.replace('nan', '', case=False).str.strip(separador)
 
+                    # -- Cierre y Registro --
                     self.registrar_paso(f"Combinar: '{c1}' y '{c2}' ➔ '{new_col}'")
                     self.actualizar_vista_previa()
                     dialog.destroy()
                     
                 except Exception as e:
                     print(f"Error al combinar: {e}")
-                    self.df_history.pop()
+                    self.df_history.pop() # Rollback silencioso
 
+            # Botón disparador dentro de la ventana modal
             btn_aplicar = ctk.CTkButton(dialog, text="Aplicar Combinación", command=aplicar_combinacion, fg_color="#27ae60", hover_color="#2ecc71")
             btn_aplicar.pack(pady=20)
             
