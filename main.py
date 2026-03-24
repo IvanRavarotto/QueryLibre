@@ -697,17 +697,29 @@ class QueryLibreApp(ctk.CTk):
             btn_aplicar = ctk.CTkButton(dialog, text="Aplicar Combinación", command=aplicar_combinacion, fg_color="#27ae60", hover_color="#2ecc71")
             btn_aplicar.pack(pady=20)
             
-    # ---- NUEVA FUNCIÓN FASE 8: UNIR DATASETS (MERGE / JOIN) ----
+    # ---- INTEGRACIÓN DE DATOS (Merge / JOIN) ----
+
     def unir_datasets(self):
+        """
+        Permite fusionar el DataFrame activo con un segundo dataset (Tabla Dimensional).
+        Despliega una interfaz avanzada con vista previa independiente para el segundo archivo
+        y opciones para configurar el tipo de cruce (Left Join, Inner Join, etc.).
+        """
         if self.df is not None:
+            # 1. Configuración de la Ventana Modal Avanzada
             dialog = ctk.CTkToplevel(self)
             dialog.title("Unir Datasets (Merge / JOIN)")
-            dialog.geometry("650x650") # 📏 Ventana más grande para la mini-tabla
+            dialog.geometry("650x650") # 📏 Ventana más grande para acomodar la mini-tabla
+            
+            # transient() vincula esta ventana a la principal: si se minimiza la app, esta ventana también.
             dialog.transient(self)
+            # grab_set() bloquea la app principal para evitar modificaciones de datos en segundo plano.
             dialog.grab_set()
 
+            # Variable temporal para almacenar el segundo dataset en memoria sin pisar el principal
             self.df2 = None
 
+            # -- Sección 1: Carga de Datos Dimensionales --
             ctk.CTkLabel(dialog, text="1. Cargar Segundo Dataset (Tabla Dimensional)", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(15, 5))
             
             lbl_df2_info = ctk.CTkLabel(dialog, text="Ningún archivo cargado", text_color="gray")
@@ -716,161 +728,251 @@ class QueryLibreApp(ctk.CTk):
             btn_cargar_df2.pack(pady=5)
             lbl_df2_info.pack(pady=5)
 
-            # --- NUEVO: Mini Vista Previa del Dataset 2 ---
+            # -- Sección 2: Mini Vista Previa (Dataset 2) --
+            # Contenedor dedicado con altura fija para no deformar el resto del formulario
             preview_frame = ctk.CTkFrame(dialog, height=120)
             preview_frame.pack(fill="x", padx=20, pady=5)
             
+            # Scrollbars bidireccionales de la mini-tabla
             tree_scroll_y2 = ctk.CTkScrollbar(preview_frame)
             tree_scroll_y2.pack(side="right", fill="y")
             tree_scroll_x2 = ctk.CTkScrollbar(preview_frame, orientation="horizontal")
             tree_scroll_x2.pack(side="bottom", fill="x")
 
-            # Tabla pequeñita para no ocupar toda la pantalla
+            # Mini-tabla (Treeview) con altura reducida (height=4).
+            # selectmode="none" impide que el usuario seleccione filas (es solo de lectura visual).
             tree2 = ttk.Treeview(preview_frame, height=4, yscrollcommand=tree_scroll_y2.set, xscrollcommand=tree_scroll_x2.set, selectmode="none")
             tree2.pack(expand=True, fill="both")
+            
             tree_scroll_y2.configure(command=tree2.yview)
             tree_scroll_x2.configure(command=tree2.xview)
-            # ---------------------------------------------
 
+            # -- Sección 3: Contenedor de Opciones de Cruce --
+            # Frame transparente que agrupará los selectores de columnas y tipo de JOIN (se llena más adelante)
             opciones_frame = ctk.CTkFrame(dialog, fg_color="transparent")
 
+            # -- Función Anidada: Carga y Pre-visualización del Dataset 2 --
             def cargar_df2():
+                """
+                Abre el explorador de archivos para ingerir la Tabla Dimensional.
+                Inyecta una muestra de 5 filas en la mini-tabla y revela dinámicamente
+                las opciones de configuración del JOIN si la carga es exitosa.
+                """
                 file_path = filedialog.askopenfilename(title="Seleccionar Dataset 2", filetypes=[("Archivos de datos", "*.csv *.xlsx *.xls")])
+                
                 if file_path:
                     try:
+                        # 1. Ingesta a memoria secundaria (self.df2)
                         ext = os.path.splitext(file_path)[1].lower()
                         if ext == '.csv':
                             self.df2 = pd.read_csv(file_path)
                         else:
                             self.df2 = pd.read_excel(file_path)
                         
+                        # 2. Feedback visual (Metadatos del archivo)
                         nombre = os.path.basename(file_path)
                         lbl_df2_info.configure(text=f"✅ Archivo listo: {nombre} ({len(self.df2.columns)} columnas)", text_color="#27ae60")
                         
-                        # --- NUEVO: Llenar la mini tabla con los datos ---
-                        tree2.delete(*tree2.get_children())
-                        df_preview = self.df2.head(5).fillna("") # Mostramos 5 filas
+                        # 3. Renderizado de la Mini-Tabla (Vista Previa)
+                        tree2.delete(*tree2.get_children()) # Limpiamos si el usuario subió otro archivo antes
+                        
+                        # Tomamos 5 filas y limpiamos los NaNs visuales
+                        df_preview = self.df2.head(5).fillna("") 
+                        
                         tree2["column"] = list(df_preview.columns)
                         tree2["show"] = "headings"
+                        
                         for col in tree2["column"]:
                             tree2.heading(col, text=col)
                             tree2.column(col, width=100, anchor="center")
+                            
                         for index, row in df_preview.iterrows():
                             tree2.insert("", "end", values=list(row))
-                        # -------------------------------------------------
 
+                        # 4. Enlace Dinámico de Datos (Data Binding)
+                        # Inyectamos las columnas recién descubiertas en el selector del formulario
                         col2_combo.configure(values=list(self.df2.columns))
-                        col2_combo.set(list(self.df2.columns)[0])
+                        col2_combo.set(list(self.df2.columns)[0]) # Dejamos la primera columna seleccionada por defecto
                         
+                        # 5. Revelación Progresiva de la Interfaz (UX)
+                        # El contenedor de opciones de JOIN estaba oculto en memoria. Ahora lo mostramos.
                         opciones_frame.pack(fill="both", expand=True, padx=20, pady=10)
                         
                     except Exception as e:
+                        # Captura de errores amigable sin romper la aplicación principal
                         lbl_df2_info.configure(text=f"❌ Error al cargar: {str(e)}", text_color="red")
             
+            # Conectamos el botón físico con la función lógica que acabamos de definir
             btn_cargar_df2.configure(command=cargar_df2)
 
-            # --- Opciones de Cruce (dentro del frame) ---
+            # -- Sección 4: Formulario de Configuración del Cruce (JOIN) --
+            # Este frame (opciones_frame) se mantiene oculto hasta que la función cargar_df2() lo invoca.
             ctk.CTkLabel(opciones_frame, text="2. Configurar el Cruce (JOIN)", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(15, 10))
 
+            # Selector de la Llave Primaria (Primary Key) del Dataset original
             ctk.CTkLabel(opciones_frame, text="Llave en Dataset Principal:").pack(pady=(5, 0))
             col1_combo = ctk.CTkComboBox(opciones_frame, values=list(self.df.columns))
             col1_combo.pack(pady=5)
 
+            # Selector de la Llave Foránea (Foreign Key) del Dataset secundario
+            # Excelente UX: Inicia con un texto de marcador de posición (placeholder) 
+            # hasta que cargar_df2() reemplace este valor con las columnas reales.
             ctk.CTkLabel(opciones_frame, text="Llave en Dataset 2:").pack(pady=(5, 0))
             col2_combo = ctk.CTkComboBox(opciones_frame, values=["Esperando archivo..."])
             col2_combo.pack(pady=5)
 
+            # Selector del Comportamiento del Motor de Cruce
+            # - Left Join: Mantiene intacto el Dataset 1 y le "pega" las coincidencias del 2.
+            # - Inner Join: Filtra y mantiene SOLO las filas donde las llaves coinciden en AMBOS datasets.
             ctk.CTkLabel(opciones_frame, text="Tipo de Unión (JOIN):").pack(pady=(5, 0))
             tipo_combo = ctk.CTkComboBox(opciones_frame, values=["Izquierda (Left Join)", "Interna (Inner Join)"])
             tipo_combo.pack(pady=5)
 
+            # Etiqueta dinámica para atajar errores matemáticos o de tipo de datos
             error_label = ctk.CTkLabel(opciones_frame, text="", text_color="#e74c3c", font=ctk.CTkFont(weight="bold"))
             error_label.pack(pady=(10, 5))
 
+            # -- Función Anidada: Ejecución del Motor Relacional --
             def aplicar_union():
-                error_label.configure(text="")
+                """
+                Captura la configuración del usuario y ejecuta un pd.merge() 
+                para cruzar ambos DataFrames. Atrapa errores comunes como 
+                la incompatibilidad de tipos de datos (dtypes) entre las llaves.
+                """
+                error_label.configure(text="") # Limpieza de errores previos
+
+                # Validación de seguridad: evitar que el usuario aplique sin cargar el archivo
                 if self.df2 is None:
                     error_label.configure(text="⚠️ Primero debes cargar el Dataset 2.")
                     return
                 
+                # Captura de parámetros
                 k1 = col1_combo.get()
                 k2 = col2_combo.get()
                 tipo_str = tipo_combo.get()
                 
+                # Traducción semántica para el motor de Pandas
                 how_join = "left" if "Left" in tipo_str else "inner"
 
                 try:
+                    # 1. Punto de Guardado (Savepoint)
                     self.df_history.append(self.df.copy()) 
                     
+                    # 2. Transformación Core (Álgebra Relacional con Pandas)
+                    # pd.merge es el equivalente exacto a un JOIN de SQL. 
+                    # left_on y right_on permiten cruzar tablas aunque las columnas clave se llamen distinto.
                     self.df = pd.merge(self.df, self.df2, left_on=k1, right_on=k2, how=how_join)
                     
+                    # 3. Registro (Logger) y actualización visual
                     self.registrar_paso(f"Unión ({how_join}): usando '{k1}' = '{k2}'")
                     self.actualizar_vista_previa()
+                    
+                    # 4. Cierre exitoso
                     dialog.destroy()
+                    
                 except Exception as e:
+                    # 5. Manejo de Errores Críticos (Rollback)
+                    # Si el merge falla (ej: int vs str), mostramos alerta en UI y hacemos rollback del savepoint.
                     error_label.configure(text="⚠️ Error. Revisa que las llaves tengan el mismo tipo de dato.")
                     print(f"Error Merge: {e}")
-                    self.df_history.pop()
+                    self.df_history.pop() 
 
+            # -- Botón Disparador Final --
             btn_aplicar = ctk.CTkButton(opciones_frame, text="Aplicar Unión", command=aplicar_union, fg_color="#27ae60", hover_color="#2ecc71")
             btn_aplicar.pack(pady=15)
             
-    # ---- NUEVA FUNCIÓN FASE 9: EXPORTAR DATOS (LOAD) ----
+    # ---- EXPORTACIÓN DE DATOS (Fase de Carga / Load) ----
+
     def exportar_datos(self):
+        """
+        Finaliza el proceso ETL permitiendo al usuario guardar el DataFrame 
+        resultante y limpio en su disco local.
+        Ofrece una interfaz para seleccionar entre múltiples formatos de salida 
+        industriales (CSV, Excel, bases de datos SQLite).
+        """
+        # Validación temprana: Corta la ejecución si el usuario logró hacer clic 
+        # en el botón sin tener un DataFrame activo en memoria.
         if self.df is None:
             return
 
+        # 1. Configuración de la Ventana Modal de Exportación
         dialog = ctk.CTkToplevel(self)
         dialog.title("Exportar Datos")
         dialog.geometry("400x300")
-        dialog.transient(self) # Escudo anti-ventanas invasivas
-        dialog.grab_set()
+        
+        # Escudos de Interfaz (UX)
+        dialog.transient(self) # Ancla esta ventana a la app principal
+        dialog.grab_set()      # Bloquea la app de fondo para evitar alteraciones de última hora
 
+        # 2. Interfaz de Selección de Formato
         ctk.CTkLabel(dialog, text="💾 Seleccionar formato de exportación", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(20, 10))
 
-        # Menú desplegable con los tres formatos estrella
+        # Menú desplegable con los tres formatos más utilizados en Data Science
         formato_combo = ctk.CTkComboBox(dialog, values=["Archivo CSV (.csv)", "Archivo Excel (.xlsx)", "Base de Datos SQLite (.db)"])
         formato_combo.pack(pady=10)
 
+        # Etiqueta dinámica para el manejo de excepciones de I/O (Input/Output)
+        # Fundamental para atajar errores como "Permiso Denegado" o "Archivo abierto en otro programa"
         error_label = ctk.CTkLabel(dialog, text="", text_color="#e74c3c", font=ctk.CTkFont(weight="bold"))
         error_label.pack(pady=5)
 
+        # -- Función Anidada: Motor de Exportación (I/O) --
         def guardar():
-            formato = formato_combo.get()
-            
-            try:
-                if "CSV" in formato:
-                    file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("Archivo CSV", "*.csv")])
-                    if file_path:
-                        self.df.to_csv(file_path, index=False)
-                        self.registrar_paso(f"💾 Exportado a CSV: {os.path.basename(file_path)}")
-                        dialog.destroy()
-                        
-                elif "Excel" in formato:
-                    file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Archivo Excel", "*.xlsx")])
-                    if file_path:
-                        self.df.to_excel(file_path, index=False)
-                        self.registrar_paso(f"💾 Exportado a Excel: {os.path.basename(file_path)}")
-                        dialog.destroy()
-                        
-                elif "SQLite" in formato:
-                    file_path = filedialog.asksaveasfilename(defaultextension=".db", filetypes=[("Base de Datos SQLite", "*.db")])
-                    if file_path:
-                        import sqlite3
-                        # Conecta al archivo .db (o lo crea mágicamente si no existe)
-                        conn = sqlite3.connect(file_path)
-                        # Pandas hace la magia de crear la tabla y meter los datos
-                        self.df.to_sql("datos_limpios", conn, if_exists="replace", index=False)
-                        conn.close()
-                        self.registrar_paso(f"💾 Exportado a SQLite: {os.path.basename(file_path)}")
-                        dialog.destroy()
-            except Exception as e:
-                error_label.configure(text=f"⚠️ Error al guardar. Revisa la consola.")
-                print(f"Error Export: {e}")
+                """
+                Ejecuta la escritura física del archivo en el disco local.
+                Traduce el formato seleccionado en la UI a la función de exportación
+                correspondiente de Pandas (to_csv, to_excel, to_sql).
+                """
+                formato = formato_combo.get()
+                
+                try:
+                    # 1. Exportación a Texto Plano (CSV)
+                    if "CSV" in formato:
+                        file_path = filedialog.asksaveasfilename(defaultextension=".csv", filetypes=[("Archivo CSV", "*.csv")])
+                        if file_path:
+                            # index=False es vital para no exportar la numeración de filas de Pandas
+                            self.df.to_csv(file_path, index=False)
+                            self.registrar_paso(f"💾 Exportado a CSV: {os.path.basename(file_path)}")
+                            dialog.destroy()
+                            
+                    # 2. Exportación a Planilla de Cálculo (Excel)
+                    elif "Excel" in formato:
+                        file_path = filedialog.asksaveasfilename(defaultextension=".xlsx", filetypes=[("Archivo Excel", "*.xlsx")])
+                        if file_path:
+                            self.df.to_excel(file_path, index=False)
+                            self.registrar_paso(f"💾 Exportado a Excel: {os.path.basename(file_path)}")
+                            dialog.destroy()
+                            
+                    # 3. Exportación a Base de Datos Relacional (SQLite)
+                    elif "SQLite" in formato:
+                        file_path = filedialog.asksaveasfilename(defaultextension=".db", filetypes=[("Base de Datos SQLite", "*.db")])
+                        if file_path:
+                            import sqlite3
+                            # Conecta al archivo .db (o lo crea automáticamente si no existe)
+                            conn = sqlite3.connect(file_path)
+                            
+                            # Magia de Pandas: Crea la tabla "datos_limpios", infiere los tipos de datos 
+                            # (VARCHAR, INTEGER, etc.) y hace el INSERT de todas las filas.
+                            self.df.to_sql("datos_limpios", conn, if_exists="replace", index=False)
+                            conn.close()
+                            
+                            self.registrar_paso(f"💾 Exportado a SQLite: {os.path.basename(file_path)}")
+                            dialog.destroy()
+                            
+                except Exception as e:
+                    # Atrapa errores clásicos del sistema operativo, como intentar 
+                    # sobrescribir un Excel que el usuario tiene abierto en otra pantalla.
+                    error_label.configure(text=f"⚠️ Error al guardar. Revisa la consola.")
+                    print(f"Error Export: {e}")
 
+        # -- Botón Disparador de Exportación --
         btn_guardar = ctk.CTkButton(dialog, text="Guardar Como...", command=guardar, fg_color="#2980b9", hover_color="#1f618d")
         btn_guardar.pack(pady=15)
+
+# ---- PUNTO DE ENTRADA (MAIN) ----
+
 if __name__ == "__main__":
+    # Instanciamos y arrancamos el bucle principal (Event Loop) de la interfaz gráfica
     app = QueryLibreApp()
     app.mainloop()
     
