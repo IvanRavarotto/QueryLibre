@@ -99,7 +99,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
         # -- Información de Versión --
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.0.0", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.1.0", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s") # sticky="s" (South) lo ancla al borde inferior, otras opciones: n (top), e (right), w (left).
         
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -223,6 +223,18 @@ class QueryLibreApp(ctk.CTk):
         style.configure("Treeview.Heading", background="#565b5e", foreground="white", relief="flat")
         # 4. Efecto "Hover" al pasar el mouse o hacer clic sobre una cabecera
         style.map("Treeview.Heading", background=[('active', '#343638')])
+        
+        # --- TEASERS DE PRÓXIMAS FUNCIONES (v1.1) ---
+        # Botones deshabilitados para generar expectativa en el usuario
+        self.btn_dividir = ctk.CTkButton(self.toolbar_frame, text="🔒 Dividir Columna", state="disabled", fg_color="transparent", border_width=1, text_color="gray")
+        self.btn_dividir.pack(side="left", padx=5)
+
+        self.btn_filtrar = ctk.CTkButton(self.toolbar_frame, text="🔒 Filtrar Datos", state="disabled", fg_color="transparent", border_width=1, text_color="gray")
+        self.btn_filtrar.pack(side="left", padx=5)
+        
+        # Botón de información y soporte
+        self.btn_acerca_de = ctk.CTkButton(self.sidebar_frame, text="ℹ️ Acerca de / Roadmap", command=self.mostrar_acerca_de, fg_color="transparent", text_color="gray", hover_color="#333333")
+        self.btn_acerca_de.grid(row=10, column=0, pady=(50, 20), sticky="s")
         
     # ---- MÉTODOS DEL MOTOR (LÓGICA Y TRANSFORMACIONES) ----
 
@@ -968,6 +980,54 @@ class QueryLibreApp(ctk.CTk):
         # -- Botón Disparador de Exportación --
         btn_guardar = ctk.CTkButton(dialog, text="Guardar Como...", command=guardar, fg_color="#2980b9", hover_color="#1f618d")
         btn_guardar.pack(pady=15)
+        
+    def mostrar_acerca_de(self):
+        """
+        Ventana informativa que muestra la versión actual, el cumplimiento 
+        de licencias Open Source y el Roadmap de futuras actualizaciones.
+        """
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Acerca de QueryLibre")
+        dialog.geometry("400x520") 
+        dialog.transient(self)
+        dialog.grab_set()
+
+        # --- Cabecera ---
+        ctk.CTkLabel(dialog, text="QueryLibre v1.1", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
+
+        # --- Sección Legal / Open Source ---
+        ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(10, 5))
+        
+        legal_text = (
+            "Este software se distribuye bajo la Licencia MIT.\n"
+            "Construido con orgullo utilizando:\n\n"
+            "• Python (Python Software Foundation License)\n"
+            "• Pandas (BSD 3-Clause License)\n"
+            "• CustomTkinter (MIT License)\n"
+            "• SQLite (Public Domain)"
+        )
+        ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 15))
+
+        # --- Sección de Expectativa (Roadmap) ---
+        ctk.CTkLabel(dialog, text="🚀 Próximamente (v1.2+):", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(10, 5))
+
+        funciones_futuras = [
+            "✂️ Dividir Columna (Split)",
+            "🔍 Buscar y Reemplazar",
+            "🚦 Filtrado Condicional",
+            "🔠 Cambiar Tipo de Dato",
+            "📦 Agrupar y Resumir"
+        ]
+
+        for func in funciones_futuras:
+            ctk.CTkLabel(dialog, text=func, anchor="w").pack(fill="x", padx=90, pady=2)
+
+        # --- Pie de página y Apoyo ---
+        ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
+
+        # Botón para cerrar
+        ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)
 
 # ---- PUNTO DE ENTRADA (MAIN) ----
 
