@@ -179,6 +179,16 @@ class QueryLibreApp(ctk.CTk):
         # Esto hace que absorba fluidamente todo el espacio horizontal restante.
         self.tree_frame = ctk.CTkFrame(self.content_frame)
         self.tree_frame.pack(side="left", expand=True, fill="both", padx=(0, 10))
+        
+        # --- INDICADOR DE DIMENSIONES (Status Bar) ---
+        self.lbl_dimensiones = ctk.CTkLabel(
+            self.main_frame, # O el frame donde esté alojada tu tabla
+            text="Filas: 0 | Columnas: 0", 
+            text_color="gray", 
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        # Lo empaquetamos abajo a la derecha
+        self.lbl_dimensiones.pack(side="bottom", anchor="e", padx=20, pady=5)
 
         # -- Barras de Desplazamiento (Scrollbars) --
         # IMPORTANTE (Jerarquía de Empaquetado): Las barras se deben empaquetar primero 
@@ -334,7 +344,7 @@ class QueryLibreApp(ctk.CTk):
             # 2. Muestreo de Datos (Optimización de Performance)
             # Extraemos solo las primeras 15 filas. Intentar renderizar miles de filas 
             # de golpe congelaría el hilo principal de la interfaz gráfica (Tkinter).
-            df_preview = self.df.head(15)
+            df_preview = self.df.head(200)
 
             # 3. Construcción Dinámica de Columnas
             # Inyectamos los nombres de las columnas del DataFrame como cabeceras del Treeview.
@@ -355,6 +365,11 @@ class QueryLibreApp(ctk.CTk):
             # Iteramos fila por fila y la insertamos al final ("end") de la tabla
             for index, row in df_preview_filled.iterrows():
                 self.tree.insert("", "end", values=list(row))
+                
+        # Actualizar el contador de dimensiones en la interfaz
+        if hasattr(self, 'df') and self.df is not None:
+            filas, columnas = self.df.shape
+            self.lbl_dimensiones.configure(text=f"Filas: {filas} | Columnas: {columnas}")
     
 
     def deshacer_paso(self):
@@ -424,33 +439,56 @@ class QueryLibreApp(ctk.CTk):
 
     def limpiar_nulos(self):
         """
-        Elimina cualquier fila que contenga al menos un valor nulo (NaN/NaT) en el DataFrame activo.
-        Al igual que con los duplicados, crea un punto de restauración (Savepoint) y registra 
-        el impacto cuantitativo de la limpieza en el historial.
+        Abre un cuadro de diálogo para que el usuario elija la agresividad de la limpieza.
+        Opción A: Borrar solo si TODA la fila está vacía (how='all').
+        Opción B: Borrar si falta AL MENOS UN dato (how='any').
         """
-        if self.df is not None:
-            # 1. Punto de Guardado (Savepoint)
-            # Aislamos el estado actual creando una copia independiente en memoria.
+        if self.df is None:
+            return
+
+        # 1. Interfaz de Usuario (Ventana Modal)
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Opciones de Limpieza")
+        dialog.geometry("350x220")
+        dialog.transient(self)
+        dialog.grab_set() # Bloquea la app principal
+
+        ctk.CTkLabel(dialog, text="¿Qué filas deseas eliminar?", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(20, 10))
+
+        # 2. Función interna que ejecuta la limpieza según la opción elegida
+        def ejecutar_limpieza(modo):
+            # Guardamos historial y capturamos métrica inicial
             self.df_history.append(self.df.copy())
-            
-            # 2. Captura de métrica inicial
             antes = len(self.df)
-            
-            # 3. Transformación (Motor Pandas)
-            # dropna() limpia agresivamente el dataset borrando la fila completa si detecta un nulo.
-            self.df = self.df.dropna()
-            
-            # 4. Cálculo de impacto
+
+            # Ejecutamos el motor de Pandas con el modo seleccionado ('all' o 'any')
+            self.df = self.df.dropna(how=modo)
+
+            # Calculamos el impacto
             despues = len(self.df)
             filas_eliminadas = antes - despues
             
-            # 5. Registro (Logger) y actualización visual
+            # Texto dinámico para el historial según la decisión
+            tipo_texto = "completamente vacías" if modo == 'all' else "con datos faltantes"
+            
+            # Registro visual
             if filas_eliminadas > 0:
-                self.registrar_paso(f"Se eliminaron {filas_eliminadas} filas con nulos")
+                self.registrar_paso(f"Se eliminaron {filas_eliminadas} filas {tipo_texto}")
             else:
-                self.registrar_paso("Limpiar nulos (0 filas)")
-                
+                self.registrar_paso(f"Limpieza de nulos (0 filas {tipo_texto})")
+
+            # Actualizamos la tabla, el contador y cerramos la ventana
             self.actualizar_vista_previa()
+            dialog.destroy()
+
+        # 3. Botones de opciones para el usuario
+        btn_all = ctk.CTkButton(dialog, text="Solo filas COMPLETAMENTE vacías", 
+                                command=lambda: ejecutar_limpieza('all'), fg_color="#2980b9", hover_color="#1f618d")
+        btn_all.pack(pady=10, padx=20, fill="x")
+
+        btn_any = ctk.CTkButton(dialog, text="Filas con ALGÚN dato faltante", 
+                                command=lambda: ejecutar_limpieza('any'), fg_color="#c0392b", hover_color="#922b21")
+        btn_any.pack(pady=10, padx=20, fill="x")
 
     def eliminar_columna(self):
         """

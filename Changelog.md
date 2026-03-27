@@ -2,6 +2,16 @@
 
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.1.1] - 2026-03-26
+### Mejoras (Changed)
+* **Vista previa ampliada:** Se incrementó el límite de renderizado en la tabla interactiva de 15 a 200 filas, permitiendo una exploración de datos mucho más profunda sin comprometer el rendimiento de la interfaz (Tkinter).
+* **Limpieza de Nulos interactiva:** Se mejoró la UX del botón "Limpiar Nulos", implementando un cuadro de diálogo que otorga al usuario el control para decidir la agresividad de la limpieza (eliminar filas completamente vacías vs. eliminar filas con algún dato faltante).
+
+### Añadido (Added)
+* **Indicador de dimensiones dinámico:** Se incorporó un contador en tiempo real en la barra inferior derecha que refleja la cantidad total de filas y columnas en memoria, brindando transparencia instantánea tras ejecutar limpiezas de datos masivas (como nulos y duplicados ocultos).
+
+---
+
 ## [1.1.0] - 2026-03-26
 ### Añadido
 - Ventana de "Acerca de" con información del proyecto, hoja de ruta (Roadmap) y cumplimientos de licencias Open Source.
