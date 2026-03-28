@@ -2,6 +2,14 @@
 
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.2.0] - 2026-03-27
+### Añadido (Added)
+* **Paginación de Datos:** Nuevo sistema de navegación por páginas (200 filas por hoja) con controles de Anterior/Siguiente. Permite explorar datasets grandes de manera fluida y sin sobrecargar la interfaz gráfica.
+* **Índice Visual de Filas:** Se incorporó una columna estática (`#`) en la vista previa de la tabla para facilitar la lectura, el seguimiento y la ubicación de los registros. Esta columna es de ayuda puramente visual y no altera el dataset al exportar.
+
+### Correcciones (Fixed)
+* **Refinamiento de Interfaz (UI):** Se corrigió la jerarquía de empaquetado visual (layout) de la tabla de datos. Ahora las barras de desplazamiento (scrollbars) se integran perfectamente a los bordes sin superponerse ni ocultar los controles de paginación.
+
 ## [1.1.1] - 2026-03-26
 ### Mejoras (Changed)
 * **Vista previa ampliada:** Se incrementó el límite de renderizado en la tabla interactiva de 15 a 200 filas, permitiendo una exploración de datos mucho más profunda sin comprometer el rendimiento de la interfaz (Tkinter).
@@ -21,10 +29,10 @@ Todos los cambios notables en el proyecto **QueryLibre** serán documentados en 
 
 ## [1.0.0] - 2026-03-23
 ### Añadido
-- Lanzamiento de la primera versión estable del motor ETL.
-- Módulo de carga universal de archivos (`.csv`, `.xlsx`, `.xls`).
-- **Limpieza de Datos:** Funciones para eliminar duplicados, depurar valores nulos, eliminar y renombrar columnas.
-- **Ingeniería de Características:** Calculadora matemática con *Smart Parser* para símbolos de moneda, y herramienta para combinación de textos.
-- **Integración:** Interfaz visual para cruce de datos relacionales (Merge/JOIN) con vista previa progresiva.
-- Sistema de auditoría (Historial de Pasos) con capacidad de revertir acciones mediante pila LIFO (Undo).
-- Módulo de exportación multiformato (CSV, Excel y bases de datos SQLite).
+* Lanzamiento de la primera versión estable del motor ETL.
+* Módulo de carga universal de archivos (`.csv`, `.xlsx`, `.xls`).
+* **Limpieza de Datos:** Funciones para eliminar duplicados, depurar valores nulos, eliminar y renombrar columnas.
+* **Ingeniería de Características:** Calculadora matemática con *Smart Parser* para símbolos de moneda, y herramienta para combinación de textos.
+* **Integración:** Interfaz visual para cruce de datos relacionales (Merge/JOIN) con vista previa progresiva.
+* Sistema de auditoría (Historial de Pasos) con capacidad de revertir acciones mediante pila LIFO (Undo).
+* Módulo de exportación multiformato (CSV, Excel y bases de datos SQLite).

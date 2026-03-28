@@ -1,6 +1,7 @@
 # Librerías estándar para el proyecto
 import os
 import sys
+import math 
 import ctypes
 import tkinter as tk
 from tkinter import filedialog, ttk
@@ -46,6 +47,9 @@ class QueryLibreApp(ctk.CTk):
         self.df = None                 # DataFrame activo (los datos actuales en pantalla)
         self.historial_pasos = []      # Registro en texto de los cambios para mostrar en la interfaz
         self.df_history = []           # Copias del DataFrame para hacer funcionar el botón "Deshacer"
+        
+        self.pagina_actual = 1
+        self.filas_por_pagina = 200
         
         # ---- CONFIGURACIÓN DE LA VENTANA PRINCIPAL ----
         self.title("QueryLibre - Motor de Transformación de Datos")
@@ -181,36 +185,54 @@ class QueryLibreApp(ctk.CTk):
         self.tree_frame.pack(side="left", expand=True, fill="both", padx=(0, 10))
         
         # --- INDICADOR DE DIMENSIONES (Status Bar) ---
+        # Lo anclamos al frame principal (main_frame), en la esquina inferior derecha.
         self.lbl_dimensiones = ctk.CTkLabel(
-            self.main_frame, # O el frame donde esté alojada tu tabla
+            self.main_frame, 
             text="Filas: 0 | Columnas: 0", 
             text_color="gray", 
             font=ctk.CTkFont(size=12, weight="bold")
         )
-        # Lo empaquetamos abajo a la derecha
         self.lbl_dimensiones.pack(side="bottom", anchor="e", padx=20, pady=5)
 
-        # -- Barras de Desplazamiento (Scrollbars) --
-        # IMPORTANTE (Jerarquía de Empaquetado): Las barras se deben empaquetar primero 
-        # hacia los bordes (derecha y abajo) para asegurar su posición. Si empaquetamos 
-        # la tabla primero, esta ocuparía todo el espacio y empujaría las barras fuera de la vista.
+        # =========================================================
+        # 1. Paginación (Piso) -> 2. Scrollbars (Paredes) -> 3. Tabla (Centro)
+        # =========================================================
+
+        # --- 1. CAPA INFERIOR: Controles de Paginación ---
+        self.pagination_frame = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
+        self.pagination_frame.pack(side="bottom", fill="x", pady=(5, 0))
+        
+        self.btn_prev_page = ctk.CTkButton(self.pagination_frame, text="◀ Anterior", width=80, command=self.pagina_anterior, state="disabled")
+        self.btn_prev_page.pack(side="left", padx=10)
+
+        self.lbl_pagina = ctk.CTkLabel(self.pagination_frame, text="Página 1 de 1", font=ctk.CTkFont(weight="bold"))
+        self.lbl_pagina.pack(side="left", expand=True)
+
+        self.btn_next_page = ctk.CTkButton(self.pagination_frame, text="Siguiente ▶", width=80, command=self.pagina_siguiente, state="disabled")
+        self.btn_next_page.pack(side="right", padx=10)
+
+        # --- 2. CAPA LATERAL E INFERIOR: Barras de Desplazamiento ---
+        # Chocan contra los bordes libres y se apoyan sobre el frame de paginación.
         self.tree_scroll_y = ctk.CTkScrollbar(self.tree_frame)
         self.tree_scroll_y.pack(side="right", fill="y")
         
         self.tree_scroll_x = ctk.CTkScrollbar(self.tree_frame, orientation="horizontal")
         self.tree_scroll_x.pack(side="bottom", fill="x")
 
-        # -- Configuración de la Tabla de Datos (Treeview) --
-        # Instanciamos la tabla y la conectamos a las barras de desplazamiento.
-        # selectmode="extended" permite al usuario seleccionar múltiples filas (con Shift o Ctrl).
-        self.tree = ttk.Treeview(self.tree_frame, yscrollcommand=self.tree_scroll_y.set, 
-                                 xscrollcommand=self.tree_scroll_x.set, selectmode="extended")
-        # Se empaqueta al final para que ocupe fluidamente todo el espacio que dejaron las scrollbars
+        # --- 3. CAPA CENTRAL: La Tabla de Datos (Treeview) ---
+        # Instanciamos la tabla conectándola a las barras de desplazamiento.
+        # selectmode="extended" permite seleccionar múltiples filas con Shift/Ctrl.
+        self.tree = ttk.Treeview(
+            self.tree_frame, 
+            yscrollcommand=self.tree_scroll_y.set, 
+            xscrollcommand=self.tree_scroll_x.set, 
+            selectmode="extended"
+        )
+        # Se empaqueta al final para que ocupe fluidamente todo el espacio libre restante
         self.tree.pack(expand=True, fill="both")
 
         # Completamos el "Enlace Bidireccional" (Two-way binding).
-        # El Treeview avisa a la barra si el usuario hace scroll con la rueda del mouse, 
-        # y la barra avisa al Treeview si el usuario arrastra el deslizador.
+        # El Treeview avisa a la barra si hay scroll con mouse, y la barra avisa al Treeview si se arrastra.
         self.tree_scroll_y.configure(command=self.tree.yview)
         self.tree_scroll_x.configure(command=self.tree.xview)
 
@@ -245,6 +267,7 @@ class QueryLibreApp(ctk.CTk):
         # Botón de información y soporte
         self.btn_acerca_de = ctk.CTkButton(self.sidebar_frame, text="ℹ️ Acerca de / Roadmap", command=self.mostrar_acerca_de, fg_color="transparent", text_color="gray", hover_color="#333333")
         self.btn_acerca_de.grid(row=10, column=0, pady=(50, 20), sticky="s")
+        
         
     # ---- MÉTODOS DEL MOTOR (LÓGICA Y TRANSFORMACIONES) ----
 
@@ -302,6 +325,7 @@ class QueryLibreApp(ctk.CTk):
                 # Limpiamos memorias previas por si el usuario carga un 2do archivo sin reiniciar la app
                 self.historial_pasos = []
                 self.df_history = []
+                self.pagina_actual = 1
                 self.btn_deshacer.configure(state="disabled")
 
                 # 4. Transición de la Interfaz Gráfica (UI/UX)
@@ -331,45 +355,75 @@ class QueryLibreApp(ctk.CTk):
 
     def actualizar_vista_previa(self):
         """
-        Renderiza una muestra de los datos actuales en el Treeview (Tabla Visual).
-        Se ejecuta automáticamente al cargar el archivo y después de cada transformación 
-        para dar feedback visual en tiempo real al usuario.
+        Renderiza la página actual de los datos en el Treeview (Tabla Visual).
+        Calcula dinámicamente el total de páginas y bloquea/desbloquea los botones de navegación.
         """
-        # 1. Limpieza del Lienzo (Reset Visual)
-        # get_children() obtiene los IDs de todas las filas actuales y delete() las borra.
-        # Esto evita que los datos nuevos se sumen por debajo de los viejos.
         self.tree.delete(*self.tree.get_children())
 
-        if self.df is not None:
-            # 2. Muestreo de Datos (Optimización de Performance)
-            # Extraemos solo las primeras 15 filas. Intentar renderizar miles de filas 
-            # de golpe congelaría el hilo principal de la interfaz gráfica (Tkinter).
-            df_preview = self.df.head(200)
-
-            # 3. Construcción Dinámica de Columnas
-            # Inyectamos los nombres de las columnas del DataFrame como cabeceras del Treeview.
-            self.tree["column"] = list(df_preview.columns)
+        if self.df is not None and not self.df.empty:
+            # -- Lógica de Paginación --
+            total_filas = len(self.df)
+            total_paginas = math.ceil(total_filas / self.filas_por_pagina)
             
-            # "show='headings'" oculta una columna fantasma vacía que Tkinter pone a la izquierda por defecto
+            # Corrección de seguridad: si al borrar datos la página actual quedó fuera de rango
+            if self.pagina_actual > total_paginas:
+                self.pagina_actual = max(1, total_paginas)
+
+            # Cálculo de índices para "rebanar" (slice) el DataFrame
+            inicio = (self.pagina_actual - 1) * self.filas_por_pagina
+            fin = inicio + self.filas_por_pagina
+            
+            # Extraemos solo las filas que corresponden a la página actual
+            df_preview = self.df.iloc[inicio:fin]
+
+            # -- Construcción Dinámica de Columnas --
+            columnas_visuales = ["#"] + list(df_preview.columns)
+            self.tree["column"] = columnas_visuales
             self.tree["show"] = "headings" 
 
-            for col in self.tree["column"]:
-                self.tree.heading(col, text=col)
-                self.tree.column(col, width=120, anchor="center") # Ancho base de 120px y texto centrado
+            self.tree.heading("#", text="#")
+            self.tree.column("#", width=40, anchor="center", stretch=False)
 
-            # 4. Inserción de Datos (Filas)
-            # Reemplazamos los valores nulos nativos de Pandas (NaN) por cadenas vacías ("").
-            # Esto evita que el usuario vea la palabra 'NaN' repetida en la tabla, mejorando la estética.
+            for col in df_preview.columns:
+                self.tree.heading(col, text=col)
+                self.tree.column(col, width=120, anchor="center")
+
+            # -- Inserción de Datos --
             df_preview_filled = df_preview.fillna("") 
             
-            # Iteramos fila por fila y la insertamos al final ("end") de la tabla
-            for index, row in df_preview_filled.iterrows():
-                self.tree.insert("", "end", values=list(row))
+            # El índice arranca en el número real de la fila (ej: inicio 200, arranca en 201)
+            for i, (index, row) in enumerate(df_preview_filled.iterrows(), start=inicio + 1):
+                valores_fila = [i] + list(row)
+                self.tree.insert("", "end", values=valores_fila)
                 
-        # Actualizar el contador de dimensiones en la interfaz
-        if hasattr(self, 'df') and self.df is not None:
-            filas, columnas = self.df.shape
-            self.lbl_dimensiones.configure(text=f"Filas: {filas} | Columnas: {columnas}")
+            # -- Actualización de UI (Textos y Botones) --
+            self.lbl_pagina.configure(text=f"Página {self.pagina_actual} de {total_paginas}")
+            self.lbl_dimensiones.configure(text=f"Filas: {total_filas} | Columnas: {len(self.df.columns)}")
+
+            # Prender/Apagar botones según corresponda
+            estado_prev = "normal" if self.pagina_actual > 1 else "disabled"
+            estado_next = "normal" if self.pagina_actual < total_paginas else "disabled"
+            
+            self.btn_prev_page.configure(state=estado_prev)
+            self.btn_next_page.configure(state=estado_next)
+            
+        elif self.df is not None and self.df.empty:
+            # Caso borde: El usuario eliminó TODAS las filas del dataset
+            self.lbl_pagina.configure(text="Página 0 de 0")
+            self.lbl_dimensiones.configure(text=f"Filas: 0 | Columnas: {len(self.df.columns)}")
+            self.btn_prev_page.configure(state="disabled")
+            self.btn_next_page.configure(state="disabled")
+
+    # ---- MÉTODOS DE NAVEGACIÓN ----
+    def pagina_anterior(self):
+        if self.pagina_actual > 1:
+            self.pagina_actual -= 1
+            self.actualizar_vista_previa()
+
+    def pagina_siguiente(self):
+        # El límite de seguridad ya lo controla el estado del botón, pero lo reforzamos por código
+        self.pagina_actual += 1
+        self.actualizar_vista_previa()
     
 
     def deshacer_paso(self):

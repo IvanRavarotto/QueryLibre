@@ -7,7 +7,8 @@ import random
 random.seed(42)
 np.random.seed(42)
 
-n_records = 120 # Base de 120 registros (llegará a 135 con los duplicados)
+# Subimos la base para pasar las 200 filas de la paginación
+n_records = 450 # Llegará a 500 exactos con los duplicados
 
 # --- 1. DATASET PRINCIPAL (CAÓTICO) ---
 productos = ['Laptop Dell XPS', 'Monitor LG 27"', 'Teclado Mecánico', 'Mouse Inalámbrico', 'Auriculares Sony', 'Silla Ergonomica', 'Escritorio Standing']
@@ -15,48 +16,49 @@ categorias = ['Electronica', 'Perifericos', 'Mobiliario']
 
 datos_ventas = {
     ' ID Transaccion ': [f'TRX-{str(i).zfill(4)}' for i in range(1, n_records + 1)], # Espacios molestos
-    'ID_Cliente': [random.randint(1, 15) for _ in range(n_records)], # Clientes del 1 al 15
+    'ID_Cliente': [random.randint(1, 50) for _ in range(n_records)], # Clientes del 1 al 50
     'Producto_Nombre': [random.choice(productos) for _ in range(n_records)],
     'Categoria_Prod': [random.choice(categorias) for _ in range(n_records)],
     'Sub_Cat': ['Genérica' for _ in range(n_records)], 
     'Cantidad ': [str(random.randint(1, 15)) for _ in range(n_records)], # Guardado como texto
     'precio_unitario_usd': [f"${random.uniform(15.0, 2500.0):,.2f}" for _ in range(n_records)], # Símbolo y comas (Ej: $1,500.00)
-    'Fecha Compra': pd.date_range(start='2025-01-01', periods=n_records).strftime('%Y-%m-%d').tolist(),
+    # Generamos fechas distribuidas a lo largo del año
+    'Fecha Compra': pd.date_range(start='2024-01-01', periods=n_records).strftime('%Y-%m-%d').tolist(),
     'Notas_Internas': ['Borrar esta columna' for _ in range(n_records)] # Columna inútil
 }
 
 df_ventas = pd.DataFrame(datos_ventas)
 
 # --- ENSUCIAR EL DATASET PRINCIPAL ---
-# 1. Inyectar Nulos (NaN) aleatorios
-for _ in range(12): df_ventas.loc[random.randint(0, n_records-1), 'Producto_Nombre'] = np.nan
-for _ in range(8): df_ventas.loc[random.randint(0, n_records-1), 'Cantidad '] = np.nan
-for _ in range(5): df_ventas.loc[random.randint(0, n_records-1), 'ID_Cliente'] = np.nan
+# 1. Inyectar Nulos (NaN) aleatorios (Escalados a la nueva cantidad de filas)
+for _ in range(35): df_ventas.loc[random.randint(0, n_records-1), 'Producto_Nombre'] = np.nan
+for _ in range(25): df_ventas.loc[random.randint(0, n_records-1), 'Cantidad '] = np.nan
+for _ in range(20): df_ventas.loc[random.randint(0, n_records-1), 'ID_Cliente'] = np.nan
 
-# 2. Romper el formato de fechas
-df_ventas.loc[10, 'Fecha Compra'] = '01/15/2025'
-df_ventas.loc[25, 'Fecha Compra'] = '15-01-2025'
-df_ventas.loc[50, 'Fecha Compra'] = '2025/02/28'
+# 2. Romper el formato de fechas (distribuidos en distintas páginas)
+df_ventas.loc[10, 'Fecha Compra'] = '01/15/2024'
+df_ventas.loc[250, 'Fecha Compra'] = '15-01-2024'
+df_ventas.loc[420, 'Fecha Compra'] = '2024/02/28'
 
-# 3. Forzar Duplicados (Copiamos 15 filas al azar y las pegamos al final)
-indices_duplicar = random.sample(range(n_records), 15)
+# 3. Forzar Duplicados (Copiamos 50 filas al azar y las pegamos al final)
+indices_duplicar = random.sample(range(n_records), 50)
 df_ventas = pd.concat([df_ventas, df_ventas.iloc[indices_duplicar]], ignore_index=True)
 
-# 4. Desordenar filas para que los duplicados se mezclen
+# 4. Desordenar filas para que los duplicados se mezclen en todas las páginas
 df_ventas = df_ventas.sample(frac=1).reset_index(drop=True) 
 
 
 # --- 2. DATASET SECUNDARIO (DIMENSIONAL PARA MERGE/JOIN) ---
-# Creamos clientes del 1 al 20. (Nota: En ventas solo hay del 1 al 15, ideal para probar Left Join)
-paises = ['Argentina', 'Chile', 'Colombia', 'Mexico', 'España', 'Uruguay']
+# Creamos clientes del 1 al 60. (Nota: En ventas solo hay del 1 al 50, ideal para probar Left Join)
+paises = ['Argentina', 'Chile', 'Colombia', 'Mexico', 'España', 'Uruguay', 'Perú']
 suscripciones = ['Básico', 'Premium', 'Enterprise']
 
 datos_clientes = {
-    'Cliente_ID': range(1, 21), # ¡LLAVE DIFERENTE! ('Cliente_ID' vs 'ID_Cliente')
-    'Nombre_Empresa': [f'Empresa {chr(65+i)}{chr(65+i)}' for i in range(20)],
-    'Pais_Origen': [random.choice(paises) for _ in range(20)],
-    'Suscripcion': [random.choice(suscripciones) for _ in range(20)],
-    'Descuento_Aprobado': [round(random.uniform(0.05, 0.30), 2) for _ in range(20)]
+    'Cliente_ID': range(1, 61), # ¡LLAVE DIFERENTE! ('Cliente_ID' vs 'ID_Cliente')
+    'Nombre_Empresa': [f'Empresa_Cli_{i}' for i in range(1, 61)], # Nombres genéricos escalables
+    'Pais_Origen': [random.choice(paises) for _ in range(60)],
+    'Suscripcion': [random.choice(suscripciones) for _ in range(60)],
+    'Descuento_Aprobado': [round(random.uniform(0.05, 0.30), 2) for _ in range(60)]
 }
 
 df_clientes = pd.DataFrame(datos_clientes)
