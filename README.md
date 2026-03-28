@@ -83,6 +83,9 @@ Si deseas clonar el proyecto para auditar el código, explorar la separación de
 1. Clona este repositorio: 
    ```bash
    git clone [https://github.com/IvanRavarotto/QueryLibre.git](https://github.com/IvanRavarotto/QueryLibre.git)
-2. 
-
-3. 
+2. Instala las dependencias necesarias:
+    ```bash
+    pip install pandas customtkinter openpyxl
+3. Ejecuta el archivo principal:
+    ```bash
+    python main.py
