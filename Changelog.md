@@ -2,6 +2,26 @@
 
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.4.0] - El Gran Rediseño: Pestañas, Macros y Radiografía
+### Añadido (Added)
+* **Sistema de Pestañas (Workspace Tabs):** Arquitectura renovada que permite cargar y trabajar con múltiples datasets en simultáneo. Cada pestaña mantiene su propio motor, historial y tabla de forma aislada.
+* **Motor de Macros (JSON):** Capacidad de automatización. El motor ahora graba silenciosamente cada transformación técnica y permite guardar estos flujos en archivos `.json` para ejecutarlos instantáneamente sobre nuevos datasets.
+* **Radiografía de Datos (Data Profiling):** Nuevo panel de análisis en tiempo real que audita la columna seleccionada, mostrando el tipo de dato, cantidad de valores nulos, valores únicos y estadísticas matemáticas (Mínimo, Máximo, Promedio).
+* **Casteo Inteligente de Datos:** Herramienta para forzar la conversión de tipos de datos (Texto, Número Entero, Decimal, Fecha). Incluye un *Smart Parser* que limpia automáticamente símbolos de moneda (`$`, `,`) y gestiona celdas vacías (`NaN`) sin romper la conversión.
+
+### Cambios (Changed)
+* **Interfaz Agrupada (Ribbon UI):** Se reestructuró la barra de herramientas principal (Toolbar) agrupando los botones sueltos en menús desplegables categorizados (`Limpieza`, `Estructura`, `Análisis`), limpiando masivamente el diseño visual.
+* **Modo Oscuro Consistente:** Se eliminaron las dependencias transitorias (`transient`) en las ventanas modales para forzar a Windows a respetar el esquema de color oscuro de CustomTkinter en todos los cuadros de diálogo.
+* **Propagación de Íconos:** Se implementó un parche nativo (`fijar_icono`) para garantizar que todas las ventanas secundarias (Toplevels) hereden y muestren correctamente el logo de la aplicación.
+
+### ROADMAP Y PRÓXIMOS PASOS (Planeado para v1.5.0+)
+* **[Feature] Agrupar y Resumir (Group By):** Creación de tablas dinámicas y agregaciones.
+* **[UX/UI] Panel de Salud Global:** Dashboard en la barra lateral con el Score de calidad del dataset activo (% nulos totales, memoria RAM).
+* **[Feature] Buscar y Reemplazar Global:** Motor de búsqueda de texto masivo en todo el DataFrame.
+* **[UX/UI] Pestañas Avanzadas:** Capacidad para cerrar pestañas y marcadores de estado "sin guardar".
+
+---
+
 ## [1.3.0] - El Gran Salto Arquitectónico y de Interacción
 
 ### Añadido (Added)

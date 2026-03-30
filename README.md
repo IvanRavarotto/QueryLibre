@@ -13,54 +13,51 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ## 📸 Interfaz de Usuario
 
-**Pantalla de Bienvenida (Estado Inicial)**
-![Inicio](assets/Inicio.JPG)
+**Entorno de Trabajo Multitarea (Ribbon UI y Pestañas)**
+*(Inserta aquí tu captura más reciente de la v1.4.0)*
 
-**Entorno de Trabajo (Dataset Cargado y Herramientas Activas)**
-![Dataset Cargado](assets/DatasetCargado.JPG)
+**Radiografía de Datos (Data Profiling)**
+*(Inserta aquí la captura del panel oscuro de Radiografía)*
 
 ---
 
-## 🚀 Características Principales (v1.3.0)
+## 🚀 Características Principales (v1.4.0)
 
-* **Arquitectura Escalable (MVC):** Motor de datos (`core/data_engine.py`) completamente desacoplado de la interfaz gráfica, garantizando rendimiento y código limpio.
-* **Carga Universal y Navegación:** 
-    * Soporte nativo para importar datasets en formatos `.csv`, `.xlsx` y `.xls`.
-    * **Paginación Dinámica:** Renderizado eficiente para datasets masivos, dividiendo la vista en bloques navegables sin congelar la UI.
-* **Interacción Inteligente:**
-    * **Edición Directa:** Modificación rápida de celdas al estilo Excel mediante doble clic, integrada al sistema de auditoría.
-* **Data Cleaning a un Clic:**
+* **Arquitectura Escalable (MVC):** Motor de datos (`core/data_engine.py`) completamente desacoplado de la interfaz gráfica.
+* **Sistema de Pestañas (Workspace):** Soporte nativo para importar y trabajar con múltiples datasets en simultáneo en la misma sesión, sin colisión de datos.
+* **Automatización con Macros:** Graba pipelines de transformación completos, expórtalos en formato `.json` y ejecútalos con un clic sobre nuevos datasets sucios.
+* **Data Cleaning a un Clic (Ribbon UI):**
     * Eliminación automática de filas duplicadas y valores nulos (`NaN` / `Null`).
-    * Eliminación y renombrado intuitivo de columnas con validación de seguridad.
+    * Eliminación y renombrado intuitivo de columnas mediante menús desplegables blindados.
+    * **Casteo Inteligente de Tipos:** Conversión forzada de texto a números enteros/decimales o fechas, con un *Smart Parser* que esquiva errores causados por símbolos (`$`, `,`) o celdas vacías.
 * **Feature Engineering Avanzado:**
-    * **Filtrado Condicional:** Segmentación de filas mediante operadores lógicos (Igual, Contiene, Mayor, Menor, Vacío).
-    * **Dividir Columna (Split):** Separación de textos en múltiples columnas mediante delimitadores.
-    * **Calculadora Mágica:** Operaciones matemáticas (+, -, *, /) con un *Smart Parser* que limpia formatos de moneda automáticamente.
-    * **Fusión de Textos:** Combinación de columnas con separadores personalizados y limpieza de artefactos.
-* **Integración Relacional (Merge/JOIN):** Cruce visual de tablas dimensionales (Left Join, Inner Join) con pre-visualización de datos interactiva.
-* **Sistema de Auditoría (Time Travel):** Historial en tiempo real de transformaciones (Pila LIFO) que permite "Deshacer" (Undo) acciones paso a paso de forma segura.
-* **Exportación Industrial:** Descarga de los datos limpios en `.csv`, `.xlsx` o inyección directa a bases de datos relacionales `.db` (SQLite).
+    * **Radiografía de Datos (Profiling):** Panel estadístico en tiempo real por columna (Valores únicos, % de nulos, min/max, promedios).
+    * **Calculadora Mágica:** Operaciones matemáticas vectorizadas entre columnas.
+    * **Dividir y Combinar Columnas:** Herramientas de parsing de texto por delimitadores.
+    * **Filtrado Condicional:** Segmentación de filas mediante operadores lógicos.
+* **Interacción Directa:** Modificación de celdas individuales al estilo Excel (Doble clic).
+* **Integración Relacional (Merge/JOIN):** Cruce visual de tablas dimensionales (Left Join, Inner Join).
+* **Sistema de Auditoría (Time Travel):** Historial en tiempo real de transformaciones (Pila LIFO) para deshacer acciones paso a paso.
+* **Exportación Industrial:** Descarga de los datos en `.csv`, `.xlsx` o bases de datos `.db` (SQLite).
 
 ---
 
-## 🗺️ Roadmap (Próximas Funcionalidades)
-El motor de QueryLibre está en constante evolución. Las siguientes características están planificadas para las próximas versiones (v1.3+):
+## 🗺️ Roadmap (Próximas Funcionalidades - v1.5.0+)
+El motor de QueryLibre está diseñado para crecer hacia el estándar "Enterprise". Lo siguiente en la lista es:
 
-- [ ] **Sistema de Pestañas (Tabs):** Soporte nativo para trabajar con múltiples datasets en simultáneo en la misma sesión.
-- [ ] **Data Profiling (Radiografía):** Panel lateral estadístico para auditar columnas al instante (conteo de nulos, min/max, valores únicos).
-- [ ] **Motor de Macros:** Capacidad de grabar, guardar (JSON) y reproducir pipelines de transformación para automatizar tareas repetitivas.
-- [ ] **Agrupación de UI (Ribbon):** Reestructuración de la barra de herramientas en menús desplegables categorizados (Limpieza, Estructura, Análisis) para una interfaz más limpia.
-- [ ] **Casteo de Tipos (Data Types):** Herramienta para forzar la conversión de columnas (Texto ➔ Fecha, Texto ➔ Número).
-- [ ] **Buscar y Reemplazar:** Reemplazo masivo de valores específicos en todo el dataset.
-- [ ] **Agrupación y Resumen (Group By):** Creación de tablas dinámicas con funciones de agregación.
+- [ ] **Agrupación y Resumen (Group By):** Creación de tablas dinámicas con funciones de agregación (Suma, Promedio, etc.).
+- [ ] **Panel de Salud Global (Quality Score):** Dashboard en la barra lateral con métricas globales del dataset (Filas, % total de nulos, Memoria RAM usada).
+- [ ] **Buscar y Reemplazar Global:** Búsqueda y reemplazo masivo de valores mediante texto o Regex.
+- [ ] **Pestañas Avanzadas:** Cierre de pestañas individual, reordenamiento dinámico e indicador de "cambios sin guardar".
+- [ ] **Visualizaciones Inline:** Integración de gráficos rápidos (Histogramas/Boxplots) en la ventana de Radiografía.
 
 ---
 
 ## 🛠️ Tecnologías Utilizadas
 
 * **Motor Lógico:** `pandas` (Manipulación intensiva y vectorizada).
-* **Interfaz Gráfica (GUI):** `customtkinter` (Diseño moderno, modo oscuro) y `tkinter` (`Treeview` avanzado).
-* **Estructura:** Patrón de Arquitectura MVC (Model-View-Controller).
+* **Interfaz Gráfica (GUI):** `customtkinter` (Diseño moderno, modo oscuro puro) y `tkinter` (`Treeview`).
+* **Automatización:** `json` para serialización de macros.
 * **Sistema de I/O:** `os`, `sys`, `sqlite3`.
 * **Empaquetado:** `pyinstaller` (Compilación a binario ejecutable `.exe` standalone).
 
@@ -68,9 +65,9 @@ El motor de QueryLibre está en constante evolución. Las siguientes caracterís
 
 ## 📦 Instalación y Uso (Para usuarios finales)
 
-No es necesario instalar Python ni librerías para usar QueryLibre.
+No es necesario instalar Python ni librerías.
 
-1. Ve a la sección de **Releases** en este repositorio (panel derecho).
+1. Ve a la sección de **Releases** en este repositorio.
 2. Descarga el archivo `QueryLibre.exe`.
 3. Ejecútalo haciendo doble clic. *(Si Windows Defender muestra una advertencia de SmartScreen, haz clic en "Más información" -> "Ejecutar de todas formas").*
 
