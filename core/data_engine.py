@@ -19,47 +19,90 @@ class MotorDatos:
         self.historial_pasos.append(descripcion)
 
     def _savepoint(self):
-        self.df_history.append(self.df.copy())
+        if self.df is None:
+            return
+        self.df_history.append(self.df.copy(deep=True))
 
     def deshacer(self):
-        if self.df_history and len(self.historial_pasos) > 1:
-            self.df = self.df_history.pop()
+        if not self.df_history or len(self.historial_pasos) <= 1:
+            return False
+
+        self.df = self.df_history.pop()
+        if self.historial_pasos:
             self.historial_pasos.pop()
-            self.macro_steps.pop() 
-            return True
-        return False
+        if self.macro_steps:
+            self.macro_steps.pop()
+
+        return True
+
+    def _check_df(self):
+        if self.df is None:
+            raise ValueError("No hay dataset cargado.")
+
+    def _normalize_columns(self):
+        if self.df is not None:
+            new_columns = []
+            for col in self.df.columns:
+                if isinstance(col, str):
+                    new_columns.append(col.strip())
+                else:
+                    new_columns.append(col)
+            self.df.columns = new_columns
+
+    def _normalize_columns_df2(self):
+        if self.df2 is not None:
+            new_columns = []
+            for col in self.df2.columns:
+                if isinstance(col, str):
+                    new_columns.append(col.strip())
+                else:
+                    new_columns.append(col)
+            self.df2.columns = new_columns
 
     def cargar_archivo(self, file_path):
         ext = os.path.splitext(file_path)[1].lower()
-        if ext == '.csv': self.df = pd.read_csv(file_path)
-        else: self.df = pd.read_excel(file_path)
-        
+        if ext == '.csv':
+            try:
+                self.df = pd.read_csv(file_path, encoding='utf-8')
+            except Exception:
+                self.df = pd.read_csv(file_path, encoding='latin-1')
+        else:
+            self.df = pd.read_excel(file_path, engine='openpyxl')
+
+        self._normalize_columns()
         self.historial_pasos = []
         self.df_history = []
-        self.macro_steps = [] 
+        self.macro_steps = []
         self.registrar_paso(f"Origen: {os.path.basename(file_path)}")
 
     def eliminar_duplicados(self):
+        self._check_df()
         self._savepoint()
+
         antes = len(self.df)
         self.df = self.df.drop_duplicates()
         eliminadas = antes - len(self.df)
-        
+
         self.registrar_paso(f"Se eliminaron {eliminadas} filas duplicadas" if eliminadas > 0 else "Eliminar duplicados (0 filas)")
         self.macro_steps.append({"action": "eliminar_duplicados", "params": {}})
         return eliminadas
 
     def limpiar_nulos(self, modo):
+        self._check_df()
+        if modo not in ['all', 'any']:
+            raise ValueError("Modo de limpieza inválido")
+
         self._savepoint()
         antes = len(self.df)
         self.df = self.df.dropna(how=modo)
         eliminadas = antes - len(self.df)
-        
+
         tipo = "completamente vacías" if modo == 'all' else "con datos faltantes"
         self.registrar_paso(f"Se eliminaron {eliminadas} filas {tipo}" if eliminadas > 0 else f"Limpieza de nulos (0 filas {tipo})")
         self.macro_steps.append({"action": "limpiar_nulos", "params": {"modo": modo}})
 
     def eliminar_columna(self, col_name):
+        self._check_df()
         if col_name in self.df.columns:
             self._savepoint()
             self.df = self.df.drop(columns=[col_name])
@@ -69,7 +112,10 @@ class MotorDatos:
         return False
 
     def renombrar_columna(self, old_name, new_name):
-        if old_name in self.df.columns:
+        self._check_df()
+        if old_name in self.df.columns and new_name:
+            if new_name in self.df.columns:
+                raise ValueError("El nombre de columna ya existe")
             self._savepoint()
             self.df = self.df.rename(columns={old_name: new_name})
             self.registrar_paso(f"Columna renombrada: '{old_name}' ➔ '{new_name}'")
@@ -78,20 +124,34 @@ class MotorDatos:
         return False
 
     def editar_celda(self, indice_real, col_name, nuevo_valor):
+        self._check_df()
+        if col_name not in self.df.columns:
+            raise KeyError("Columna inexistente")
+
         self._savepoint()
         col_idx = self.df.columns.get_loc(col_name)
-        
+
         if isinstance(nuevo_valor, str) and nuevo_valor.strip() == "":
             valor_final = pd.NA
         else:
             valor_final = nuevo_valor
-            
+
         self.df.iat[indice_real, col_idx] = valor_final
         self.registrar_paso(f"Edición manual: Fila {indice_real + 1}, Col. '{col_name}'")
         self.macro_steps.append({"action": "editar_celda", "params": {"indice_real": indice_real, "col_name": col_name, "nuevo_valor": nuevo_valor}})
 
     def calcular_columna(self, c1, op, c2, new_col):
+        self._check_df()
+
+        if not c1 or not c2 or not new_col:
+            raise ValueError("Columnas inválidas")
+        if c1 not in self.df.columns or c2 not in self.df.columns:
+            raise KeyError("Columna de origen no encontrada")
+        if new_col in self.df.columns:
+            raise ValueError("La columna destino ya existe")
+
         self._savepoint()
+
         def limpiar_y_convertir(serie):
             serie_limpia = serie.astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
             return pd.to_numeric(serie_limpia, errors='coerce')
@@ -99,107 +159,213 @@ class MotorDatos:
         s1 = limpiar_y_convertir(self.df[c1])
         s2 = limpiar_y_convertir(self.df[c2])
 
-        if op == "+": self.df[new_col] = s1 + s2
-        elif op == "-": self.df[new_col] = s1 - s2
-        elif op == "*": self.df[new_col] = s1 * s2
-        elif op == "/": self.df[new_col] = s1 / s2
+        if op == "+":
+            resultado = s1 + s2
+        elif op == "-":
+            resultado = s1 - s2
+        elif op == "*":
+            resultado = s1 * s2
+        elif op == "/":
+            resultado = s1 / s2.replace(0, pd.NA)
+        else:
+            raise ValueError("Operación no soportada")
 
+        self.df[new_col] = resultado
         self.registrar_paso(f"Cálculo: '{new_col}' = '{c1}' {op} '{c2}'")
         self.macro_steps.append({"action": "calcular_columna", "params": {"c1": c1, "op": op, "c2": c2, "new_col": new_col}})
 
     def combinar_columnas(self, c1, sep_texto, c2, new_col):
-        self._savepoint()
-        if sep_texto == "Espacio": separador = " "
-        elif sep_texto == "Guion (-)": separador = " - "
-        elif sep_texto == "Coma (,)": separador = ", "
-        else: separador = ""
+        self._check_df()
+        if c1 not in self.df.columns or c2 not in self.df.columns:
+            raise KeyError("Columna de origen no encontrada")
+        if not new_col:
+            raise ValueError("Nombre de columna destino inválido")
 
-        self.df[new_col] = self.df[c1].astype(str) + separador + self.df[c2].astype(str)
-        self.df[new_col] = self.df[new_col].str.replace('nan', '', case=False).str.strip(separador)
+        separadores = {
+            "Espacio": " ",
+            "Guion (-)": " - ",
+            "Coma (,)": ", ",
+            "Sin separador": "",
+        }
+        separador = separadores.get(sep_texto, "")
+
+        self._savepoint()
+        nueva_serie = self.df[c1].astype(str).fillna("") + separador + self.df[c2].astype(str).fillna("")
+        self.df[new_col] = nueva_serie.str.replace('nan', '', case=False).str.strip()
+
         self.registrar_paso(f"Combinar: '{c1}' y '{c2}' ➔ '{new_col}'")
         self.macro_steps.append({"action": "combinar_columnas", "params": {"c1": c1, "sep_texto": sep_texto, "c2": c2, "new_col": new_col}})
 
     def dividir_columna(self, col, sep_texto):
-        self._savepoint()
-        if sep_texto == "Espacio": separador = " "
-        elif sep_texto == "Coma (,)": separador = ","
-        elif sep_texto == "Guion (-)": separador = "-"
-        elif sep_texto == "Barra (/)": separador = "/"
-        else: separador = sep_texto
+        self._check_df()
+        if col not in self.df.columns:
+            raise KeyError("Columna a dividir no existe")
 
+        separadores = {
+            "Espacio": " ",
+            "Coma (,)": ",",
+            "Guion (-)": "-",
+            "Barra (/)": "/",
+        }
+        separador = separadores.get(sep_texto, sep_texto)
+
+        self._savepoint()
         df_split = self.df[col].astype(str).str.split(separador, expand=True)
         df_split.columns = [f"{col}_{i+1}" for i in range(df_split.shape[1])]
         self.df = pd.concat([self.df, df_split], axis=1)
+
         self.registrar_paso(f"División: Columna '{col}' por '{separador}'")
         self.macro_steps.append({"action": "dividir_columna", "params": {"col": col, "sep_texto": sep_texto}})
 
     def filtrar_datos(self, col, cond, val):
+        self._check_df()
+        if col not in self.df.columns:
+            raise KeyError("Columna de filtro no encontrada")
+
         self._savepoint()
         antes = len(self.df)
 
-        if cond == "Es Igual a": self.df = self.df[self.df[col].astype(str).str.lower() == val.lower()]
-        elif cond == "Contiene el texto": self.df = self.df[self.df[col].astype(str).str.contains(val, case=False, na=False)]
-        elif cond == "Es Mayor que (>)": self.df = self.df[pd.to_numeric(self.df[col], errors='coerce') > float(val)]
-        elif cond == "Es Menor que (<)": self.df = self.df[pd.to_numeric(self.df[col], errors='coerce') < float(val)]
-        elif cond == "Está Vacío (Nulo)": self.df = self.df[self.df[col].isna() | (self.df[col] == "")]
+        if cond == "Es Igual a":
+            self.df = self.df[self.df[col].astype(str).str.lower() == str(val).lower()]
+        elif cond == "Contiene el texto":
+            self.df = self.df[self.df[col].astype(str).str.contains(str(val), case=False, na=False)]
+        elif cond == "Es Mayor que (>)":
+            val_num = pd.to_numeric(val, errors='coerce')
+            if pd.isna(val_num):
+                raise ValueError("Filtro numérico inválido")
+            self.df = self.df[pd.to_numeric(self.df[col], errors='coerce') > val_num]
+        elif cond == "Es Menor que (<)":
+            val_num = pd.to_numeric(val, errors='coerce')
+            if pd.isna(val_num):
+                raise ValueError("Filtro numérico inválido")
+            self.df = self.df[pd.to_numeric(self.df[col], errors='coerce') < val_num]
+        elif cond == "Está Vacío (Nulo)":
+            self.df = self.df[self.df[col].isna() | (self.df[col].astype(str) == "")]
+        else:
+            raise ValueError("Condición de filtro desconocida")
 
         eliminadas = antes - len(self.df)
         self.registrar_paso(f"Filtro: '{col}' {cond} '{val}' (-{eliminadas} filas)")
         self.macro_steps.append({"action": "filtrar_datos", "params": {"col": col, "cond": cond, "val": val}})
 
     def cambiar_tipo_dato(self, col_name, nuevo_tipo):
+        self._check_df()
+        if col_name not in self.df.columns:
+            raise KeyError("Columna no encontrada")
+
         self._savepoint()
+
         try:
             if nuevo_tipo == "Texto":
-                self.df[col_name] = self.df[col_name].astype(str).replace('nan', '')
-                
+                self.df[col_name] = self.df[col_name].astype(str).fillna("").replace('nan', '')
+
             elif nuevo_tipo in ["Número Entero", "Número Decimal"]:
-                # 1. Limpiamos símbolos y comas
                 s = self.df[col_name].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
-                # 2. FULMINAMOS textos vacíos y "nan" inyectados
                 s = s.replace(['', 'nan', 'None', '<NA>'], pd.NA)
-                # 3. Forzamos conversión numérica segura
-                s = pd.to_numeric(s, errors='coerce')
-                
+                converted = pd.to_numeric(s, errors='coerce')
+                total_non_null = s.notna().sum()
+                valid = converted.notna().sum()
+                invalid = total_non_null - valid
+                if valid == 0:
+                    raise ValueError("No se pudo convertir a número: no hay valores numéricos válidos")
+                if invalid > 0:
+                    raise ValueError(f"No se pudo convertir a número: {invalid} valores inválidos")
+
                 if nuevo_tipo == "Número Entero":
-                    # Convertimos a float, redondeamos, y luego a Int64
-                    self.df[col_name] = s.astype('float64').round().astype('Int64')
+                    # Conservamos NaN como <NA> en Int64
+                    self.df[col_name] = converted.round().astype('Int64')
                 else:
-                    self.df[col_name] = s.astype('float64')
-                    
+                    self.df[col_name] = converted.astype('float64')
+
             elif nuevo_tipo == "Fecha":
-                self.df[col_name] = pd.to_datetime(self.df[col_name], errors='coerce')
-            
+                converted = pd.to_datetime(self.df[col_name], errors='coerce')
+                total_non_null = self.df[col_name].notna().sum()
+                valid = converted.notna().sum()
+                invalid = total_non_null - valid
+                if valid == 0:
+                    raise ValueError("No se pudo convertir a Fecha: no hay valores válidos")
+                if invalid > 0:
+                    raise ValueError(f"No se pudo convertir a Fecha: {invalid} valores inválidos")
+                self.df[col_name] = converted
+
+            else:
+                raise ValueError("Tipo de conversión desconocido")
+
             self.registrar_paso(f"Tipo cambiado: '{col_name}' ➔ {nuevo_tipo}")
             self.macro_steps.append({"action": "cambiar_tipo_dato", "params": {"col_name": col_name, "nuevo_tipo": nuevo_tipo}})
             return True
-            
+
         except Exception as e:
-            self.df_history.pop()
-            raise e
+            if self.df_history:
+                self.df = self.df_history.pop()
+            raise RuntimeError(f"Error en cambiar_tipo_dato: {e}") from e
+
 
     # =========================================================
     # INTEGRACIÓN Y EXPORTACIÓN
     # =========================================================
     def cargar_df2(self, file_path):
         ext = os.path.splitext(file_path)[1].lower()
-        if ext == '.csv': self.df2 = pd.read_csv(file_path)
-        else: self.df2 = pd.read_excel(file_path)
+        if ext == '.csv':
+            try:
+                self.df2 = pd.read_csv(file_path, encoding='utf-8')
+            except Exception:
+                self.df2 = pd.read_csv(file_path, encoding='latin-1')
+        else:
+            self.df2 = pd.read_excel(file_path, engine='openpyxl')
+
+        self._normalize_columns_df2()
 
     def aplicar_union(self, k1, k2, tipo_str):
+        self._check_df()
+        if self.df2 is None:
+            raise ValueError("No hay segundo dataset cargado para la unión")
+        if k1 not in self.df.columns or k2 not in self.df2.columns:
+            raise KeyError("Llave de unión inválida")
+
         self._savepoint()
         how_join = "left" if "Left" in tipo_str else "inner"
-        self.df = pd.merge(self.df, self.df2, left_on=k1, right_on=k2, how=how_join)
+
+        try:
+            self.df = pd.merge(self.df, self.df2, left_on=k1, right_on=k2, how=how_join)
+        except ValueError as e:
+            # Si hay incompatibilidad de tipos (str vs int etc.), forzamos ambos lados a string y volvemos a intentar.
+            # Esto permite un comportamiento más robusto en datasets mixtos generados con datos "caóticos".
+            if k1 in self.df.columns and k2 in self.df2.columns:
+                self.df[k1] = self.df[k1].astype(str).replace('nan', '', regex=False)
+                self.df2[k2] = self.df2[k2].astype(str).replace('nan', '', regex=False)
+                try:
+                    self.df = pd.merge(self.df, self.df2, left_on=k1, right_on=k2, how=how_join)
+                except Exception as e2:
+                    if self.df_history:
+                        self.df = self.df_history.pop()
+                    raise e2
+            else:
+                if self.df_history:
+                    self.df = self.df_history.pop()
+                raise e
+        except Exception as e:
+            if self.df_history:
+                self.df = self.df_history.pop()
+            raise e
+
         self.registrar_paso(f"Unión ({how_join}): usando '{k1}' = '{k2}'")
         self.macro_steps.append({"action": "aplicar_union", "params": {"k1": k1, "k2": k2, "tipo_str": tipo_str}})
 
     def exportar_archivo(self, formato, file_path):
-        if "CSV" in formato: self.df.to_csv(file_path, index=False)
-        elif "Excel" in formato: self.df.to_excel(file_path, index=False)
+        self._check_df()
+
+        if "CSV" in formato:
+            self.df.to_csv(file_path, index=False)
+        elif "Excel" in formato:
+            self.df.to_excel(file_path, index=False)
         elif "SQLite" in formato:
             conn = sqlite3.connect(file_path)
             self.df.to_sql("datos_limpios", conn, if_exists="replace", index=False)
             conn.close()
+        else:
+            raise ValueError("Formato de exportación no soportado")
+
         self.registrar_paso(f"💾 Exportado a {formato.split(' ')[1]}: {os.path.basename(file_path)}")
         
     def obtener_radiografia(self, col_name):

@@ -1,82 +1,159 @@
-# Registro de Cambios (Changelog)
+# Registro de Cambios / Changelog
 
+All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
-
-## [1.4.0] - El Gran Rediseño: Pestañas, Macros y Radiografía
-### Añadido (Added)
-* **Sistema de Pestañas (Workspace Tabs):** Arquitectura renovada que permite cargar y trabajar con múltiples datasets en simultáneo. Cada pestaña mantiene su propio motor, historial y tabla de forma aislada.
-* **Motor de Macros (JSON):** Capacidad de automatización. El motor ahora graba silenciosamente cada transformación técnica y permite guardar estos flujos en archivos `.json` para ejecutarlos instantáneamente sobre nuevos datasets.
-* **Radiografía de Datos (Data Profiling):** Nuevo panel de análisis en tiempo real que audita la columna seleccionada, mostrando el tipo de dato, cantidad de valores nulos, valores únicos y estadísticas matemáticas (Mínimo, Máximo, Promedio).
-* **Casteo Inteligente de Datos:** Herramienta para forzar la conversión de tipos de datos (Texto, Número Entero, Decimal, Fecha). Incluye un *Smart Parser* que limpia automáticamente símbolos de moneda (`$`, `,`) y gestiona celdas vacías (`NaN`) sin romper la conversión.
-
-### Cambios (Changed)
-* **Interfaz Agrupada (Ribbon UI):** Se reestructuró la barra de herramientas principal (Toolbar) agrupando los botones sueltos en menús desplegables categorizados (`Limpieza`, `Estructura`, `Análisis`), limpiando masivamente el diseño visual.
-* **Modo Oscuro Consistente:** Se eliminaron las dependencias transitorias (`transient`) en las ventanas modales para forzar a Windows a respetar el esquema de color oscuro de CustomTkinter en todos los cuadros de diálogo.
-* **Propagación de Íconos:** Se implementó un parche nativo (`fijar_icono`) para garantizar que todas las ventanas secundarias (Toplevels) hereden y muestren correctamente el logo de la aplicación.
-
-### ROADMAP Y PRÓXIMOS PASOS (Planeado para v1.5.0+)
-* **[Feature] Agrupar y Resumir (Group By):** Creación de tablas dinámicas y agregaciones.
-* **[UX/UI] Panel de Salud Global:** Dashboard en la barra lateral con el Score de calidad del dataset activo (% nulos totales, memoria RAM).
-* **[Feature] Buscar y Reemplazar Global:** Motor de búsqueda de texto masivo en todo el DataFrame.
-* **[UX/UI] Pestañas Avanzadas:** Capacidad para cerrar pestañas y marcadores de estado "sin guardar".
 
 ---
 
-## [1.3.0] - El Gran Salto Arquitectónico y de Interacción
+## [1.4.1] - 2026-03-31
+### English
+#### Added
+* **Stress data generator:** New `data_test/generador_datos.py` writes `ventas_caoticas_exigente.csv` with edge-case corrupt values (strings in numeric columns, malformed dates, price anomalies, duplicates, nans).
+* **Robust tests:** `tests/test_data_engine.py` uses the new “exigente” dataset and checks rollback on failed type conversions (ID_Cliente number conversion + Fecha conversion), operator pipeline, filter+dedupe and merge behavior.
 
-### Añadido (Added)
-* **Interacción Avanzada (Killer Feature):** Edición directa de celdas. Ahora los usuarios pueden hacer doble clic sobre cualquier celda de la tabla interactiva para modificar su valor directamente, con soporte para deshacer (Undo).
-* **Nuevos Superpoderes de Transformación:** 
-  * `✂️ Dividir Columna`: Permite separar textos usando delimitadores personalizados (comas, espacios, guiones).
-  * `🚦 Filtrar Datos`: Motor de búsqueda condicional (Mayor, Menor, Igual, Contiene, Nulos) para segmentar datasets al instante.
+#### Fixed
+* `MotorDatos.cambiar_tipo_dato` now uses safe coercion and reverts state on failure, plus throws informative `RuntimeError`.
+* `MotorDatos.aplicar_union` now recovers `df` on merge faults.
+* `cargar_archivo` normalizes whitespace in column names (`str.strip`) for robust loading.
+* UI `cambiar_tipo_dato` insert error label and better failure messages.
+* Removed console emoji print causing `UnicodeEncodeError` on cp1252 environments (Windows) in `generador_datos.py`.
 
-### Cambios (Changed)
-* **Refactorización Arquitectónica (Patrón MVC):** Se extrajo el 100% de la lógica matemática y de procesamiento de Pandas del archivo principal (`main.py`) hacia un módulo independiente y dedicado (`core/data_engine.py`). 
-* **Optimización de Código:** `main.py` redujo drásticamente su tamaño y complejidad, delegando toda responsabilidad de transformación al nuevo "Motor de Datos", mejorando la escalabilidad futura del proyecto.
+#### Changed
+* Updated app version label in UI from 1.4.0 to 1.4.1.
+* Added explicit integer/object dtype coercion paths for demanding sample data; format parser tolerates $ and comma separators.
 
-### ROADMAP Y PRÓXIMOS PASOS (Planeado para proximas versiones)
+#### Future Steps
+* Add `pytest` to the `requirements.txt` and CI pipeline.
+* Add a dedicated spec for `test_data_engine.py` to assert macro serialization and undo stack + history consistency.
+* Implement column type inference preview before cast in GUI to reduce user risk.
 
-* **[UX/UI] Sistema de Pestañas (Tabs):** Soporte para trabajar con múltiples datasets en simultáneo en la misma ventana, estilo navegador web.
-* **[UX/UI] Reorganización del Toolbar:** Agrupación de herramientas en menús desplegables (Limpieza, Estructura, Análisis) para mantener la interfaz limpia y escalable.
-* **[Feature] Motor de Macros:** Capacidad para grabar los pasos de transformación aplicados y exportarlos/importarlos para automatizar limpiezas repetitivas en el futuro.
-* **[Feature] Data Profiling:** Panel de resumen estadístico por columna (Valores únicos, % de nulos, min/max).
-* **[Feature] Casting de Datos:** Herramienta para forzar la conversión de tipos de datos (Texto a Fecha, Texto a Número, etc.).
+### Español
+#### Añadido
+* **Generador de datos exigentes:** `data_test/generador_datos.py` genera `ventas_caoticas_exigente.csv` con valores extremos y corruptos.
+* **Tests resilientes:** `tests/test_data_engine.py` ataca el pipeline completo y fuerza errores de conversión y rollback.
+
+#### Corregido
+* `MotorDatos.cambiar_tipo_dato`: ahora hace rollback si falla y lanza `RuntimeError` claro.
+* `MotorDatos.aplicar_union`: restauración de df si hay error de unión.
+* `cargar_archivo`: limpieza de espacios en nombres de columnas.
+* `main.py`: mejor manejo de errores de conversión en el modal y texto de error.
+* `generador_datos.py`: quitado emoji en salida para evitar `UnicodeEncodeError` en Windows.
+
+#### Cambios
+* Etiqueta de versión en UI `QueryLibre v1.4.1`.
+* Se añadió parsing de `ID_Cliente`, `Cantidad`, `precio_unitario_usd`, `Fecha Compra` con validaciones.
+
+#### Pasos Futuros
+* Instalar `pytest` en requirements y flujo CI.
+* Añadir test de macro + undo histórico.
+* Añadir aviso de preview antes de casteo en GUI.
+
+---
+
+## [1.4.0] - 2026-03-30
+### English
+#### Added
+* **Workspace Tabs:** New architecture to work with multiple datasets simultaneously. Each tab maintains its own engine and history.
+* **Macro Engine (JSON):** Automation tool that records transformations and allows saving/loading them for future datasets.
+* **Data Profiling:** Real-time analysis panel for column auditing (Nulls, Unique values, Min/Max/Average).
+* **Smart Data Casting:** Forced conversion of data types (Text, Int, Decimal, Date) with a smart currency parser.
+
+#### Changed
+* **Ribbon UI:** Restructured toolbar into categorized drop-down menus (Cleaning, Structure, Analysis).
+* **Consistent Dark Mode:** Removed transient dependencies to force native dark mode in Windows 11 dialogs.
+* **Icon Propagation:** Implemented a native patch to ensure all child windows inherit the application logo.
+
+### Español
+#### Añadido
+* **Sistema de Pestañas (Workspace Tabs):** Arquitectura renovada que permite cargar y trabajar con múltiples datasets en simultáneo.
+* **Motor de Macros (JSON):** Herramienta de automatización que graba transformaciones y permite guardarlas/cargarlas para nuevos datasets.
+* **Radiografía de Datos (Data Profiling):** Panel de análisis en tiempo real para auditar columnas (Nulos, Únicos, Mínimo/Máximo/Promedio).
+* **Casteo Inteligente de Datos:** Conversión forzada de tipos de datos (Texto, Entero, Decimal, Fecha) con parser de moneda inteligente.
+
+#### Cambios
+* **Interfaz Agrupada (Ribbon UI):** Se reestructuró la barra de herramientas en menús desplegables categorizados (Limpieza, Estructura, Análisis).
+* **Modo Oscuro Consistente:** Eliminación de dependencias transitorias para forzar el modo oscuro en diálogos de Windows 11.
+* **Propagación de Íconos:** Parche nativo para garantizar que todas las ventanas hereden el logo de la aplicación.
+
+---
+
+## [1.3.0] - 2026-03-29
+### English
+#### Added
+* **Inline Cell Editing:** Directly modify cell values with double-click and undo support.
+* **Advanced Transforms:** Added `✂️ Split Column` and `🚦 Filter Data` (conditional filtering).
+
+#### Changed
+* **MVC Pattern:** Full decoupling of Pandas logic from the GUI into a dedicated `data_engine.py`.
+
+### Español
+#### Añadido
+* **Edición Directa:** Modificación de celdas mediante doble clic con soporte para deshacer (Undo).
+* **Transformaciones Avanzadas:** Se sumaron las funciones de `✂️ Dividir Columna` y `🚦 Filtrar Datos`.
+
+#### Cambios
+* **Patrón MVC:** Desacoplamiento total de la lógica de Pandas de la interfaz gráfica en un motor dedicado.
 
 ---
 
 ## [1.2.0] - 2026-03-27
-### Añadido (Added)
-* **Paginación de Datos:** Nuevo sistema de navegación por páginas (200 filas por hoja) con controles de Anterior/Siguiente. Permite explorar datasets grandes de manera fluida y sin sobrecargar la interfaz gráfica.
-* **Índice Visual de Filas:** Se incorporó una columna estática (`#`) en la vista previa de la tabla para facilitar la lectura, el seguimiento y la ubicación de los registros. Esta columna es de ayuda puramente visual y no altera el dataset al exportar.
+### English
+#### Added
+* **Data Pagination:** New navigation system (200 rows per page) for fluid exploration of large datasets.
+* **Visual Row Index:** Added a static `#` column for easier data tracking.
 
-### Correcciones (Fixed)
-* **Refinamiento de Interfaz (UI):** Se corrigió la jerarquía de empaquetado visual (layout) de la tabla de datos. Ahora las barras de desplazamiento (scrollbars) se integran perfectamente a los bordes sin superponerse ni ocultar los controles de paginación.
+#### Fixed
+* **Layout Refinement:** Improved scrollbar integration with pagination controls.
+
+### Español
+#### Añadido
+* **Paginación de Datos:** Sistema de navegación (200 filas por hoja) para explorar datasets grandes de forma fluida.
+* **Índice Visual:** Columna estática `#` para facilitar el seguimiento de registros.
+
+#### Corregido
+* **Refinamiento de UI:** Mejor integración de barras de desplazamiento con los controles de paginación.
 
 ---
 
 ## [1.1.1] - 2026-03-26
-### Mejoras (Changed)
-* **Vista previa ampliada:** Se incrementó el límite de renderizado en la tabla interactiva de 15 a 200 filas, permitiendo una exploración de datos mucho más profunda sin comprometer el rendimiento de la interfaz (Tkinter).
-* **Limpieza de Nulos interactiva:** Se mejoró la UX del botón "Limpiar Nulos", implementando un cuadro de diálogo que otorga al usuario el control para decidir la agresividad de la limpieza (eliminar filas completamente vacías vs. eliminar filas con algún dato faltante).
+### English
+#### Added
+* **Dynamic Dimensions Indicator:** Real-time row and column counter in the status bar.
 
-### Añadido (Added)
-* **Indicador de dimensiones dinámico:** Se incorporó un contador en tiempo real en la barra inferior derecha que refleja la cantidad total de filas y columnas en memoria, brindando transparencia instantánea tras ejecutar limpiezas de datos masivas (como nulos y duplicados ocultos).
+#### Changed
+* **Interactive Null Cleaning:** UX improvement to choose between "All" or "Any" null removal.
+
+### Español
+#### Añadido
+* **Indicador de Dimensiones:** Contador de filas y columnas en tiempo real en la barra de estado.
+
+#### Cambios
+* **Limpieza de Nulos Interactiva:** Mejora en la UX para elegir entre eliminar filas con algún nulo o solo las vacías.
 
 ---
 
 ## [1.1.0] - 2026-03-26
-### Añadido
-* Ventana de "Acerca de" con información del proyecto, hoja de ruta (Roadmap) y cumplimientos de licencias Open Source.
-* Botones de anticipación (Teasers) en la barra de herramientas principal para generar expectativa sobre las futuras funciones de Feature Engineering (Dividir Columna, Filtrar Datos).
+### English
+#### Added
+* "About" window with project info and Roadmap.
+
+### Español
+#### Añadido
+* Ventana de "Acerca de" con información del proyecto y Roadmap.
 
 ---
 
 ## [1.0.0] - 2026-03-23
-### Añadido
-* Lanzamiento de la primera versión estable del motor ETL.
-* Módulo de carga universal de archivos (`.csv`, `.xlsx`, `.xls`).
-* **Limpieza de Datos:** Funciones para eliminar duplicados, depurar valores nulos, eliminar y renombrar columnas.
-* **Ingeniería de Características:** Calculadora matemática con *Smart Parser* para símbolos de moneda, y herramienta para combinación de textos.
-* **Integración:** Interfaz visual para cruce de datos relacionales (Merge/JOIN) con vista previa progresiva.
-* Sistema de auditoría (Historial de Pasos) con capacidad de revertir acciones mediante pila LIFO (Undo).
-* Módulo de exportación multiformato (CSV, Excel y bases de datos SQLite).
+### English
+#### Added
+* Initial release of the ETL engine.
+* Universal loader (.csv, .xlsx, .xls) and multi-format export (CSV, Excel, SQLite).
+* Basic cleaning: duplicates, nulls, rename/drop columns.
+* Math calculator, text merging, and visual Merge/JOIN.
+
+### Español
+#### Añadido
+* Lanzamiento inicial del motor ETL.
+* Carga universal (.csv, .xlsx, .xls) y exportación multiformato (CSV, Excel, SQLite).
+* Limpieza básica: duplicados, nulos, renombrar/eliminar columnas.
+* Calculadora matemática, combinación de textos y Merge/JOIN visual.

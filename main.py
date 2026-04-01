@@ -269,7 +269,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.0", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.1", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -464,15 +464,28 @@ class QueryLibreApp(ctk.CTk):
         dialog.title("Cambiar Tipo de Dato"); dialog.geometry("350x260"); dialog.grab_set()
         self.fijar_icono(dialog)
         
+        columnas = list(tab.motor.df.columns)
         ctk.CTkLabel(dialog, text="Columna:", font=ctk.CTkFont(weight="bold")).pack(pady=(15, 5))
-        col_combo = ctk.CTkComboBox(dialog, values=list(tab.motor.df.columns)); col_combo.pack(pady=5)
+        col_combo = ctk.CTkComboBox(dialog, values=columnas); col_combo.pack(pady=5)
+        if columnas:
+            col_combo.set(columnas[0])
+
         ctk.CTkLabel(dialog, text="Convertir a:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
-        tipo_combo = ctk.CTkComboBox(dialog, values=["Texto", "Número Entero", "Número Decimal", "Fecha"]); tipo_combo.pack(pady=5)
+        tipos = ["Texto", "Número Entero", "Número Decimal", "Fecha"]
+        tipo_combo = ctk.CTkComboBox(dialog, values=tipos); tipo_combo.pack(pady=5)
+        tipo_combo.set("Número Entero")
+
         err = ctk.CTkLabel(dialog, text="", text_color="#e74c3c"); err.pack(pady=5)
         
         def ejecutar():
-            try: tab.motor.cambiar_tipo_dato(col_combo.get(), tipo_combo.get()); tab.refrescar_interfaz(); dialog.destroy()
-            except Exception as e: err.configure(text=f"Error al convertir los datos."); print(f"Error Casting: {e}")
+            try:
+                tab.motor.cambiar_tipo_dato(col_combo.get(), tipo_combo.get())
+                tab.refrescar_interfaz()
+                dialog.destroy()
+            except Exception as e:
+                err.configure(text=f"Error al convertir los datos: {e}")
+                print(f"Error Casting: {e}")
+
         ctk.CTkButton(dialog, text="Aplicar Conversión", command=ejecutar, fg_color="#2980b9").pack(pady=15)
 
     def calcular_columna(self):

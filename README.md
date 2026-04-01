@@ -79,10 +79,43 @@ Si deseas clonar el proyecto para auditar el código, explorar la separación de
 
 1. Clona este repositorio: 
    ```bash
-   git clone [https://github.com/IvanRavarotto/QueryLibre.git](https://github.com/IvanRavarotto/QueryLibre.git)
-2. Instala las dependencias necesarias:
-    ```bash
-    pip install pandas customtkinter openpyxl
-3. Ejecuta el archivo principal:
-    ```bash
-    python main.py
+   git clone https://github.com/IvanRavarotto/QueryLibre.git
+   cd QueryLibre
+   ```
+2. Crea y activa un entorno virtual:
+   (Windows)
+   ```powershell
+   python -m venv .venv
+   .\.venv\Scripts\Activate.ps1
+   ```
+   (macOS/Linux)
+   ```bash
+   python -m venv .venv
+   source .venv/bin/activate
+   ```
+3. Instala dependencias necesarias:
+   ```bash
+   pip install -r requirements.txt
+   ```
+4. Ejecuta el archivo principal:
+   ```bash
+   python main.py
+   ```
+
+## 🧪 Pruebas unitarias
+
+Este proyecto incluye una suite `pytest` para validar las funciones clave de transformaciones.
+
+1. Genera el dataset de pruebas y el archivo `tests/test_data_engine.py`:
+   ```bash
+   python data_test/generador_datos.py
+   ```
+2. Ejecuta los tests:
+   ```bash
+   python -m pytest -q
+   ```
+
+Resultado esperado:
+- 6 passed, 1 warning
+
+> Nota: se muestra un warning de pandas para `pd.to_datetime` que termina siendo no bloqueante, solo informativo.

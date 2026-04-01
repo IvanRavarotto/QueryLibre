@@ -1,4 +1,6 @@
 pandas
+numpy
 customtkinter
 openpyxl
 pyinstaller
+pytest

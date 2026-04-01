@@ -28,6 +28,10 @@ datos_ventas = {
 }
 
 df_ventas = pd.DataFrame(datos_ventas)
+# forzamos dtype objet para inyección de casos no numéricos
+for col in ['ID_Cliente', 'Cantidad ', 'precio_unitario_usd', 'Fecha Compra']:
+    if col in df_ventas.columns:
+        df_ventas[col] = df_ventas[col].astype(object)
 
 # --- ENSUCIAR EL DATASET PRINCIPAL ---
 # 1. Inyectar Nulos (NaN) aleatorios (Escalados a la nueva cantidad de filas)
@@ -43,6 +47,23 @@ df_ventas.loc[420, 'Fecha Compra'] = '2024/02/28'
 # 3. Forzar Duplicados (Copiamos 50 filas al azar y las pegamos al final)
 indices_duplicar = random.sample(range(n_records), 50)
 df_ventas = pd.concat([df_ventas, df_ventas.iloc[indices_duplicar]], ignore_index=True)
+
+# 3.5. Añadir casos extremos para pruebas exigentes
+for idx in random.sample(list(df_ventas.index), 30):
+    # Valores de ID cliente no numéricos en algunas filas
+    df_ventas.loc[idx, 'ID_Cliente'] = random.choice(['N/A', 'unknown', 'NULL', '999999999999999999999'])
+
+for idx in random.sample(list(df_ventas.index), 25):
+    # Cantidad con formatos inválidos
+    df_ventas.loc[idx, 'Cantidad '] = random.choice(['', '0', '-5', '30.5', 'once'])
+
+for idx in random.sample(list(df_ventas.index), 20):
+    # Precio con símbolos o texto
+    df_ventas.loc[idx, 'precio_unitario_usd'] = random.choice(['$', '15,00', '17.5.3', 'error', '2.099,99'])
+
+for idx in random.sample(list(df_ventas.index), 20):
+    # Fecha con formatos inapropiados
+    df_ventas.loc[idx, 'Fecha Compra'] = random.choice(['2024-13-01', '31/02/2024', 'not a date', '', np.nan])
 
 # 4. Desordenar filas para que los duplicados se mezclen en todas las páginas
 df_ventas = df_ventas.sample(frac=1).reset_index(drop=True) 
@@ -69,13 +90,105 @@ carpeta_destino = 'data_test'
 os.makedirs(carpeta_destino, exist_ok=True)
 
 ruta_ventas = os.path.join(carpeta_destino, 'ventas_caoticas.csv')
+ruta_ventas_exigente = os.path.join(carpeta_destino, 'ventas_caoticas_exigente.csv')
 ruta_clientes = os.path.join(carpeta_destino, 'clientes_dim.csv')
 
 df_ventas.to_csv(ruta_ventas, index=False)
+df_ventas.to_csv(ruta_ventas_exigente, index=False)
 df_clientes.to_csv(ruta_clientes, index=False)
 
 print("-" * 50)
-print(f"✅ ¡Archivos de prueba generados con éxito en la carpeta '{carpeta_destino}'!")
-print(f"📊 Dataset Principal (Ventas): {len(df_ventas)} filas (Contiene duplicados y nulos)")
-print(f"📘 Dataset Secundario (Clientes): {len(df_clientes)} filas (Tabla dimensional limpia)")
+print(f"Archivos de prueba generados con éxito en la carpeta '{carpeta_destino}'")
+print(f"Dataset Original (Ventas): {len(df_ventas)} filas")
+print(f"Dataset Exigente (Ventas_exigente): {len(df_ventas)} filas")
+print(f"Dataset Secundario (Clientes): {len(df_clientes)} filas")
 print("-" * 50)
+
+# --- 4. GENERAR ARCHIVO DE PRUEBAS (pytest) ---
+carpeta_tests = 'tests'
+os.makedirs(carpeta_tests, exist_ok=True)
+ruta_tests = os.path.join(carpeta_tests, 'test_data_engine.py')
+
+contenido_test = '''import os
+import pytest
+from core.data_engine import MotorDatos
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data_test')
+VENTAS = os.path.join(DATA_DIR, 'ventas_caoticas_exigente.csv')
+CLIENTES = os.path.join(DATA_DIR, 'clientes_dim.csv')
+
+
+def test_cargar_y_limpiar_csv():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    assert motor.df is not None
+    nantes = len(motor.df)
+    motor.eliminar_duplicados()
+    npost = len(motor.df)
+    assert npost <= nantes
+
+
+def test_cambiar_tipo_id_cliente_a_entero():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    motor.df.loc[0, 'ID_Cliente'] = 'NoVal'
+    with pytest.raises(RuntimeError):
+        motor.cambiar_tipo_dato('ID_Cliente', 'Número Entero')
+    assert motor.df.loc[0, 'ID_Cliente'] == 'NoVal' or str(motor.df.loc[0, 'ID_Cliente']) == 'NoVal'
+
+
+def test_cambiar_tipo_fecha_compra_fallo_y_estado():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    motor.df.loc[0, 'Fecha Compra'] = 'texto-mal'
+    with pytest.raises(RuntimeError):
+        motor.cambiar_tipo_dato('Fecha Compra', 'Fecha')
+
+
+def test_union_datasets():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    motor.cargar_df2(CLIENTES)
+    motor.aplicar_union('ID_Cliente', 'Cliente_ID', 'Izquierda (Left Join)')
+    assert 'Nombre_Empresa' in motor.df.columns
+
+
+def test_pipeline_conversión_extrema():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+
+    # Se espera que, aunque existan valores rotos, el método falle con RuntimeError y no corrompa df.
+    cadr = motor.df.copy(deep=True)
+    with pytest.raises(RuntimeError):
+        motor.cambiar_tipo_dato('ID_Cliente', 'Número Entero')
+
+    # El dataset original debe permanecer igual tras el fallo
+    assert motor.df.shape == cadr.shape
+
+    # Validar que hay al menos una fecha inválida para hacer explosion de conversión
+    assert (motor.df['Fecha Compra'].astype(str).str.contains('not a date|2024-13-01|31/02/2024', na=False)).any()
+
+    # Intenta conversión de fecha (debe lanzar en dataset fuerte)
+    with pytest.raises(RuntimeError):
+        motor.cambiar_tipo_dato('Fecha Compra', 'Fecha')
+
+
+def test_filtro_y_eliminar_duplicados_experto():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+
+    # Tras eliminar duplicados, siempre hay menos o igual filas
+    original = len(motor.df)
+    motor.eliminar_duplicados()
+    assert len(motor.df) <= original
+
+    # Filtrar por una categoría factible y validar que no explota.
+    motor.cargar_archivo(VENTAS)
+    motor.filtrar_datos('Categoria_Prod', 'Contiene el texto', 'Electronica')
+    assert 'Electronica' in motor.df['Categoria_Prod'].astype(str).str.cat(sep=' ')
+'''
+
+with open(ruta_tests, 'w', encoding='utf-8') as f:
+    f.write(contenido_test)
+
+print(f"Archivo de tests generado en: {ruta_tests}")
