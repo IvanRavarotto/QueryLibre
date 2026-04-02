@@ -5,6 +5,44 @@ Todos los cambios notables en el proyecto **QueryLibre** serán documentados en 
 
 ---
 
+## [1.4.2] - 2026-04-01
+### English
+#### Added
+* Enhanced macro engine security: macro action whitelist in `main.py` to avoid execution of not-permitted actions (hardening against modified macro JSONs).
+* Safe export sanitization in `core/data_engine.py`: CSV/Excel formula injection mitigation (`=`, `+`, `-`, `@`).
+* Robust file validation on loader functions `cargar_archivo` and `cargar_df2` (path exist, extension check, friendly errors).
+* CLI/GUI version bump to **v1.4.2** in status label and About panel.
+
+#### Fixed
+* Logging improved in `main.py`; captures errors with `logging.error` for file open/save/macro operations.
+* `MotorDatos.editar_celda` now validates row index and raises `IndexError` when está fuera de rango.
+* `filtrar_datos` now usa `regex=False` en `Contiene el texto` para evitar inyección de expresiones regulares.
+* `exportar_archivo` pre-validación de nombre de paso para no fallar con `formato` sin espacio.
+
+#### Changed
+* `requirements.txt` now defines pinned versions for reproducibility y seguridad.
+
+### Español
+#### Añadido
+* Seguridad de macros: whitelist de acciones en `main.py` para evitar ejecución arbitraria desde JSON de macros.
+* Sanitización de exportación: `core/data_engine.py` evita inyección de fórmulas en CSV/Excel.
+* Validaciones de datos de entrada en los cargadores (`cargar_archivo`, `cargar_df2`).
+* Actualización de versión a **v1.4.2** en interfaz y ventana Acerca de.
+
+#### Corregido
+* Errores en carga/guardado de macros se registran con `logging.error`.
+* Validación de rango en `editar_celda`, fallo con `IndexError` en índice inválido.
+* `filtrar_datos` con `Contiene el texto` no interpreta regex peligrosas.
+* `exportar_archivo` registra correctamente el formato incluso con etiquetas simples.
+
+#### Cambios
+* `requirements.txt` ahora usa versiones fijas de librerías para evitar comandos inesperados por upgrades.
+
+#### En progreso
+* Mejorar el modal de conversión para mostrar el listado de filas inválidas de forma integrada y evitar depender del texto largo de error. La tabla actual está construida, pero requiere ajustes finos (scroll automático / tamaño adaptativo) para no degradar la UX cuando hay muchos valores inválidos.
+
+---
+
 ## [1.4.1] - 2026-03-31
 ### English
 #### Added

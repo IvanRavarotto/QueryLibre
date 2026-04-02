@@ -1,6 +1,10 @@
 import os
+import sys
+import pandas as pd
 import pytest
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.data_engine import MotorDatos
+from main import PestañaTrabajo
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data_test')
 VENTAS = os.path.join(DATA_DIR, 'ventas_caoticas_exigente.csv')
@@ -75,3 +79,56 @@ def test_filtro_y_eliminar_duplicados_experto():
     motor.cargar_archivo(VENTAS)
     motor.filtrar_datos('Categoria_Prod', 'Contiene el texto', 'Electronica')
     assert 'Electronica' in motor.df['Categoria_Prod'].astype(str).str.cat(sep=' ')
+
+def test_cambiar_tipo_dato_indica_posiciones_invalidas():
+    motor = MotorDatos()
+    motor.df = pd.DataFrame({'x': ['1', 'unknown', '3', 'bad', '5']})
+    with pytest.raises(RuntimeError) as exc:
+        motor.cambiar_tipo_dato('x', 'Número Entero')
+    texto = str(exc.value)
+    assert 'valores inválidos' in texto
+    assert 'Ejemplo (fila, valor)' in texto
+
+
+def test_cambiar_tipo_fecha_indica_posiciones_invalidas():
+    motor = MotorDatos()
+    motor.df = pd.DataFrame({'f': ['2024-01-01', 'not a date', '2024-03-10']})
+    with pytest.raises(RuntimeError) as exc:
+        motor.cambiar_tipo_dato('f', 'Fecha')
+    texto = str(exc.value)
+    assert 'valores inválidos' in texto
+    assert 'Ejemplo (fila, valor)' in texto
+
+def test_macro_whitelist_no_methods_maliciosas():
+    assert 'eliminar_duplicados' in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
+    assert '__init__' not in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
+    assert '__dict__' not in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
+
+
+def test_editar_celda_fuera_rango_lanza_indexerror():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    with pytest.raises(IndexError):
+        motor.editar_celda(-1, 'ID_Cliente', '100')
+    with pytest.raises(IndexError):
+        motor.editar_celda(len(motor.df), 'ID_Cliente', '100')
+
+
+def test_filtrar_datos_contiene_escapa_regex():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    # si se usa un patrón regex peligroso, no se interpreta como regex en la búsqueda
+    motor.filtrar_datos('Categoria_Prod', 'Contiene el texto', '.*')
+    assert len(motor.df) == 0 or '.*' in motor.df['Categoria_Prod'].astype(str).str.cat(sep=' ')
+
+
+def test_exportar_csv_formula_injection_escapado(tmp_path):
+    motor = MotorDatos()
+    motor.df = pd.DataFrame({'a': ['=1+1', '+2', 'normal', '@cmd'], 'b': ['x', 'y', 'z', 'w']})
+    out_file = tmp_path / 'salida.csv'
+    motor.exportar_archivo('CSV', str(out_file))
+
+    contenido = out_file.read_text(encoding='utf-8')
+    assert "'=1+1" in contenido
+    assert "'+2" in contenido
+    assert "'@cmd" in contenido

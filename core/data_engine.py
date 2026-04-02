@@ -1,6 +1,7 @@
 import pandas as pd
 import os
 import sqlite3
+import re
 
 class MotorDatos:
     """
@@ -44,7 +45,10 @@ class MotorDatos:
             new_columns = []
             for col in self.df.columns:
                 if isinstance(col, str):
-                    new_columns.append(col.strip())
+                    col_normal = col.strip()
+                    # Reemplaza caracteres especiales exceptuando espacios para evitar ruptura de nombres actuales
+                    col_normal = re.sub(r"[^\w\s]+", "_", col_normal)
+                    new_columns.append(col_normal)
                 else:
                     new_columns.append(col)
             self.df.columns = new_columns
@@ -54,20 +58,46 @@ class MotorDatos:
             new_columns = []
             for col in self.df2.columns:
                 if isinstance(col, str):
-                    new_columns.append(col.strip())
+                    col_normal = col.strip()
+                    col_normal = re.sub(r"[^\w\s]+", "_", col_normal)
+                    new_columns.append(col_normal)
                 else:
                     new_columns.append(col)
             self.df2.columns = new_columns
 
+    def _sanitize_column_name(self, col):
+        if not isinstance(col, str):
+            return col
+        normalized = col.strip()
+        normalized = re.sub(r"[^\w]+", "_", normalized)
+        if normalized == "":
+            normalized = "columna"
+        return normalized
+
+    def _sanitize_for_export(self, df):
+        # Evita CSV/Excel injection de fórmulas iniciadas en = + - @
+        df_copy = df.copy()
+        for c in df_copy.columns:
+            if df_copy[c].dtype == object or pd.api.types.is_string_dtype(df_copy[c]):
+                df_copy[c] = df_copy[c].apply(
+                    lambda v: f"'{v}" if isinstance(v, str) and v.startswith(('=', '+', '-', '@')) else v
+                )
+        return df_copy
+
     def cargar_archivo(self, file_path):
+        if not file_path or not os.path.exists(file_path):
+            raise FileNotFoundError(f"Archivo no encontrado: {file_path}")
+
         ext = os.path.splitext(file_path)[1].lower()
         if ext == '.csv':
             try:
                 self.df = pd.read_csv(file_path, encoding='utf-8')
             except Exception:
                 self.df = pd.read_csv(file_path, encoding='latin-1')
-        else:
+        elif ext in ['.xls', '.xlsx']:
             self.df = pd.read_excel(file_path, engine='openpyxl')
+        else:
+            raise ValueError(f"Formato de archivo no soportado: {ext}")
 
         self._normalize_columns()
         self.historial_pasos = []
@@ -127,6 +157,9 @@ class MotorDatos:
         self._check_df()
         if col_name not in self.df.columns:
             raise KeyError("Columna inexistente")
+
+        if indice_real < 0 or indice_real >= len(self.df):
+            raise IndexError("Índice de fila fuera de rango")
 
         self._savepoint()
         col_idx = self.df.columns.get_loc(col_name)
@@ -228,7 +261,7 @@ class MotorDatos:
         if cond == "Es Igual a":
             self.df = self.df[self.df[col].astype(str).str.lower() == str(val).lower()]
         elif cond == "Contiene el texto":
-            self.df = self.df[self.df[col].astype(str).str.contains(str(val), case=False, na=False)]
+            self.df = self.df[self.df[col].astype(str).str.contains(str(val), case=False, na=False, regex=False)]
         elif cond == "Es Mayor que (>)":
             val_num = pd.to_numeric(val, errors='coerce')
             if pd.isna(val_num):
@@ -266,10 +299,17 @@ class MotorDatos:
                 total_non_null = s.notna().sum()
                 valid = converted.notna().sum()
                 invalid = total_non_null - valid
+                invalid_mask = s.notna() & converted.isna()
+                invalid_indices = self.df.index[invalid_mask].tolist()
+                invalid_values = self.df[col_name].loc[invalid_mask].astype(str).tolist()
                 if valid == 0:
                     raise ValueError("No se pudo convertir a número: no hay valores numéricos válidos")
                 if invalid > 0:
-                    raise ValueError(f"No se pudo convertir a número: {invalid} valores inválidos")
+                    muestra = list(zip(invalid_indices[:10], invalid_values[:10]))
+                    raise ValueError(
+                        f"No se pudo convertir a número: {invalid} valores inválidos. "
+                        f"Ejemplo (fila, valor): {muestra}"
+                    )
 
                 if nuevo_tipo == "Número Entero":
                     # Conservamos NaN como <NA> en Int64
@@ -282,10 +322,17 @@ class MotorDatos:
                 total_non_null = self.df[col_name].notna().sum()
                 valid = converted.notna().sum()
                 invalid = total_non_null - valid
+                invalid_mask = self.df[col_name].notna() & converted.isna()
+                invalid_indices = self.df.index[invalid_mask].tolist()
+                invalid_values = self.df[col_name].loc[invalid_mask].astype(str).tolist()
                 if valid == 0:
                     raise ValueError("No se pudo convertir a Fecha: no hay valores válidos")
                 if invalid > 0:
-                    raise ValueError(f"No se pudo convertir a Fecha: {invalid} valores inválidos")
+                    muestra = list(zip(invalid_indices[:10], invalid_values[:10]))
+                    raise ValueError(
+                        f"No se pudo convertir a Fecha: {invalid} valores inválidos. "
+                        f"Ejemplo (fila, valor): {muestra}"
+                    )
                 self.df[col_name] = converted
 
             else:
@@ -305,14 +352,19 @@ class MotorDatos:
     # INTEGRACIÓN Y EXPORTACIÓN
     # =========================================================
     def cargar_df2(self, file_path):
+        if not file_path or not os.path.exists(file_path):
+            raise FileNotFoundError(f"Archivo no encontrado: {file_path}")
+
         ext = os.path.splitext(file_path)[1].lower()
         if ext == '.csv':
             try:
                 self.df2 = pd.read_csv(file_path, encoding='utf-8')
             except Exception:
                 self.df2 = pd.read_csv(file_path, encoding='latin-1')
-        else:
+        elif ext in ['.xls', '.xlsx']:
             self.df2 = pd.read_excel(file_path, engine='openpyxl')
+        else:
+            raise ValueError(f"Formato de archivo no soportado: {ext}")
 
         self._normalize_columns_df2()
 
@@ -356,9 +408,11 @@ class MotorDatos:
         self._check_df()
 
         if "CSV" in formato:
-            self.df.to_csv(file_path, index=False)
+            df_sanitizado = self._sanitize_for_export(self.df)
+            df_sanitizado.to_csv(file_path, index=False)
         elif "Excel" in formato:
-            self.df.to_excel(file_path, index=False)
+            df_sanitizado = self._sanitize_for_export(self.df)
+            df_sanitizado.to_excel(file_path, index=False)
         elif "SQLite" in formato:
             conn = sqlite3.connect(file_path)
             self.df.to_sql("datos_limpios", conn, if_exists="replace", index=False)
@@ -366,7 +420,8 @@ class MotorDatos:
         else:
             raise ValueError("Formato de exportación no soportado")
 
-        self.registrar_paso(f"💾 Exportado a {formato.split(' ')[1]}: {os.path.basename(file_path)}")
+        tipo_save = formato.split(' ')[1] if ' ' in formato else formato
+        self.registrar_paso(f"💾 Exportado a {tipo_save}: {os.path.basename(file_path)}")
         
     def obtener_radiografia(self, col_name):
         """Genera un reporte estadístico de la columna solicitada."""

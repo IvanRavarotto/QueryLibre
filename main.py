@@ -3,6 +3,7 @@ import os
 import sys
 import math
 import json
+import re
 import ctypes
 import tkinter as tk
 from tkinter import filedialog, ttk
@@ -26,6 +27,20 @@ def obtener_ruta(ruta_relativa):
 # CLASE PESTAÑA (WORKSPACE)
 # =========================================================================
 class PestañaTrabajo(ctk.CTkFrame):
+    ALLOWED_MACRO_ACTIONS = {
+        "eliminar_duplicados",
+        "limpiar_nulos",
+        "eliminar_columna",
+        "renombrar_columna",
+        "editar_celda",
+        "calcular_columna",
+        "combinar_columnas",
+        "dividir_columna",
+        "filtrar_datos",
+        "cambiar_tipo_dato",
+        "aplicar_union",
+    }
+
     def __init__(self, master, app_root):
         super().__init__(master, fg_color="transparent")
         self.app_root = app_root 
@@ -204,7 +219,9 @@ class PestañaTrabajo(ctk.CTkFrame):
                     json.dump(self.motor.macro_steps, f, indent=4)
                 self.motor.registrar_paso(f"🤖 Macro Guardada: {os.path.basename(file_path)}")
                 self.refrescar_interfaz()
-            except Exception as e: print(f"Error al guardar macro: {e}")
+            except Exception as e:
+                import logging
+                logging.error(f"Error al guardar macro: {e}")
 
     def ejecutar_macro(self):
         if self.motor.df is None: return
@@ -223,11 +240,16 @@ class PestañaTrabajo(ctk.CTkFrame):
                 for paso in pasos:
                     nombre_funcion = paso.get("action")
                     parametros = paso.get("params", {})
+                    if nombre_funcion not in self.ALLOWED_MACRO_ACTIONS:
+                        print(f"Macro bloqueada por seguridad: acción no permitida {nombre_funcion}")
+                        continue
                     if hasattr(self.motor, nombre_funcion):
                         metodo = getattr(self.motor, nombre_funcion)
                         metodo(**parametros)
                 self.refrescar_interfaz()
-            except Exception as e: print(f"Error al ejecutar macro: {e}")
+            except Exception as e:
+                import logging
+                logging.error(f"Error al ejecutar macro: {e}")
 
 
 # =========================================================================
@@ -260,6 +282,10 @@ class QueryLibreApp(ctk.CTk):
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
+        # Logging setup global
+        import logging
+        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+
         self.btn_cargar = ctk.CTkButton(self.sidebar_frame, text="📁 Cargar Archivo", command=self.cargar_archivo)
         self.btn_cargar.grid(row=1, column=0, padx=20, pady=10)
 
@@ -269,7 +295,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.1", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.2", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -393,7 +419,9 @@ class QueryLibreApp(ctk.CTk):
                 self.tabview.set(nombre_tab)
                 self.actualizar_lbl_dimensiones()
 
-            except Exception as e: print(f"Error al cargar: {e}")
+            except Exception as e:
+                import logging
+                logging.error(f"Error al cargar: {e}")
 
     # --- Funciones Delegadas (Modales) ---
     def eliminar_duplicados(self):
@@ -476,15 +504,50 @@ class QueryLibreApp(ctk.CTk):
         tipo_combo.set("Número Entero")
 
         err = ctk.CTkLabel(dialog, text="", text_color="#e74c3c"); err.pack(pady=5)
-        
+
+        table_frame = ctk.CTkFrame(dialog)
+        table_frame.pack(fill="both", expand=False, padx=10, pady=(0, 10))
+        table_frame.pack_forget()
+
+        tree = ttk.Treeview(table_frame, columns=("fila","valor"), show="headings", height=6)
+        tree.heading("fila", text="Fila")
+        tree.heading("valor", text="Valor inválido")
+        tree.column("fila", width=80, anchor="center")
+        tree.column("valor", width=220, anchor="w")
+        tree.pack(fill="both", expand=True)
+
+        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
+        scrollbar.pack(side="right", fill="y")
+        tree.configure(yscrollcommand=scrollbar.set)
+
+        def parse_invalid_values(message):
+            match = re.search(r"Ejemplo \(fila, valor\): \[(.*)\]", message)
+            if not match:
+                return []
+            data = match.group(1)
+            return re.findall(r"\((\d+), '([^']*)'\)", data)
+
+        def show_invalid_table(items):
+            for i in tree.get_children():
+                tree.delete(i)
+            if not items:
+                table_frame.pack_forget()
+                return
+            table_frame.pack(fill="both", expand=False, padx=10, pady=(0, 10))
+            for fila, valor in items:
+                tree.insert("", "end", values=(fila, valor))
+
         def ejecutar():
             try:
                 tab.motor.cambiar_tipo_dato(col_combo.get(), tipo_combo.get())
                 tab.refrescar_interfaz()
                 dialog.destroy()
             except Exception as e:
-                err.configure(text=f"Error al convertir los datos: {e}")
+                mensaje = f"Error al convertir los datos: {e}"
+                err.configure(text=mensaje)
                 print(f"Error Casting: {e}")
+                items = parse_invalid_values(str(e))
+                show_invalid_table(items)
 
         ctk.CTkButton(dialog, text="Aplicar Conversión", command=ejecutar, fg_color="#2980b9").pack(pady=15)
 
@@ -641,10 +704,10 @@ class QueryLibreApp(ctk.CTk):
         dialog.grab_set()
         self.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.4.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.4.2", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
-        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite")
+        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.4.2")
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
         ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)
