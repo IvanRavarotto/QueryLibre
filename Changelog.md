@@ -5,6 +5,35 @@ Todos los cambios notables en el proyecto **QueryLibre** serán documentados en 
 
 ---
 
+## [1.4.3] - 2026-04-02
+### English
+#### Added
+* Macro execution now rejects parameter keys starting with `__` and known dangerous keys in `main.py` for safer JSON macro playback.
+* Export sanitization in `core/data_engine.py` expanded to handle `'`-escaped formulas (`'=...`) and formula-like values with leading spaces.
+* Loader hardening for `cargar_archivo`/`cargar_df2`: path normalization checks, no `..` in relative paths, only `.csv`, `.xls`, `.xlsx`.
+* UI: conversion modal (`Cambiar Tipo`) now display invalid rows table with adaptive height/scroll and “Copiar al portapapeles”.
+* Global logging via RotatingFileHandler written to `querylibre.log`.
+
+#### Fixed
+* `MotorDatos._validate_loader_path` now da friendly ValueError for invalid extension or relative traversal attempts.
+* `MotorDatos.aplicar_union` includes guard `ValueError` when `df2` no está cargado; test agregado.
+* Combinado con test suite: 16 tests pasados.
+
+### Español
+#### Añadido
+* Ejecución de macros ahora rechaza keys de parámetros que comienzan con `__` y claves peligrosas en `main.py`.
+* Sanitización de exportación en `core/data_engine.py` extendida para valores tipo fórmula `'=...` y casos con espacios iniciales.
+* Hardening de cargadores `cargar_archivo`/`cargar_df2`: normalización de ruta, no `..` en rutas relativas, soporta solo `.csv`, `.xls`, `.xlsx`.
+* UI: modal de conversión (`Cambiar Tipo`) muestra tabla de filas inválidas con altura adaptable, scroll y botón “Copiar al portapapeles”.
+* Logging global en `querylibre.log` con rotación de archivos.
+
+#### Corregido
+* `MotorDatos._validate_loader_path` devuelve `ValueError` claro para extensión inválida o intentos de traversal relativo.
+* `MotorDatos.aplicar_union` lanza guard `ValueError` cuando no hay `df2` cargado; test añadido.
+* Validación de flujo via tests: 16 pruebas pasadas.
+
+---
+
 ## [1.4.2] - 2026-04-01
 ### English
 #### Added

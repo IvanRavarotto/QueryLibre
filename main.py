@@ -5,12 +5,22 @@ import math
 import json
 import re
 import ctypes
+import logging
+from logging.handlers import RotatingFileHandler
 import tkinter as tk
 from tkinter import filedialog, ttk
 import customtkinter as ctk
 
 # IMPORTAMOS NUESTRO CEREBRO
 from core.data_engine import MotorDatos
+
+# Logging global con rotación
+LOGGER = logging.getLogger("QueryLibre")
+if not LOGGER.handlers:
+    LOGGER.setLevel(logging.INFO)
+    handler = RotatingFileHandler("querylibre.log", maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+    handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
+    LOGGER.addHandler(handler)
 
 ctk.set_appearance_mode("System")
 ctk.set_default_color_theme("blue")
@@ -39,6 +49,11 @@ class PestañaTrabajo(ctk.CTkFrame):
         "filtrar_datos",
         "cambiar_tipo_dato",
         "aplicar_union",
+    }
+
+    DISALLOWED_MACRO_PARAM_KEYS = {
+        "__class__", "__dict__", "__bases__", "__globals__", "__code__",
+        "__closure__", "__func__", "__self__", "__module__"
     }
 
     def __init__(self, master, app_root):
@@ -220,8 +235,7 @@ class PestañaTrabajo(ctk.CTkFrame):
                 self.motor.registrar_paso(f"🤖 Macro Guardada: {os.path.basename(file_path)}")
                 self.refrescar_interfaz()
             except Exception as e:
-                import logging
-                logging.error(f"Error al guardar macro: {e}")
+                LOGGER.error(f"Error al guardar macro: {e}")
 
     def ejecutar_macro(self):
         if self.motor.df is None: return
@@ -240,16 +254,28 @@ class PestañaTrabajo(ctk.CTkFrame):
                 for paso in pasos:
                     nombre_funcion = paso.get("action")
                     parametros = paso.get("params", {})
+
                     if nombre_funcion not in self.ALLOWED_MACRO_ACTIONS:
-                        print(f"Macro bloqueada por seguridad: acción no permitida {nombre_funcion}")
+                        LOGGER.error(f"Macro bloqueada por seguridad: acción no permitida {nombre_funcion}")
                         continue
+
+                    if not isinstance(parametros, dict):
+                        LOGGER.error(f"Macro bloqueada por seguridad: params inválidos para acción {nombre_funcion}")
+                        continue
+
+                    if any(
+                        not isinstance(key, str) or key.startswith("__") or key in self.DISALLOWED_MACRO_PARAM_KEYS
+                        for key in parametros.keys()
+                    ):
+                        LOGGER.error(f"Macro bloqueada por seguridad: parámetros maliciosos en acción {nombre_funcion}")
+                        continue
+
                     if hasattr(self.motor, nombre_funcion):
                         metodo = getattr(self.motor, nombre_funcion)
                         metodo(**parametros)
                 self.refrescar_interfaz()
             except Exception as e:
-                import logging
-                logging.error(f"Error al ejecutar macro: {e}")
+                LOGGER.error(f"Error al ejecutar macro: {e}")
 
 
 # =========================================================================
@@ -282,9 +308,8 @@ class QueryLibreApp(ctk.CTk):
         self.logo_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre", font=ctk.CTkFont(size=20, weight="bold"))
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
-        # Logging setup global
-        import logging
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s %(levelname)s %(message)s')
+        # Logging setup global en LOGGER definido a nivel de módulo
+        LOGGER.info("Iniciando QueryLibre")
 
         self.btn_cargar = ctk.CTkButton(self.sidebar_frame, text="📁 Cargar Archivo", command=self.cargar_archivo)
         self.btn_cargar.grid(row=1, column=0, padx=20, pady=10)
@@ -295,7 +320,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.2", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.3", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -420,8 +445,7 @@ class QueryLibreApp(ctk.CTk):
                 self.actualizar_lbl_dimensiones()
 
             except Exception as e:
-                import logging
-                logging.error(f"Error al cargar: {e}")
+                LOGGER.error(f"Error al cargar: {e}")
 
     # --- Funciones Delegadas (Modales) ---
     def eliminar_duplicados(self):
@@ -505,37 +529,59 @@ class QueryLibreApp(ctk.CTk):
 
         err = ctk.CTkLabel(dialog, text="", text_color="#e74c3c"); err.pack(pady=5)
 
+        info_invalid = ctk.CTkLabel(dialog, text="", text_color="#e67e22")
+        info_invalid.pack(pady=(0, 5))
+
         table_frame = ctk.CTkFrame(dialog)
         table_frame.pack(fill="both", expand=False, padx=10, pady=(0, 10))
         table_frame.pack_forget()
 
-        tree = ttk.Treeview(table_frame, columns=("fila","valor"), show="headings", height=6)
+        tree = ttk.Treeview(table_frame, columns=("fila","valor"), show="headings", height=8)
         tree.heading("fila", text="Fila")
         tree.heading("valor", text="Valor inválido")
-        tree.column("fila", width=80, anchor="center")
-        tree.column("valor", width=220, anchor="w")
+        tree.column("fila", width=70, anchor="center")
+        tree.column("valor", width=420, anchor="w")
         tree.pack(fill="both", expand=True)
 
         scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
         scrollbar.pack(side="right", fill="y")
         tree.configure(yscrollcommand=scrollbar.set)
 
+        copy_button = ctk.CTkButton(dialog, text="Copiar lista inválidos al portapapeles", fg_color="#16a085", hover_color="#1abc9c", width=260)
+        copy_button.pack(pady=(0, 8))
+        copy_button.pack_forget()
+
         def parse_invalid_values(message):
             match = re.search(r"Ejemplo \(fila, valor\): \[(.*)\]", message)
             if not match:
                 return []
             data = match.group(1)
-            return re.findall(r"\((\d+), '([^']*)'\)", data)
+            items = re.findall(r"\((\d+), '((?:[^']|\\')*)'\)", data)
+            # Retornar los 100 primeros para evitar UI pesada
+            return items[:100]
 
         def show_invalid_table(items):
             for i in tree.get_children():
                 tree.delete(i)
             if not items:
                 table_frame.pack_forget()
+                copy_button.pack_forget()
+                info_invalid.configure(text="")
                 return
+            count = len(items)
             table_frame.pack(fill="both", expand=False, padx=10, pady=(0, 10))
+            copy_button.pack(pady=(0, 8))
+            info_invalid.configure(text=f"{count} filas mostradas (hasta 100): usa el botón para copiar al portapapeles")
             for fila, valor in items:
                 tree.insert("", "end", values=(fila, valor))
+
+            def copy_to_clipboard():
+                text = "Fila\tValor inválido\n" + "\n".join(f"{fila}\t{valor}" for fila, valor in items)
+                dialog.clipboard_clear()
+                dialog.clipboard_append(text)
+                info_invalid.configure(text="Copiado al portapapeles.")
+
+            copy_button.configure(command=copy_to_clipboard)
 
         def ejecutar():
             try:
@@ -704,10 +750,10 @@ class QueryLibreApp(ctk.CTk):
         dialog.grab_set()
         self.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.4.2", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.4.3", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
-        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.4.2")
+        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.4.3")
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
         ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)

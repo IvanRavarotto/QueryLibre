@@ -21,9 +21,9 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🚀 Características Principales (v1.4.2)
+## 🚀 Características Principales (v1.4.3)
 
-> **Patch v1.4.2:** Seguridad de macros, exportación segura (CSV/Excel), validaciones de carga de archivos y robustecimiento de logging / error handling.
+> **Patch v1.4.3:** Hardening de macros, sanitización mejorada de exportación (fórmulas con `'`), validación de carga más estricta y UI de filas inválidas con copy/export.
 
 * **Arquitectura Escalable (MVC):** Motor de datos (`core/data_engine.py`) completamente desacoplado de la interfaz gráfica.
 * **Sistema de Pestañas (Workspace):** Soporte nativo para importar y trabajar con múltiples datasets en simultáneo en la misma sesión, sin colisión de datos.

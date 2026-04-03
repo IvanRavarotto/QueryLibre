@@ -46,6 +46,13 @@ def test_union_datasets():
     assert 'Nombre_Empresa' in motor.df.columns
 
 
+def test_aplicar_union_sin_df2_rechaza():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    with pytest.raises(ValueError, match="No hay segundo dataset cargado"):
+        motor.aplicar_union('ID_Cliente', 'Cliente_ID', 'Izquierda (Left Join)')
+
+
 def test_pipeline_conversión_extrema():
     motor = MotorDatos()
     motor.cargar_archivo(VENTAS)
@@ -132,3 +139,36 @@ def test_exportar_csv_formula_injection_escapado(tmp_path):
     assert "'=1+1" in contenido
     assert "'+2" in contenido
     assert "'@cmd" in contenido
+
+
+def test_exportar_csv_formula_injection_escapado_comillas_como_prefijo(tmp_path):
+    motor = MotorDatos()
+    motor.df = pd.DataFrame({'a': ["'=1", "'@cmd", "normal"]})
+    out_file = tmp_path / 'salida2.csv'
+    motor.exportar_archivo('CSV', str(out_file))
+
+    contenido = out_file.read_text(encoding='utf-8')
+    assert "''=1" in contenido
+    assert "''@cmd" in contenido
+
+
+def test_cargar_archivo_formato_no_soportado(tmp_path):
+    motor = MotorDatos()
+    bad_file = tmp_path / 'mal.txt'
+    bad_file.write_text('x')
+    with pytest.raises(ValueError):
+        motor.cargar_archivo(str(bad_file))
+
+
+def test_cargar_df2_ruta_relativa_invalida(tmp_path):
+    motor = MotorDatos()
+    subdir = tmp_path / 'subdir'
+    subdir.mkdir()
+    file_path = subdir / 'mal.csv'
+    file_path.write_text('id\n1')
+
+    # ruta relativa con '..' (desde la carpeta actual) debe fallar por seguridad
+    bad = os.path.relpath(str(file_path), start=os.getcwd())
+    assert '..' in bad
+    with pytest.raises(ValueError):
+        motor.cargar_df2(bad)

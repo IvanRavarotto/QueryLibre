@@ -1,8 +1,10 @@
+import logging
 import pandas as pd
 import os
 import sqlite3
 import re
 
+LOGGER = logging.getLogger("QueryLibre")
 class MotorDatos:
     """
     Cerebro de QueryLibre.
@@ -74,21 +76,50 @@ class MotorDatos:
             normalized = "columna"
         return normalized
 
-    def _sanitize_for_export(self, df):
-        # Evita CSV/Excel injection de fórmulas iniciadas en = + - @
-        df_copy = df.copy()
-        for c in df_copy.columns:
-            if df_copy[c].dtype == object or pd.api.types.is_string_dtype(df_copy[c]):
-                df_copy[c] = df_copy[c].apply(
-                    lambda v: f"'{v}" if isinstance(v, str) and v.startswith(('=', '+', '-', '@')) else v
-                )
-        return df_copy
-
-    def cargar_archivo(self, file_path):
+    def _validate_loader_path(self, file_path):
         if not file_path or not os.path.exists(file_path):
             raise FileNotFoundError(f"Archivo no encontrado: {file_path}")
 
+        if not os.path.isfile(file_path):
+            raise ValueError(f"No es un archivo válido: {file_path}")
+
+        normalized_path = file_path.replace('\\', '/').strip()
+        if not os.path.isabs(file_path) and '..' in normalized_path.split('/'):
+            raise ValueError("Ruta de archivo inválida: no se permiten referencias relativas")
+
+        cleaned = os.path.normpath(file_path)
+        if any(part == '..' for part in cleaned.split(os.sep)):
+            # solo ocurrirá en paths absolutos directos; cuánto seguro, aún validamos
+            raise ValueError("Ruta de archivo inválida: no se permiten referencias relativas")
+
+        if re.search(r'[\x00-\x1f]', file_path):
+            raise ValueError("Ruta de archivo inválida: contiene caracteres no permitidos")
+
         ext = os.path.splitext(file_path)[1].lower()
+        if ext not in ['.csv', '.xls', '.xlsx']:
+            raise ValueError(f"Formato de archivo no soportado: {ext}")
+
+        return ext
+
+    def _sanitize_for_export(self, df):
+        # Evita CSV/Excel injection de fórmulas iniciadas en = + - @ y protege casos con prefijo ' en datasources maliciosas
+        df_copy = df.copy()
+        for c in df_copy.columns:
+            if df_copy[c].dtype == object or pd.api.types.is_string_dtype(df_copy[c]):
+                def protect(v):
+                    if isinstance(v, str):
+                        starts = v.lstrip()
+                        if starts.startswith(('=', '+', '-', '@')):
+                            return "'" + v
+                        if v.startswith("'") and len(v) > 1 and v[1] in ('=', '+', '-', '@'):
+                            return "'" + v
+                    return v
+                df_copy[c] = df_copy[c].apply(protect)
+        return df_copy
+
+    def cargar_archivo(self, file_path):
+        ext = self._validate_loader_path(file_path)
+
         if ext == '.csv':
             try:
                 self.df = pd.read_csv(file_path, encoding='utf-8')
@@ -96,8 +127,6 @@ class MotorDatos:
                 self.df = pd.read_csv(file_path, encoding='latin-1')
         elif ext in ['.xls', '.xlsx']:
             self.df = pd.read_excel(file_path, engine='openpyxl')
-        else:
-            raise ValueError(f"Formato de archivo no soportado: {ext}")
 
         self._normalize_columns()
         self.historial_pasos = []
@@ -352,10 +381,8 @@ class MotorDatos:
     # INTEGRACIÓN Y EXPORTACIÓN
     # =========================================================
     def cargar_df2(self, file_path):
-        if not file_path or not os.path.exists(file_path):
-            raise FileNotFoundError(f"Archivo no encontrado: {file_path}")
+        ext = self._validate_loader_path(file_path)
 
-        ext = os.path.splitext(file_path)[1].lower()
         if ext == '.csv':
             try:
                 self.df2 = pd.read_csv(file_path, encoding='utf-8')
@@ -363,8 +390,6 @@ class MotorDatos:
                 self.df2 = pd.read_csv(file_path, encoding='latin-1')
         elif ext in ['.xls', '.xlsx']:
             self.df2 = pd.read_excel(file_path, engine='openpyxl')
-        else:
-            raise ValueError(f"Formato de archivo no soportado: {ext}")
 
         self._normalize_columns_df2()
 
