@@ -202,3 +202,76 @@ def test_normalize_columns_resuelve_duplicados():
 
     assert 'col' in motor.df.columns
     assert any(c.startswith('col_') for c in motor.df.columns if c != 'col')
+
+
+def test_macro_fuzz_parametros_peligrosos():
+    # Mock Tk para evitar problemas en entorno sin display
+    import unittest.mock as mock
+    with mock.patch('tkinter.Tk'):
+        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
+            tab = PestañaTrabajo(None, None)
+            tab.motor = MotorDatos()
+            tab.motor.df = pd.DataFrame({'x': [1, 2]})
+            tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}
+            tab.DISALLOWED_MACRO_PARAM_KEYS = {'__class__', '__dict__', '__globals__'}
+
+            # Test con keys peligrosos
+            pasos_peligrosos = [
+                {'action': 'eliminar_duplicados', 'params': {'__class__': 'malicious'}},
+                {'action': 'eliminar_duplicados', 'params': {'__dict__': 'bad'}},
+                {'action': 'eliminar_duplicados', 'params': {'normal': 'ok', '__globals__': 'evil'}}
+            ]
+
+            for paso in pasos_peligrosos:
+                original_df = tab.motor.df.copy()
+                # Debe continuar sin ejecutar por seguridad
+                tab._apply_macro_steps([paso])
+                # Df no debe cambiar
+                assert tab.motor.df.equals(original_df)
+
+
+def test_macro_accion_no_permitida():
+    # Mock Tk
+    import unittest.mock as mock
+    with mock.patch('tkinter.Tk'):
+        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
+            tab = PestañaTrabajo(None, None)
+            tab.motor = MotorDatos()
+            tab.motor.df = pd.DataFrame({'x': [1, 2]})
+            tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}
+            tab.DISALLOWED_MACRO_PARAM_KEYS = {'__class__', '__dict__'}
+
+            pasos_invalidos = [
+                {'action': '__init__', 'params': {}},
+                {'action': 'borrar_archivo', 'params': {}}
+            ]
+
+            for paso in pasos_invalidos:
+                original_df = tab.motor.df.copy()
+                # Debe continuar sin ejecutar
+                tab._apply_macro_steps([paso])
+                # Df no debe cambiar
+                assert tab.motor.df.equals(original_df)
+
+
+def test_macro_valores_no_seguros():
+    # Mock Tk
+    import unittest.mock as mock
+    with mock.patch('tkinter.Tk'):
+        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
+            tab = PestañaTrabajo(None, None)
+            tab.motor = MotorDatos()
+            tab.motor.df = pd.DataFrame({'x': [1, 2]})
+            tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}
+
+            pasos_inseguros = [
+                {'action': 'eliminar_duplicados', 'params': {'col_name': object()}},  # objeto no seguro
+                {'action': 'eliminar_duplicados', 'params': {'lista': [1, object()]}},  # lista con objeto
+            ]
+
+            for paso in pasos_inseguros:
+                original_df = tab.motor.df.copy()
+                # Debe continuar sin ejecutar
+                tab._apply_macro_steps([paso])
+                # Df no debe cambiar
+                assert tab.motor.df.equals(original_df)

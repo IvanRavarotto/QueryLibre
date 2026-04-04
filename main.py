@@ -237,6 +237,16 @@ class PestañaTrabajo(ctk.CTkFrame):
             except Exception as e:
                 LOGGER.error(f"Error al guardar macro: {e}")
 
+    def _is_safe_value(self, value):
+        """Valida que el valor sea de tipo seguro para evitar inyección."""
+        if isinstance(value, (str, int, float, bool)):
+            return True
+        elif isinstance(value, list):
+            return all(self._is_safe_value(item) for item in value)
+        elif isinstance(value, dict):
+            return all(isinstance(k, str) and self._is_safe_value(v) for k, v in value.items())
+        return False
+
     def _apply_macro_steps(self, pasos):
         backup_df = self.motor.df.copy(deep=True)
         backup_history = list(self.motor.df_history)
@@ -261,6 +271,10 @@ class PestañaTrabajo(ctk.CTkFrame):
                     for key in parametros.keys()
                 ):
                     LOGGER.error(f"Macro bloqueada por seguridad: parámetros maliciosos en acción {nombre_funcion}")
+                    continue
+
+                if not all(self._is_safe_value(v) for v in parametros.values()):
+                    LOGGER.error(f"Macro bloqueada por seguridad: valores de parámetros no seguros en acción {nombre_funcion}")
                     continue
 
                 if hasattr(self.motor, nombre_funcion):
@@ -342,7 +356,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.4", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.5", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -772,10 +786,10 @@ class QueryLibreApp(ctk.CTk):
         dialog.grab_set()
         self.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.4.4", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.4.5", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
-        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.4.4")
+        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.4.5")
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
         ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)

@@ -21,9 +21,9 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🚀 Características Principales (v1.4.4)
+## 🚀 Características Principales (v1.4.5)
 
-> **Patch v1.4.4:** Macro rollback seguro, normalización de columnas y resolución de conflictos en joins, loader hardening y UI de filas inválidas con copy/export.
+> **Patch v1.4.5:** Macro rollback seguro, normalización de columnas y resolución de conflictos en joins, loader hardening, UI de filas inválidas con copy/export, y validación de tipos en parámetros de macros.
 
 * **Arquitectura Escalable (MVC):** Motor de datos (`core/data_engine.py`) completamente desacoplado de la interfaz gráfica.
 * **Sistema de Pestañas (Workspace):** Soporte nativo para importar y trabajar con múltiples datasets en simultáneo en la misma sesión, sin colisión de datos.
@@ -125,6 +125,6 @@ Este proyecto incluye una suite `pytest` para validar las funciones clave de tra
    ```
 
 Resultado esperado:
-- 18 passed, 1 warning
+- 21 passed, 1 warning
 
 > Nota: se muestra un warning de pandas para `pd.to_datetime` que termina siendo no bloqueante, solo informativo.

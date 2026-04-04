@@ -5,26 +5,53 @@ Todos los cambios notables en el proyecto **QueryLibre** serán documentados en 
 
 ---
 
+## [1.4.5] - 2026-04-04
+### English
+#### Added
+* Macro parameter type validation: only allows safe value types (str, int, float, bool, list, dict) to prevent injection attacks.
+* Additional security tests for macro parameter fuzzing with unsafe values.
+
+#### Fixed
+* Enhanced macro execution security against complex object injection.
+
+### Español
+#### Añadido
+* Validación de tipos de parámetros de macros: solo permite tipos de valores seguros (str, int, float, bool, list, dict) para prevenir ataques de inyección.
+* Pruebas de seguridad adicionales para fuzzing de parámetros de macros con valores inseguros.
+
+#### Corregido
+* Seguridad mejorada en ejecución de macros contra inyección de objetos complejos.
+
+---
+
 ## [1.4.4] - 2026-04-03
 ### English
 #### Added
 * Macro execution rollback on failed step; restores dataset state if a macro run crashes.
 * Column normalization now converts spaces to underscores and resolves duplicate column names in `core/data_engine.py`.
 * App version updated to `v1.4.4` in the UI and About dialog.
+* Enhanced macro security: fuzz-resistant parameter validation rejecting dangerous keys like `__class__`, `__dict__`.
+* Additional tests for macro fuzzing and invalid action blocking.
+* Macro parameter value validation: only allows safe types (str, int, float, bool, list, dict) to prevent injection.
 
 #### Fixed
 * `aplicar_union` now supports normalized column names with potential conflicts after cleaning.
 * Added tests for macro rollback and normalized join conflict.
+* Updated dependencies to mitigate known vulnerabilities (pillow, pygments, requests, tornado, urllib3).
 
 ### Español
 #### Añadido
 * Ejecución de macros ahora hace rollback si un paso falla y restaura el estado previo del dataset.
 * Normalización de columnas en `core/data_engine.py` convierte espacios a guiones bajos y resuelve duplicados con sufijos.
 * Actualización de versión a `v1.4.4` en la UI y en el panel Acerca de.
+* Seguridad de macros mejorada: validación de parámetros resistente a fuzz, rechazando claves peligrosas como `__class__`, `__dict__`.
+* Pruebas adicionales para fuzzing de macros y bloqueo de acciones inválidas.
+* Validación de valores de parámetros de macros: solo permite tipos seguros (str, int, float, bool, list, dict) para evitar inyección.
 
 #### Corregido
 * `aplicar_union` ahora maneja columnas normalizadas con potenciales conflictos.
 * Se agregaron pruebas para rollback de macro y conflicto de columnas en unión.
+* Dependencias actualizadas para mitigar vulnerabilidades conocidas (pillow, pygments, requests, tornado, urllib3).
 
 ---
 
