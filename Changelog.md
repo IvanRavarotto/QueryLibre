@@ -5,6 +5,29 @@ Todos los cambios notables en el proyecto **QueryLibre** serán documentados en 
 
 ---
 
+## [1.4.4] - 2026-04-03
+### English
+#### Added
+* Macro execution rollback on failed step; restores dataset state if a macro run crashes.
+* Column normalization now converts spaces to underscores and resolves duplicate column names in `core/data_engine.py`.
+* App version updated to `v1.4.4` in the UI and About dialog.
+
+#### Fixed
+* `aplicar_union` now supports normalized column names with potential conflicts after cleaning.
+* Added tests for macro rollback and normalized join conflict.
+
+### Español
+#### Añadido
+* Ejecución de macros ahora hace rollback si un paso falla y restaura el estado previo del dataset.
+* Normalización de columnas en `core/data_engine.py` convierte espacios a guiones bajos y resuelve duplicados con sufijos.
+* Actualización de versión a `v1.4.4` en la UI y en el panel Acerca de.
+
+#### Corregido
+* `aplicar_union` ahora maneja columnas normalizadas con potenciales conflictos.
+* Se agregaron pruebas para rollback de macro y conflicto de columnas en unión.
+
+---
+
 ## [1.4.3] - 2026-04-02
 ### English
 #### Added

@@ -172,3 +172,33 @@ def test_cargar_df2_ruta_relativa_invalida(tmp_path):
     assert '..' in bad
     with pytest.raises(ValueError):
         motor.cargar_df2(bad)
+
+
+def test_macro_rollback_en_error_de_paso():
+    import tkinter as tk
+
+    root = tk.Tk()
+    root.withdraw()
+    tab = PestañaTrabajo(root, root)
+    tab.motor.df = pd.DataFrame({'x': ['2024-01-01', 'not a date']})
+
+    pasos = [
+        {'action': 'editar_celda', 'params': {'indice_real': 0, 'col_name': 'x', 'nuevo_valor': '2024-01-01'}},
+        {'action': 'cambiar_tipo_dato', 'params': {'col_name': 'x', 'nuevo_tipo': 'Fecha'}}
+    ]
+
+    original = tab.motor.df.copy(deep=True)
+    with pytest.raises(RuntimeError):
+        tab._apply_macro_steps(pasos)
+
+    assert tab.motor.df.equals(original)
+    root.destroy()
+
+
+def test_normalize_columns_resuelve_duplicados():
+    motor = MotorDatos()
+    motor.df = pd.DataFrame([[1, 2]], columns=['col', 'col'])
+    motor._normalize_columns()
+
+    assert 'col' in motor.df.columns
+    assert any(c.startswith('col_') for c in motor.df.columns if c != 'col')

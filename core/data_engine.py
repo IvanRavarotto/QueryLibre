@@ -44,28 +44,30 @@ class MotorDatos:
 
     def _normalize_columns(self):
         if self.df is not None:
-            new_columns = []
-            for col in self.df.columns:
-                if isinstance(col, str):
-                    col_normal = col.strip()
-                    # Reemplaza caracteres especiales exceptuando espacios para evitar ruptura de nombres actuales
-                    col_normal = re.sub(r"[^\w\s]+", "_", col_normal)
-                    new_columns.append(col_normal)
-                else:
-                    new_columns.append(col)
-            self.df.columns = new_columns
+            self.df.columns = self._normalize_columns_generic(self.df.columns)
 
     def _normalize_columns_df2(self):
         if self.df2 is not None:
-            new_columns = []
-            for col in self.df2.columns:
-                if isinstance(col, str):
-                    col_normal = col.strip()
-                    col_normal = re.sub(r"[^\w\s]+", "_", col_normal)
-                    new_columns.append(col_normal)
+            self.df2.columns = self._normalize_columns_generic(self.df2.columns)
+
+    def _normalize_columns_generic(self, columns):
+        new_columns = []
+        counts = {}
+        for col in columns:
+            if isinstance(col, str):
+                col_normal = col.strip()
+                col_normal = re.sub(r"[^\w\s]+", "_", col_normal)
+                if col_normal == "":
+                    col_normal = "columna"
+                if col_normal in counts:
+                    counts[col_normal] += 1
+                    col_normal = f"{col_normal}_{counts[col_normal]}"
                 else:
-                    new_columns.append(col)
-            self.df2.columns = new_columns
+                    counts[col_normal] = 1
+                new_columns.append(col_normal)
+            else:
+                new_columns.append(col)
+        return new_columns
 
     def _sanitize_column_name(self, col):
         if not isinstance(col, str):

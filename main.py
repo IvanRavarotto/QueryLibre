@@ -8,7 +8,7 @@ import ctypes
 import logging
 from logging.handlers import RotatingFileHandler
 import tkinter as tk
-from tkinter import filedialog, ttk
+from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 
 # IMPORTAMOS NUESTRO CEREBRO
@@ -237,45 +237,67 @@ class PestañaTrabajo(ctk.CTkFrame):
             except Exception as e:
                 LOGGER.error(f"Error al guardar macro: {e}")
 
+    def _apply_macro_steps(self, pasos):
+        backup_df = self.motor.df.copy(deep=True)
+        backup_history = list(self.motor.df_history)
+        backup_steps = list(self.motor.macro_steps)
+        backup_historial_pasos = list(self.motor.historial_pasos)
+
+        try:
+            for paso in pasos:
+                nombre_funcion = paso.get("action")
+                parametros = paso.get("params", {})
+
+                if nombre_funcion not in self.ALLOWED_MACRO_ACTIONS:
+                    LOGGER.error(f"Macro bloqueada por seguridad: acción no permitida {nombre_funcion}")
+                    continue
+
+                if not isinstance(parametros, dict):
+                    LOGGER.error(f"Macro bloqueada por seguridad: params inválidos para acción {nombre_funcion}")
+                    continue
+
+                if any(
+                    not isinstance(key, str) or key.startswith("__") or key in self.DISALLOWED_MACRO_PARAM_KEYS
+                    for key in parametros.keys()
+                ):
+                    LOGGER.error(f"Macro bloqueada por seguridad: parámetros maliciosos en acción {nombre_funcion}")
+                    continue
+
+                if hasattr(self.motor, nombre_funcion):
+                    metodo = getattr(self.motor, nombre_funcion)
+                    metodo(**parametros)
+        except Exception:
+            self.motor.df = backup_df
+            self.motor.df_history = backup_history
+            self.motor.macro_steps = backup_steps
+            self.motor.historial_pasos = backup_historial_pasos
+            raise
+
     def ejecutar_macro(self):
-        if self.motor.df is None: return
+        if self.motor.df is None:
+            return
+
         carpeta_docs = os.path.join(os.path.expanduser('~'), 'Documents')
         carpeta_macros = os.path.join(carpeta_docs, 'Macros_QueryLibre')
-        if not os.path.exists(carpeta_macros): carpeta_macros = os.path.expanduser('~')
-        
+        if not os.path.exists(carpeta_macros):
+            carpeta_macros = os.path.expanduser('~')
+
         file_path = filedialog.askopenfilename(
-            initialdir=carpeta_macros, title="Seleccionar Macro", 
+            initialdir=carpeta_macros, title="Seleccionar Macro",
             filetypes=[("QueryLibre Macro", "*.json")]
         )
         if file_path:
             import json
             try:
-                with open(file_path, 'r', encoding='utf-8') as f: pasos = json.load(f)
-                for paso in pasos:
-                    nombre_funcion = paso.get("action")
-                    parametros = paso.get("params", {})
+                with open(file_path, 'r', encoding='utf-8') as f:
+                    pasos = json.load(f)
 
-                    if nombre_funcion not in self.ALLOWED_MACRO_ACTIONS:
-                        LOGGER.error(f"Macro bloqueada por seguridad: acción no permitida {nombre_funcion}")
-                        continue
-
-                    if not isinstance(parametros, dict):
-                        LOGGER.error(f"Macro bloqueada por seguridad: params inválidos para acción {nombre_funcion}")
-                        continue
-
-                    if any(
-                        not isinstance(key, str) or key.startswith("__") or key in self.DISALLOWED_MACRO_PARAM_KEYS
-                        for key in parametros.keys()
-                    ):
-                        LOGGER.error(f"Macro bloqueada por seguridad: parámetros maliciosos en acción {nombre_funcion}")
-                        continue
-
-                    if hasattr(self.motor, nombre_funcion):
-                        metodo = getattr(self.motor, nombre_funcion)
-                        metodo(**parametros)
+                self._apply_macro_steps(pasos)
                 self.refrescar_interfaz()
             except Exception as e:
                 LOGGER.error(f"Error al ejecutar macro: {e}")
+                messagebox.showerror("Error al ejecutar macro", f"Macro abortada y estado restaurado.\n\n{e}")
+                self.refrescar_interfaz()
 
 
 # =========================================================================
@@ -320,7 +342,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.3", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.4", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -750,10 +772,10 @@ class QueryLibreApp(ctk.CTk):
         dialog.grab_set()
         self.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.4.3", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.4.4", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
-        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.4.3")
+        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.4.4")
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
         ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)

@@ -21,9 +21,9 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🚀 Características Principales (v1.4.3)
+## 🚀 Características Principales (v1.4.4)
 
-> **Patch v1.4.3:** Hardening de macros, sanitización mejorada de exportación (fórmulas con `'`), validación de carga más estricta y UI de filas inválidas con copy/export.
+> **Patch v1.4.4:** Macro rollback seguro, normalización de columnas y resolución de conflictos en joins, loader hardening y UI de filas inválidas con copy/export.
 
 * **Arquitectura Escalable (MVC):** Motor de datos (`core/data_engine.py`) completamente desacoplado de la interfaz gráfica.
 * **Sistema de Pestañas (Workspace):** Soporte nativo para importar y trabajar con múltiples datasets en simultáneo en la misma sesión, sin colisión de datos.
@@ -44,11 +44,18 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🗺️ Roadmap (Próximas Funcionalidades - v1.5.0+)
-El motor de QueryLibre está diseñado para crecer hacia el estándar "Enterprise". Lo siguiente en la lista es:
+## 🗺️ Roadmap
+El motor de QueryLibre está diseñado para crecer hacia el estándar "Enterprise". Antes de agregar nuevas funcionalidades, la prioridad actual es estabilizar y securizar el flujo de datos.
 
+### Prioridad actual: estabilización antes de 1.5.0
+- [ ] **Rollback seguro de macros:** ejecutar macros de forma atómica y restaurar el dataset si falla un paso.
+- [ ] **UI de filas inválidas:** modal de conversión con tabla, scroll adaptativo, export y copiar al portapapeles.
+- [ ] **Validación de cargadores y rutas:** evitar traversal relativo, rutas inválidas y formatos no permitidos en `cargar_archivo`/`cargar_df2`.
+- [ ] **Normalización de columnas y seguridad de joins:** resolver colisiones de nombres tras la limpieza y proteger las fusiones.
+
+### Futuro (v1.5.0+)
 - [ ] **Agrupación y Resumen (Group By):** Creación de tablas dinámicas con funciones de agregación (Suma, Promedio, etc.).
-- [ ] **Panel de Salud Global (Quality Score):** Dashboard en la barra lateral con métricas globales del dataset (Filas, % total de nulos, Memoria RAM usada).
+- [ ] **Panel de Salud Global (Quality Score):** Dashboard en la barra lateral con métricas globales del dataset.
 - [ ] **Buscar y Reemplazar Global:** Búsqueda y reemplazo masivo de valores mediante texto o Regex.
 - [ ] **Pestañas Avanzadas:** Cierre de pestañas individual, reordenamiento dinámico e indicador de "cambios sin guardar".
 - [ ] **Visualizaciones Inline:** Integración de gráficos rápidos (Histogramas/Boxplots) en la ventana de Radiografía.
@@ -118,6 +125,6 @@ Este proyecto incluye una suite `pytest` para validar las funciones clave de tra
    ```
 
 Resultado esperado:
-- 6 passed, 1 warning
+- 18 passed, 1 warning
 
 > Nota: se muestra un warning de pandas para `pd.to_datetime` que termina siendo no bloqueante, solo informativo.
