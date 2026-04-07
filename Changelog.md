@@ -5,6 +5,29 @@ Todos los cambios notables en el proyecto **QueryLibre** serán documentados en 
 
 ---
 
+## [1.5.0] - 2026-04-05
+### English
+#### Added
+* New Group By feature: `agrupar_datos()` method supporting aggregation functions (sum, mean, count, min, max) with column validation.
+* New Search/Replace feature: `buscar_reemplazar()` method supporting global or column-specific text replacement with optional regex support.
+* Updated macro whitelist to include `agrupar_datos` and `buscar_reemplazar` actions.
+* Comprehensive test suite expanded with 8 new tests covering Group By and Search/Replace functionality, including edge cases and error handling.
+
+#### Fixed
+* Resolved test failures by implementing missing methods and updating security configurations.
+
+### Español
+#### Añadido
+* Nueva función Group By: método `agrupar_datos()` que soporta funciones de agregación (suma, promedio, conteo, mínimo, máximo) con validación de columnas.
+* Nueva función Buscar/Reemplazar: método `buscar_reemplazar()` que soporta reemplazo de texto global o específico por columna con soporte opcional para expresiones regulares.
+* Lista blanca de macros actualizada para incluir acciones `agrupar_datos` y `buscar_reemplazar`.
+* Suite de pruebas completa expandida con 8 nuevas pruebas que cubren funcionalidad de Group By y Buscar/Reemplazar, incluyendo casos límite y manejo de errores.
+
+#### Corregido
+* Resueltos fallos en pruebas implementando métodos faltantes y actualizando configuraciones de seguridad.
+
+---
+
 ## [1.4.5] - 2026-04-04
 ### English
 #### Added

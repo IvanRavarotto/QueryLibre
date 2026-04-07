@@ -450,6 +450,61 @@ class MotorDatos:
         tipo_save = formato.split(' ')[1] if ' ' in formato else formato
         self.registrar_paso(f"💾 Exportado a {tipo_save}: {os.path.basename(file_path)}")
         
+    def agrupar_datos(self, col_agrupar, col_valor, funcion):
+        """Agrupa datos por una columna y aplica una función de agregación a otra columna."""
+        self._check_df()
+        if col_agrupar not in self.df.columns:
+            raise ValueError(f"Columna de agrupación '{col_agrupar}' no existe")
+        if col_valor not in self.df.columns:
+            raise ValueError(f"Columna de valor '{col_valor}' no existe")
+        
+        funciones_validas = {
+            'suma': 'sum',
+            'promedio': 'mean',
+            'conteo': 'count',
+            'mínimo': 'min',
+            'máximo': 'max'
+        }
+        if funcion not in funciones_validas:
+            raise ValueError(f"Función '{funcion}' no válida. Opciones: {list(funciones_validas.keys())}")
+        
+        self._savepoint()
+        
+        grouped = self.df.groupby(col_agrupar)[col_valor].agg(funciones_validas[funcion])
+        grouped = grouped.reset_index()
+        grouped.columns = [col_agrupar, f"{funcion}_{col_valor}"]
+        
+        self.df = grouped
+        self.registrar_paso(f"Agrupar: '{col_agrupar}' por '{funcion}' en '{col_valor}'")
+        self.macro_steps.append({"action": "agrupar_datos", "params": {"col_agrupar": col_agrupar, "col_valor": col_valor, "funcion": funcion}})
+    
+    def buscar_reemplazar(self, buscar, reemplazar, columna=None, usar_regex=False):
+        """Busca y reemplaza texto en el dataset, global o en columna específica."""
+        self._check_df()
+        if columna and columna not in self.df.columns:
+            raise ValueError(f"Columna '{columna}' no existe")
+        
+        self._savepoint()
+        
+        if columna:
+            # Reemplazar en columna específica
+            if usar_regex:
+                self.df[columna] = self.df[columna].astype(str).str.replace(buscar, reemplazar, regex=True)
+            else:
+                self.df[columna] = self.df[columna].astype(str).str.replace(buscar, reemplazar)
+            self.registrar_paso(f"Buscar/Reemplazar en '{columna}': '{buscar}' ➔ '{reemplazar}'")
+        else:
+            # Reemplazar global en todas las columnas
+            for col in self.df.columns:
+                if self.df[col].dtype == object or pd.api.types.is_string_dtype(self.df[col]):
+                    if usar_regex:
+                        self.df[col] = self.df[col].astype(str).str.replace(buscar, reemplazar, regex=True)
+                    else:
+                        self.df[col] = self.df[col].astype(str).str.replace(buscar, reemplazar)
+            self.registrar_paso(f"Buscar/Reemplazar global: '{buscar}' ➔ '{reemplazar}'")
+        
+        self.macro_steps.append({"action": "buscar_reemplazar", "params": {"buscar": buscar, "reemplazar": reemplazar, "columna": columna, "usar_regex": usar_regex}})
+    
     def obtener_radiografia(self, col_name):
         """Genera un reporte estadístico de la columna solicitada."""
         if self.df is None or col_name not in self.df.columns: return "Sin datos"

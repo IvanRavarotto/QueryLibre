@@ -13,6 +13,9 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Archivos de log (no subir al repositorio)
+querylibre.log
+
 # Archivos de configuración de Visual Studio Code (opcional pero recomendado)
 .vscode/
 

@@ -49,6 +49,8 @@ class PestañaTrabajo(ctk.CTkFrame):
         "filtrar_datos",
         "cambiar_tipo_dato",
         "aplicar_union",
+        "agrupar_datos",
+        "buscar_reemplazar",
     }
 
     DISALLOWED_MACRO_PARAM_KEYS = {
@@ -356,7 +358,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.4.5", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.0", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -387,7 +389,7 @@ class QueryLibreApp(ctk.CTk):
 
         self.menu_analisis = ctk.CTkOptionMenu(
             self.toolbar_frame, width=150, fg_color="#8e44ad", button_color="#732d91", dynamic_resizing=False,
-            values=["Calcular Columna", "Filtrar Datos", "Radiografía de Datos"],
+            values=["Calcular Columna", "Filtrar Datos", "Agrupar Datos", "Buscar/Reemplazar", "Radiografía de Datos"],
             command=self.dispatch_analisis
         )
         self.menu_analisis.set("🔬 Análisis")
@@ -431,6 +433,8 @@ class QueryLibreApp(ctk.CTk):
         
         if "Calcular" in eleccion: self.calcular_columna()
         elif "Filtrar" in eleccion: self.filtrar_datos()
+        elif "Agrupar" in eleccion: self.agrupar_datos()
+        elif "Buscar" in eleccion: self.buscar_reemplazar()
         elif "Radiografía" in eleccion: self.mostrar_radiografia()
 
     # =========================================================================
@@ -703,6 +707,69 @@ class QueryLibreApp(ctk.CTk):
             except ValueError: err.configure(text="Usa números para Mayor/Menor.")
         ctk.CTkButton(dialog, text="Aplicar", command=ejecutar).pack(pady=15)
 
+    def agrupar_datos(self):
+        tab = self.obtener_pestaña_activa()
+        if not tab or tab.motor.df is None: return
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Agrupar Datos"); dialog.geometry("400x350"); dialog.grab_set()
+        self.fijar_icono(dialog)
+        
+        cols = list(tab.motor.df.columns)
+        ctk.CTkLabel(dialog, text="Columna para agrupar:", font=ctk.CTkFont(weight="bold")).pack(pady=(15, 5))
+        col_agrupar = ctk.CTkComboBox(dialog, values=cols); col_agrupar.pack(pady=5)
+        
+        ctk.CTkLabel(dialog, text="Columna para calcular:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+        col_valor = ctk.CTkComboBox(dialog, values=cols); col_valor.pack(pady=5)
+        
+        ctk.CTkLabel(dialog, text="Función de agregación:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+        funcion = ctk.CTkComboBox(dialog, values=["suma", "promedio", "conteo", "mínimo", "máximo"]); funcion.pack(pady=5)
+        funcion.set("suma")
+        
+        err = ctk.CTkLabel(dialog, text="", text_color="red"); err.pack(pady=5)
+        
+        def ejecutar():
+            try:
+                tab.motor.agrupar_datos(col_agrupar.get(), col_valor.get(), funcion.get())
+                tab.refrescar_interfaz(); dialog.destroy()
+            except Exception as e:
+                err.configure(text=f"Error: {str(e)}")
+        
+        ctk.CTkButton(dialog, text="Aplicar Agrupación", command=ejecutar, fg_color="#8e44ad").pack(pady=20)
+
+    def buscar_reemplazar(self):
+        tab = self.obtener_pestaña_activa()
+        if not tab or tab.motor.df is None: return
+        dialog = ctk.CTkToplevel(self)
+        dialog.title("Buscar y Reemplazar"); dialog.geometry("450x400"); dialog.grab_set()
+        self.fijar_icono(dialog)
+        
+        cols = ["Todo el dataset"] + list(tab.motor.df.columns)
+        ctk.CTkLabel(dialog, text="Buscar en:", font=ctk.CTkFont(weight="bold")).pack(pady=(15, 5))
+        columna = ctk.CTkComboBox(dialog, values=cols); columna.pack(pady=5)
+        columna.set("Todo el dataset")
+        
+        ctk.CTkLabel(dialog, text="Texto a buscar:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+        buscar_entry = ctk.CTkEntry(dialog, placeholder_text="Texto a buscar"); buscar_entry.pack(pady=5)
+        
+        ctk.CTkLabel(dialog, text="Reemplazar con:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+        reemplazar_entry = ctk.CTkEntry(dialog, placeholder_text="Texto de reemplazo"); reemplazar_entry.pack(pady=5)
+        
+        regex_var = ctk.BooleanVar()
+        regex_check = ctk.CTkCheckBox(dialog, text="Usar expresiones regulares", variable=regex_var)
+        regex_check.pack(pady=10)
+        
+        err = ctk.CTkLabel(dialog, text="", text_color="red"); err.pack(pady=5)
+        
+        def ejecutar():
+            try:
+                col_param = None if columna.get() == "Todo el dataset" else columna.get()
+                tab.motor.buscar_reemplazar(buscar_entry.get(), reemplazar_entry.get(), col_param, regex_var.get())
+                tab.refrescar_interfaz(); dialog.destroy()
+            except Exception as e:
+                err.configure(text=f"Error: {str(e)}")
+        
+        ctk.CTkButton(dialog, text="Aplicar Reemplazo", command=ejecutar, fg_color="#8e44ad").pack(pady=20)
+
     def unir_datasets(self):
         tab = self.obtener_pestaña_activa()
         if not tab or tab.motor.df is None: return
@@ -786,10 +853,10 @@ class QueryLibreApp(ctk.CTk):
         dialog.grab_set()
         self.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.4.5", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.5.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
-        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.4.5")
+        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.5.0")
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 15))
         ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
         ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)

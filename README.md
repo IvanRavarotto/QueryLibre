@@ -21,9 +21,9 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🚀 Características Principales (v1.4.5)
+## 🚀 Características Principales (v1.5.0)
 
-> **Patch v1.4.5:** Macro rollback seguro, normalización de columnas y resolución de conflictos en joins, loader hardening, UI de filas inválidas con copy/export, y validación de tipos en parámetros de macros.
+> **Versión v1.5.0:** Nuevas funciones de Agrupar Datos y Buscar/Reemplazar, macro rollback seguro, normalización de columnas y resolución de conflictos en joins, loader hardening, UI de filas inválidas con copy/export, y validación de tipos en parámetros de macros.
 
 * **Arquitectura Escalable (MVC):** Motor de datos (`core/data_engine.py`) completamente desacoplado de la interfaz gráfica.
 * **Sistema de Pestañas (Workspace):** Soporte nativo para importar y trabajar con múltiples datasets en simultáneo en la misma sesión, sin colisión de datos.
@@ -37,6 +37,8 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
     * **Calculadora Mágica:** Operaciones matemáticas vectorizadas entre columnas.
     * **Dividir y Combinar Columnas:** Herramientas de parsing de texto por delimitadores.
     * **Filtrado Condicional:** Segmentación de filas mediante operadores lógicos.
+    * **Agrupar Datos (Group By):** Creación de resúmenes con funciones de agregación (suma, promedio, conteo, mínimo, máximo).
+    * **Buscar y Reemplazar:** Búsqueda y reemplazo masivo de valores mediante texto plano o expresiones regulares.
 * **Interacción Directa:** Modificación de celdas individuales al estilo Excel (Doble clic).
 * **Integración Relacional (Merge/JOIN):** Cruce visual de tablas dimensionales (Left Join, Inner Join).
 * **Sistema de Auditoría (Time Travel):** Historial en tiempo real de transformaciones (Pila LIFO) para deshacer acciones paso a paso.
@@ -45,20 +47,21 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 ---
 
 ## 🗺️ Roadmap
-El motor de QueryLibre está diseñado para crecer hacia el estándar "Enterprise". Antes de agregar nuevas funcionalidades, la prioridad actual es estabilizar y securizar el flujo de datos.
 
-### Prioridad actual: estabilización antes de 1.5.0
-- [ ] **Rollback seguro de macros:** ejecutar macros de forma atómica y restaurar el dataset si falla un paso.
-- [ ] **UI de filas inválidas:** modal de conversión con tabla, scroll adaptativo, export y copiar al portapapeles.
-- [ ] **Validación de cargadores y rutas:** evitar traversal relativo, rutas inválidas y formatos no permitidos en `cargar_archivo`/`cargar_df2`.
-- [ ] **Normalización de columnas y seguridad de joins:** resolver colisiones de nombres tras la limpieza y proteger las fusiones.
+### ✅ Completado en v1.5.0
+- [x] **Rollback seguro de macros:** ejecutar macros de forma atómica y restaurar el dataset si falla un paso.
+- [x] **UI de filas inválidas:** modal de conversión con tabla, scroll adaptativo, export y copiar al portapapeles.
+- [x] **Validación de cargadores y rutas:** evitar traversal relativo, rutas inválidas y formatos no permitidos en `cargar_archivo`/`cargar_df2`.
+- [x] **Normalización de columnas y seguridad de joins:** resolver colisiones de nombres tras la limpieza y proteger las fusiones.
+- [x] **Agrupación y Resumen (Group By):** Creación de tablas dinámicas con funciones de agregación (Suma, Promedio, etc.).
+- [x] **Buscar y Reemplazar Global:** Búsqueda y reemplazo masivo de valores mediante texto o Regex.
 
-### Futuro (v1.5.0+)
-- [ ] **Agrupación y Resumen (Group By):** Creación de tablas dinámicas con funciones de agregación (Suma, Promedio, etc.).
+### Próximas versiones (v1.6.0+)
 - [ ] **Panel de Salud Global (Quality Score):** Dashboard en la barra lateral con métricas globales del dataset.
-- [ ] **Buscar y Reemplazar Global:** Búsqueda y reemplazo masivo de valores mediante texto o Regex.
 - [ ] **Pestañas Avanzadas:** Cierre de pestañas individual, reordenamiento dinámico e indicador de "cambios sin guardar".
 - [ ] **Visualizaciones Inline:** Integración de gráficos rápidos (Histogramas/Boxplots) en la ventana de Radiografía.
+- [ ] **Machine Learning Básico:** Clustering automático y detección de outliers.
+- [ ] **API REST para Macros:** Ejecutar macros remotamente vía HTTP.
 
 ---
 
@@ -125,6 +128,6 @@ Este proyecto incluye una suite `pytest` para validar las funciones clave de tra
    ```
 
 Resultado esperado:
-- 21 passed, 1 warning
+- 29 passed, 1 warning
 
 > Nota: se muestra un warning de pandas para `pd.to_datetime` que termina siendo no bloqueante, solo informativo.

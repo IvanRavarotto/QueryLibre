@@ -1,0 +1,313 @@
+import os
+import sys
+import pandas as pd
+import pytest
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from core.data_engine import MotorDatos
+from main import PestañaTrabajo
+
+DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data_test')
+VENTAS = os.path.join(DATA_DIR, 'ventas_caoticas_exigente.csv')
+CLIENTES = os.path.join(DATA_DIR, 'clientes_dim.csv')
+
+
+def test_cargar_y_limpiar_csv():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    assert motor.df is not None
+    nantes = len(motor.df)
+    motor.eliminar_duplicados()
+    npost = len(motor.df)
+    assert npost <= nantes
+
+
+def test_cambiar_tipo_id_cliente_a_entero():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    motor.df.loc[0, 'ID_Cliente'] = 'NoVal'
+    with pytest.raises(RuntimeError):
+        motor.cambiar_tipo_dato('ID_Cliente', 'Número Entero')
+    assert motor.df.loc[0, 'ID_Cliente'] == 'NoVal' or str(motor.df.loc[0, 'ID_Cliente']) == 'NoVal'
+
+
+def test_cambiar_tipo_fecha_compra_fallo_y_estado():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    motor.df.loc[0, 'Fecha Compra'] = 'texto-mal'
+    with pytest.raises(RuntimeError):
+        motor.cambiar_tipo_dato('Fecha Compra', 'Fecha')
+
+
+def test_union_datasets():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    motor.cargar_df2(CLIENTES)
+    motor.aplicar_union('ID_Cliente', 'Cliente_ID', 'Izquierda (Left Join)')
+    assert 'Nombre_Empresa' in motor.df.columns
+
+
+def test_aplicar_union_sin_df2_rechaza():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    with pytest.raises(ValueError, match="No hay segundo dataset cargado"):
+        motor.aplicar_union('ID_Cliente', 'Cliente_ID', 'Izquierda (Left Join)')
+
+
+def test_pipeline_conversión_extrema():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+
+    # Se espera que, aunque existan valores rotos, el método falle con RuntimeError y no corrompa df.
+    cadr = motor.df.copy(deep=True)
+    with pytest.raises(RuntimeError):
+        motor.cambiar_tipo_dato('ID_Cliente', 'Número Entero')
+
+    # El dataset original debe permanecer igual tras el fallo
+    assert motor.df.shape == cadr.shape
+
+    # Validar que hay al menos una fecha inválida para hacer explosion de conversión
+    assert (motor.df['Fecha Compra'].astype(str).str.contains('not a date|2024-13-01|31/02/2024', na=False)).any()
+
+    # Intenta conversión de fecha (debe lanzar en dataset fuerte)
+    with pytest.raises(RuntimeError):
+        motor.cambiar_tipo_dato('Fecha Compra', 'Fecha')
+
+
+def test_filtro_y_eliminar_duplicados_experto():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+
+    # Tras eliminar duplicados, siempre hay menos o igual filas
+    original = len(motor.df)
+    motor.eliminar_duplicados()
+    assert len(motor.df) <= original
+
+    # Filtrar por una categoría factible y validar que no explota.
+    motor.cargar_archivo(VENTAS)
+    motor.filtrar_datos('Categoria_Prod', 'Contiene el texto', 'Electronica')
+    assert 'Electronica' in motor.df['Categoria_Prod'].astype(str).str.cat(sep=' ')
+
+def test_cambiar_tipo_dato_indica_posiciones_invalidas():
+    motor = MotorDatos()
+    motor.df = pd.DataFrame({'x': ['1', 'unknown', '3', 'bad', '5']})
+    with pytest.raises(RuntimeError) as exc:
+        motor.cambiar_tipo_dato('x', 'Número Entero')
+    texto = str(exc.value)
+    assert 'valores inválidos' in texto
+    assert 'Ejemplo (fila, valor)' in texto
+
+
+def test_cambiar_tipo_fecha_indica_posiciones_invalidas():
+    motor = MotorDatos()
+    motor.df = pd.DataFrame({'f': ['2024-01-01', 'not a date', '2024-03-10']})
+    with pytest.raises(RuntimeError) as exc:
+        motor.cambiar_tipo_dato('f', 'Fecha')
+    texto = str(exc.value)
+    assert 'valores inválidos' in texto
+    assert 'Ejemplo (fila, valor)' in texto
+
+def test_macro_whitelist_no_methods_maliciosas():
+    assert 'eliminar_duplicados' in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
+    assert '__init__' not in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
+    assert '__dict__' not in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
+
+
+def test_editar_celda_fuera_rango_lanza_indexerror():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    with pytest.raises(IndexError):
+        motor.editar_celda(-1, 'ID_Cliente', '100')
+    with pytest.raises(IndexError):
+        motor.editar_celda(len(motor.df), 'ID_Cliente', '100')
+
+
+def test_filtrar_datos_contiene_escapa_regex():
+    motor = MotorDatos()
+    motor.cargar_archivo(VENTAS)
+    # si se usa un patrón regex peligroso, no se interpreta como regex en la búsqueda
+    motor.filtrar_datos('Categoria_Prod', 'Contiene el texto', '.*')
+    assert len(motor.df) == 0 or '.*' in motor.df['Categoria_Prod'].astype(str).str.cat(sep=' ')
+
+
+def test_exportar_csv_formula_injection_escapado(tmp_path):
+    motor = MotorDatos()
+    motor.df = pd.DataFrame({'a': ['=1+1', '+2', 'normal', '@cmd'], 'b': ['x', 'y', 'z', 'w']})
+    out_file = tmp_path / 'salida.csv'
+    motor.exportar_archivo('CSV', str(out_file))
+
+    contenido = out_file.read_text(encoding='utf-8')
+    assert "'=1+1" in contenido
+    assert "'+2" in contenido
+    assert "'@cmd" in contenido
+
+
+def test_exportar_csv_formula_injection_escapado_comillas_como_prefijo(tmp_path):
+    motor = MotorDatos()
+    motor.df = pd.DataFrame({'a': ["'=1", "'@cmd", "normal"]})
+    out_file = tmp_path / 'salida2.csv'
+    motor.exportar_archivo('CSV', str(out_file))
+
+    contenido = out_file.read_text(encoding='utf-8')
+    assert "''=1" in contenido
+    assert "''@cmd" in contenido
+
+
+def test_cargar_archivo_formato_no_soportado(tmp_path):
+    motor = MotorDatos()
+    bad_file = tmp_path / 'mal.txt'
+    bad_file.write_text('x')
+    with pytest.raises(ValueError):
+        motor.cargar_archivo(str(bad_file))
+
+
+def test_cargar_df2_ruta_relativa_invalida(tmp_path):
+    motor = MotorDatos()
+    subdir = tmp_path / 'subdir'
+    subdir.mkdir()
+    file_path = subdir / 'mal.csv'
+    file_path.write_text('id\n1')
+
+    # ruta relativa con '..' (desde la carpeta actual) debe fallar por seguridad
+    bad = os.path.relpath(str(file_path), start=os.getcwd())
+    assert '..' in bad
+    with pytest.raises(ValueError):
+        motor.cargar_df2(bad)
+
+
+def test_macro_rollback_en_error_de_paso():
+    import tkinter as tk
+
+    root = tk.Tk()
+    root.withdraw()
+    tab = PestañaTrabajo(root, root)
+    tab.motor.df = pd.DataFrame({'x': ['2024-01-01', 'not a date']})
+
+    pasos = [
+        {'action': 'editar_celda', 'params': {'indice_real': 0, 'col_name': 'x', 'nuevo_valor': '2024-01-01'}},
+        {'action': 'cambiar_tipo_dato', 'params': {'col_name': 'x', 'nuevo_tipo': 'Fecha'}}
+    ]
+
+    original = tab.motor.df.copy(deep=True)
+    with pytest.raises(RuntimeError):
+        tab._apply_macro_steps(pasos)
+
+    assert tab.motor.df.equals(original)
+    root.destroy()
+
+
+def test_normalize_columns_resuelve_duplicados():
+    motor = MotorDatos()
+    motor.df = pd.DataFrame([[1, 2]], columns=['col', 'col'])
+    motor._normalize_columns()
+
+    assert 'col' in motor.df.columns
+    assert any(c.startswith('col_') for c in motor.df.columns if c != 'col')
+
+
+def test_macro_fuzz_parametros_peligrosos():
+    # Mock Tk para evitar problemas en entorno sin display
+    import unittest.mock as mock
+    with mock.patch('tkinter.Tk'):
+        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
+            tab = PestañaTrabajo(None, None)
+            tab.motor = MotorDatos()
+            tab.motor.df = pd.DataFrame({'x': [1, 2]})
+            tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}
+            tab.DISALLOWED_MACRO_PARAM_KEYS = {'__class__', '__dict__', '__globals__'}
+
+            # Test con keys peligrosos
+            pasos_peligrosos = [
+                {'action': 'eliminar_duplicados', 'params': {'__class__': 'malicious'}},
+                {'action': 'eliminar_duplicados', 'params': {'__dict__': 'bad'}},
+                {'action': 'eliminar_duplicados', 'params': {'normal': 'ok', '__globals__': 'evil'}}
+            ]
+
+            for paso in pasos_peligrosos:
+                original_df = tab.motor.df.copy()
+                # Debe continuar sin ejecutar por seguridad
+                tab._apply_macro_steps([paso])
+                # Df no debe cambiar
+                assert tab.motor.df.equals(original_df)
+
+
+def test_macro_accion_no_permitida():
+    # Mock Tk
+    import unittest.mock as mock
+    with mock.patch('tkinter.Tk'):
+        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
+            tab = PestañaTrabajo(None, None)
+            tab.motor = MotorDatos()
+            tab.motor.df = pd.DataFrame({'x': [1, 2]})
+            tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}
+            tab.DISALLOWED_MACRO_PARAM_KEYS = {'__class__', '__dict__'}
+
+            pasos_invalidos = [
+                {'action': '__init__', 'params': {}},
+                {'action': 'borrar_archivo', 'params': {}}
+            ]
+
+            for paso in pasos_invalidos:
+                original_df = tab.motor.df.copy()
+                # Debe continuar sin ejecutar
+                tab._apply_macro_steps([paso])
+                # Df no debe cambiar
+                assert tab.motor.df.equals(original_df)
+
+
+def test_macro_valores_no_seguros():
+    # Mock Tk
+    import unittest.mock as mock
+    with mock.patch('tkinter.Tk'):
+        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
+            tab = PestañaTrabajo(None, None)
+            tab.motor = MotorDatos()
+            tab.motor.df = pd.DataFrame({'x': [1, 2]})
+            tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}
+
+            pasos_inseguros = [
+                {'action': 'eliminar_duplicados', 'params': {'col_name': object()}},  # objeto no seguro
+                {'action': 'eliminar_duplicados', 'params': {'lista': [1, object()]}},  # lista con objeto
+            ]
+
+            for paso in pasos_inseguros:
+                original_df = tab.motor.df.copy()
+                # Debe continuar sin ejecutar
+                tab._apply_macro_steps([paso])
+                # Df no debe cambiar
+                assert tab.motor.df.equals(original_df)
+
+ d e f   t e s t _ b u s c a r _ r e e m p l a z a r _ g l o b a l ( ) : 
+         m o t o r   =   M o t o r D a t o s ( ) 
+         m o t o r . d f   =   p d . D a t a F r a m e ( { ' a ' :   [ ' h e l l o ' ,   ' w o r l d ' ] ,   ' b ' :   [ ' h e l l o ' ,   ' t e s t ' ] } ) 
+         m o t o r . b u s c a r _ r e e m p l a z a r ( ' h e l l o ' ,   ' h i ' ) 
+         e x p e c t e d   =   p d . D a t a F r a m e ( { ' a ' :   [ ' h i ' ,   ' w o r l d ' ] ,   ' b ' :   [ ' h i ' ,   ' t e s t ' ] } ) 
+         p d . t e s t i n g . a s s e r t _ f r a m e _ e q u a l ( m o t o r . d f ,   e x p e c t e d ) 
+ 
+ 
+ d e f   t e s t _ b u s c a r _ r e e m p l a z a r _ c o l u m n a _ e s p e c i f i c a ( ) : 
+         m o t o r   =   M o t o r D a t o s ( ) 
+         m o t o r . d f   =   p d . D a t a F r a m e ( { ' a ' :   [ ' h e l l o ' ,   ' w o r l d ' ] ,   ' b ' :   [ ' h e l l o ' ,   ' t e s t ' ] } ) 
+         m o t o r . b u s c a r _ r e e m p l a z a r ( ' h e l l o ' ,   ' h i ' ,   ' a ' ) 
+         e x p e c t e d   =   p d . D a t a F r a m e ( { ' a ' :   [ ' h i ' ,   ' w o r l d ' ] ,   ' b ' :   [ ' h e l l o ' ,   ' t e s t ' ] } ) 
+         p d . t e s t i n g . a s s e r t _ f r a m e _ e q u a l ( m o t o r . d f ,   e x p e c t e d ) 
+ 
+ 
+ d e f   t e s t _ b u s c a r _ r e e m p l a z a r _ r e g e x ( ) : 
+         m o t o r   =   M o t o r D a t o s ( ) 
+         m o t o r . d f   =   p d . D a t a F r a m e ( { ' a ' :   [ ' t e s t 1 2 3 ' ,   ' a b c 4 5 6 ' ] ,   ' b ' :   [ ' t e s t 7 8 9 ' ,   ' x y z 0 0 0 ' ] } ) 
+         m o t o r . b u s c a r _ r e e m p l a z a r ( r ' t e s t \ d + ' ,   ' r e p l a c e d ' ,   u s a r _ r e g e x = T r u e ) 
+         e x p e c t e d   =   p d . D a t a F r a m e ( { ' a ' :   [ ' r e p l a c e d ' ,   ' a b c 4 5 6 ' ] ,   ' b ' :   [ ' r e p l a c e d ' ,   ' x y z 0 0 0 ' ] } ) 
+         p d . t e s t i n g . a s s e r t _ f r a m e _ e q u a l ( m o t o r . d f ,   e x p e c t e d ) 
+ 
+ 
+ d e f   t e s t _ b u s c a r _ r e e m p l a z a r _ c o l u m n a _ i n e x i s t e n t e ( ) : 
+         m o t o r   =   M o t o r D a t o s ( ) 
+         m o t o r . d f   =   p d . D a t a F r a m e ( { ' a ' :   [ 1 ,   2 ] } ) 
+         w i t h   p y t e s t . r a i s e s ( V a l u e E r r o r ,   m a t c h = \  
+ C o l u m n a  
+ b  
+ n o  
+ e x i s t e \ ) : 
+                 m o t o r . b u s c a r _ r e e m p l a z a r ( ' 1 ' ,   ' 2 ' ,   ' b ' ) 
+  
+ 
