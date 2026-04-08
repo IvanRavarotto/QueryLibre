@@ -21,9 +21,9 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🚀 Características Principales (v1.5.0)
+## 🚀 Características Principales (v1.5.1)
 
-> **Versión v1.5.0:** Nuevas funciones de Agrupar Datos y Buscar/Reemplazar, macro rollback seguro, normalización de columnas y resolución de conflictos en joins, loader hardening, UI de filas inválidas con copy/export, y validación de tipos en parámetros de macros.
+> **Versión v1.5.1:** Parche de optimización de memoria RAM y rastreo de estado. Incluye todas las novedades de la v1.5.0 (Agrupación de datos, Buscar/Reemplazar y Macros blindadas).
 
 * **Arquitectura Escalable (MVC):** Motor de datos (`core/data_engine.py`) completamente desacoplado de la interfaz gráfica.
 * **Sistema de Pestañas (Workspace):** Soporte nativo para importar y trabajar con múltiples datasets en simultáneo en la misma sesión, sin colisión de datos.

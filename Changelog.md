@@ -3,6 +3,17 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.5.1] - 2026-04-07
+### English
+#### Fixed
+* **Memory Optimization:** Added a 10-step limit to the Undo history (`df_history`) to prevent Out of Memory (OOM) crashes on large datasets.
+* **State Management:** Added internal logic to track unsaved changes in the workspace (preparation for visual Dirty Flag).
+
+### Español
+#### Corregido
+* **Optimización de Memoria:** Se agregó un límite de 10 pasos al historial de Deshacer (`df_history`) para evitar bloqueos por falta de memoria RAM en datasets grandes.
+* **Gestión de Estado:** Se agregó lógica interna para rastrear cambios no guardados en el espacio de trabajo (preparación para el indicador visual).
+
 ---
 
 ## [1.5.0] - 2026-04-05

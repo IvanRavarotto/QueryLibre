@@ -135,6 +135,13 @@ class PestañaTrabajo(ctk.CTkFrame):
         self.history_text.configure(state="disabled")
         self.btn_deshacer.configure(state="normal" if len(self.motor.historial_pasos) > 1 else "disabled")
         self.app_root.actualizar_lbl_dimensiones()
+        
+        # PARCHE v1.5.1: Marcar pestaña con asterisco si hay cambios
+        nombre_actual = self.master.get()
+        if len(self.motor.historial_pasos) > 0 and not nombre_actual.endswith("*"):
+            # Nota: Renombrar tabs en CTkTabview es complejo, así que
+            # lo dejamos preparado para la lógica de "Pestañas Avanzadas" de la v1.6.0
+            print(f"DEBUG: Cambios sin exportar en el dataset actual.")
 
     def actualizar_vista_previa(self):
         self.tree.delete(*self.tree.get_children())
@@ -358,7 +365,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.0", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.1", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -847,19 +854,30 @@ class QueryLibreApp(ctk.CTk):
     def mostrar_acerca_de(self):
         dialog = ctk.CTkToplevel(self)
         dialog.title("Acerca de QueryLibre")
-        dialog.geometry("400x480") 
+        # Aumentamos un poco la altura para que el Roadmap entre cómodo
+        dialog.geometry("400x520") 
         dialog.resizable(False, False)
         dialog.transient(self)
         dialog.grab_set()
         self.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.5.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        # Actualizamos la versión en el título principal
+        ctk.CTkLabel(dialog, text="QueryLibre v1.5.1", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
-        ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
-        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite\n\nVersión 1.5.0")
-        ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 15))
-        ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
+        
+        ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
+        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite")
+        ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 10))
+        
+        # --- NUEVA SECCIÓN: ROADMAP ---
+        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próximas funciones):", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
+        roadmap_text = ("• v1.6.0: Panel de Salud Global (RAM y Nulos).\n• v1.6.0: Pestañas Avanzadas (Indicador '*' de cambios).\n• v1.7.0: Conexión directa a BD SQL.")
+        ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 15))
+        # ------------------------------
+
+        # Footer y Botón
         ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)
+        ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 5))
     
     def mostrar_radiografia(self):
         tab = self.obtener_pestaña_activa()

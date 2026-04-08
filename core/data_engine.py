@@ -25,6 +25,10 @@ class MotorDatos:
         if self.df is None:
             return
         self.df_history.append(self.df.copy(deep=True))
+        
+        # PARCHE v1.5.1: Límite de seguridad para no saturar la RAM
+        if len(self.df_history) > 10:
+            self.df_history.pop(0) # Borra el paso más antiguo
 
     def deshacer(self):
         if not self.df_history or len(self.historial_pasos) <= 1:
