@@ -2,13 +2,14 @@
 import os
 import sys
 import math
-import json
 import re
-import ctypes
+import threading
+import time
 import logging
 from logging.handlers import RotatingFileHandler
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
+from ui.modals import ModalesUI
 import customtkinter as ctk
 
 # IMPORTAMOS NUESTRO CEREBRO
@@ -136,7 +137,6 @@ class PestañaTrabajo(ctk.CTkFrame):
         self.btn_deshacer.configure(state="normal" if len(self.motor.historial_pasos) > 1 else "disabled")
         self.app_root.actualizar_lbl_dimensiones()
         
-        # PARCHE v1.5.1: Marcar pestaña con asterisco si hay cambios
         nombre_actual = self.master.get()
         if len(self.motor.historial_pasos) > 0 and not nombre_actual.endswith("*"):
             # Nota: Renombrar tabs en CTkTabview es complejo, así que
@@ -365,7 +365,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.1", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.2", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -497,152 +497,32 @@ class QueryLibreApp(ctk.CTk):
     # --- Funciones Delegadas (Modales) ---
     def eliminar_duplicados(self):
         tab = self.obtener_pestaña_activa()
-        if tab and tab.motor.df is not None: tab.motor.eliminar_duplicados(); tab.refrescar_interfaz()
+        if tab and tab.motor.df is not None:
+            # En lugar de llamarlo directo, usamos nuestro ejecutor de hilos
+            self.ejecutar_tarea_pesada(tab.motor.eliminar_duplicados)
 
     def limpiar_nulos(self):
+        """Llama al diálogo de limpieza desde el módulo UI."""
         tab = self.obtener_pestaña_activa()
-        if not tab or tab.motor.df is None: return
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Limpieza"); dialog.geometry("350x220"); dialog.transient(self); dialog.grab_set()
-        self.fijar_icono(dialog)
-        
-        ctk.CTkLabel(dialog, text="¿Qué filas deseas eliminar?", font=ctk.CTkFont(weight="bold")).pack(pady=(20, 10))
-        def ejecutar(modo): tab.motor.limpiar_nulos(modo); tab.refrescar_interfaz(); dialog.destroy()
-        ctk.CTkButton(dialog, text="Solo completamente vacías", command=lambda: ejecutar('all')).pack(pady=10)
-        ctk.CTkButton(dialog, text="Con algún dato faltante", command=lambda: ejecutar('any'), fg_color="#c0392b").pack(pady=10)
+        if not tab or tab.motor.df is None:
+            return
+            
+        # Llamamos al método estático que pegaste recién en modals.py
+        # Le pasamos 'self' (que es la app principal) y 'tab' (donde están los datos)
+        ModalesUI.limpiar_nulos(self, tab)
 
     def eliminar_columna(self):
         tab = self.obtener_pestaña_activa()
-        if not tab or tab.motor.df is None: return
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Eliminar Columna"); dialog.geometry("350x200"); dialog.transient(self); dialog.grab_set()
-        self.fijar_icono(dialog)
-
-        ctk.CTkLabel(dialog, text="Selecciona la columna a eliminar:", font=ctk.CTkFont(weight="bold")).pack(pady=(20, 10))
-        col_combo = ctk.CTkComboBox(dialog, values=list(tab.motor.df.columns))
-        col_combo.pack(pady=10)
-
-        def ejecutar():
-            col = col_combo.get()
-            if col and tab.motor.eliminar_columna(col): tab.refrescar_interfaz()
-            dialog.destroy()
-
-        ctk.CTkButton(dialog, text="Eliminar", command=ejecutar, fg_color="#c0392b", hover_color="#922b21").pack(pady=15)
+        ModalesUI.eliminar_columna(self, tab)
 
     def renombrar_columna(self):
         tab = self.obtener_pestaña_activa()
-        if not tab or tab.motor.df is None: return
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Renombrar Columna"); dialog.geometry("350x250"); dialog.transient(self); dialog.grab_set()
-        self.fijar_icono(dialog)
-
-        ctk.CTkLabel(dialog, text="Columna ACTUAL:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 0))
-        col_combo = ctk.CTkComboBox(dialog, values=list(tab.motor.df.columns))
-        col_combo.pack(pady=5)
-
-        ctk.CTkLabel(dialog, text="NUEVO nombre:", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 0))
-        new_name_entry = ctk.CTkEntry(dialog, placeholder_text="Ej: Fecha_Venta")
-        new_name_entry.pack(pady=5)
-
-        err = ctk.CTkLabel(dialog, text="", text_color="red")
-        err.pack(pady=2)
-
-        def ejecutar():
-            old = col_combo.get(); new = new_name_entry.get()
-            if not new: return err.configure(text="Escribe un nombre válido.")
-            if new in tab.motor.df.columns: return err.configure(text="Ese nombre ya existe.")
-            if tab.motor.renombrar_columna(old, new): tab.refrescar_interfaz()
-            dialog.destroy()
-
-        ctk.CTkButton(dialog, text="Aplicar Renombre", command=ejecutar, fg_color="#2980b9").pack(pady=10)
+        ModalesUI.renombrar_columna(self, tab)
                     
     def cambiar_tipo_dato(self):
         tab = self.obtener_pestaña_activa()
-        if not tab or tab.motor.df is None: return
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Cambiar Tipo de Dato"); dialog.geometry("350x260"); dialog.grab_set()
-        self.fijar_icono(dialog)
-        
-        columnas = list(tab.motor.df.columns)
-        ctk.CTkLabel(dialog, text="Columna:", font=ctk.CTkFont(weight="bold")).pack(pady=(15, 5))
-        col_combo = ctk.CTkComboBox(dialog, values=columnas); col_combo.pack(pady=5)
-        if columnas:
-            col_combo.set(columnas[0])
-
-        ctk.CTkLabel(dialog, text="Convertir a:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
-        tipos = ["Texto", "Número Entero", "Número Decimal", "Fecha"]
-        tipo_combo = ctk.CTkComboBox(dialog, values=tipos); tipo_combo.pack(pady=5)
-        tipo_combo.set("Número Entero")
-
-        err = ctk.CTkLabel(dialog, text="", text_color="#e74c3c"); err.pack(pady=5)
-
-        info_invalid = ctk.CTkLabel(dialog, text="", text_color="#e67e22")
-        info_invalid.pack(pady=(0, 5))
-
-        table_frame = ctk.CTkFrame(dialog)
-        table_frame.pack(fill="both", expand=False, padx=10, pady=(0, 10))
-        table_frame.pack_forget()
-
-        tree = ttk.Treeview(table_frame, columns=("fila","valor"), show="headings", height=8)
-        tree.heading("fila", text="Fila")
-        tree.heading("valor", text="Valor inválido")
-        tree.column("fila", width=70, anchor="center")
-        tree.column("valor", width=420, anchor="w")
-        tree.pack(fill="both", expand=True)
-
-        scrollbar = ttk.Scrollbar(table_frame, orient="vertical", command=tree.yview)
-        scrollbar.pack(side="right", fill="y")
-        tree.configure(yscrollcommand=scrollbar.set)
-
-        copy_button = ctk.CTkButton(dialog, text="Copiar lista inválidos al portapapeles", fg_color="#16a085", hover_color="#1abc9c", width=260)
-        copy_button.pack(pady=(0, 8))
-        copy_button.pack_forget()
-
-        def parse_invalid_values(message):
-            match = re.search(r"Ejemplo \(fila, valor\): \[(.*)\]", message)
-            if not match:
-                return []
-            data = match.group(1)
-            items = re.findall(r"\((\d+), '((?:[^']|\\')*)'\)", data)
-            # Retornar los 100 primeros para evitar UI pesada
-            return items[:100]
-
-        def show_invalid_table(items):
-            for i in tree.get_children():
-                tree.delete(i)
-            if not items:
-                table_frame.pack_forget()
-                copy_button.pack_forget()
-                info_invalid.configure(text="")
-                return
-            count = len(items)
-            table_frame.pack(fill="both", expand=False, padx=10, pady=(0, 10))
-            copy_button.pack(pady=(0, 8))
-            info_invalid.configure(text=f"{count} filas mostradas (hasta 100): usa el botón para copiar al portapapeles")
-            for fila, valor in items:
-                tree.insert("", "end", values=(fila, valor))
-
-            def copy_to_clipboard():
-                text = "Fila\tValor inválido\n" + "\n".join(f"{fila}\t{valor}" for fila, valor in items)
-                dialog.clipboard_clear()
-                dialog.clipboard_append(text)
-                info_invalid.configure(text="Copiado al portapapeles.")
-
-            copy_button.configure(command=copy_to_clipboard)
-
-        def ejecutar():
-            try:
-                tab.motor.cambiar_tipo_dato(col_combo.get(), tipo_combo.get())
-                tab.refrescar_interfaz()
-                dialog.destroy()
-            except Exception as e:
-                mensaje = f"Error al convertir los datos: {e}"
-                err.configure(text=mensaje)
-                print(f"Error Casting: {e}")
-                items = parse_invalid_values(str(e))
-                show_invalid_table(items)
-
-        ctk.CTkButton(dialog, text="Aplicar Conversión", command=ejecutar, fg_color="#2980b9").pack(pady=15)
+        # Llamamos a la "habitación nueva" (ui/modals.py)
+        ModalesUI.cambiar_tipo_dato(self, tab)
 
     def calcular_columna(self):
         tab = self.obtener_pestaña_activa()
@@ -852,63 +732,57 @@ class QueryLibreApp(ctk.CTk):
         ctk.CTkButton(dialog, text="Guardar Como...", command=guardar, fg_color="#2980b9").pack(pady=15)
         
     def mostrar_acerca_de(self):
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Acerca de QueryLibre")
-        # Aumentamos un poco la altura para que el Roadmap entre cómodo
-        dialog.geometry("400x520") 
-        dialog.resizable(False, False)
-        dialog.transient(self)
-        dialog.grab_set()
-        self.fijar_icono(dialog)
-        
-        # Actualizamos la versión en el título principal
-        ctk.CTkLabel(dialog, text="QueryLibre v1.5.1", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
-        ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
-        
-        ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
-        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite")
-        ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 10))
-        
-        # --- NUEVA SECCIÓN: ROADMAP ---
-        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próximas funciones):", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
-        roadmap_text = ("• v1.6.0: Panel de Salud Global (RAM y Nulos).\n• v1.6.0: Pestañas Avanzadas (Indicador '*' de cambios).\n• v1.7.0: Conexión directa a BD SQL.")
-        ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 15))
-        # ------------------------------
-
-        # Footer y Botón
-        ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)
-        ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 5))
+        ModalesUI.mostrar_acerca_de(self)
     
     def mostrar_radiografia(self):
         tab = self.obtener_pestaña_activa()
-        if not tab or tab.motor.df is None: return
+        ModalesUI.mostrar_radiografia(self.master, tab)
         
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Radiografía de Datos")
-        dialog.geometry("380x450")
-        dialog.grab_set() # <--- ¡Sin transient! Todo oscuro y perfecto
-        self.fijar_icono(dialog)
-        
-        ctk.CTkLabel(dialog, text="Selecciona una columna a auditar:", font=ctk.CTkFont(weight="bold")).pack(pady=(15, 5))
-        
-        # El cuadro de texto donde aparecerá el reporte
-        textbox = ctk.CTkTextbox(dialog, width=340, height=320, font=("Consolas", 13))
-        
-        # Esta función se dispara automáticamente cada vez que el usuario cambia la opción en el menú
-        def actualizar_reporte(seleccion):
-            reporte = tab.motor.obtener_radiografia(seleccion)
-            textbox.configure(state="normal")
-            textbox.delete("1.0", "end")
-            textbox.insert("end", reporte)
-            textbox.configure(state="disabled")
+    # En main.py
+def ejecutar_tarea_pesada(self, tarea_func, *args):
+    tab = self.obtener_pestaña_activa()
+    if not tab: return
 
-        col_combo = ctk.CTkComboBox(dialog, values=list(tab.motor.df.columns), command=actualizar_reporte)
-        col_combo.pack(pady=5)
-        textbox.pack(pady=15, padx=20)
-        
-        # Forzamos a que cargue la info de la primera columna por defecto al abrir la ventana
-        actualizar_reporte(col_combo.get())
+    self.configurar_estado_botones("disabled")
+    self.lbl_dimensiones.configure(text="⏳ Procesando datos...", text_color="#e67e22")
 
+    def wrapper():
+        try:
+            tarea_func(*args)
+            # Éxito: Volvemos al hilo principal para avisar
+            self.after(0, self.finalizar_tarea_exitosa)
+        except Exception as e:
+            # Error: Avisamos y desbloqueamos
+            self.after(0, lambda: self.finalizar_tarea_error(str(e)))
+        finally:
+            # SIEMPRE: Refrescamos la tabla y aseguramos el estado "normal"
+            self.after(0, tab.refrescar_interfaz)
+            self.after(0, lambda: self.configurar_estado_botones("normal"))
+
+    threading.Thread(target=wrapper, daemon=True).start()
+
+    def finalizar_tarea_exitosa(self):
+        self.configurar_estado_botones("normal") # <--- Asegurate que esta línea esté primera
+        self.actualizar_lbl_dimensiones()
+        # Quitamos el mensaje de espera
+        self.lbl_dimensiones.configure(text_color="gray")
+
+    def finalizar_tarea_error(self, mensaje):
+        LOGGER.error(f"Error en tarea en segundo plano: {mensaje}")
+        messagebox.showerror("Error", f"Ocurrió un problema durante el proceso:\n\n{mensaje}")
+        self.configurar_estado_botones("normal")
+        self.actualizar_lbl_dimensiones()
+
+    def configurar_estado_botones(self, estado):
+        """Habilita o deshabilita los botones principales durante el procesamiento."""
+        self.btn_cargar.configure(state=estado)
+        self.btn_transformar.configure(state=estado)
+        self.btn_exportar.configure(state=estado)
+        self.menu_limpieza.configure(state=estado)
+        self.menu_estructura.configure(state=estado)
+        self.menu_analisis.configure(state=estado)
+        
+        
 if __name__ == "__main__":
     app = QueryLibreApp()
     app.mainloop()

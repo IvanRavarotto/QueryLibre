@@ -3,6 +3,21 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.5.2] - 2026-04-08
+### English
+#### Fixed
+* **Infrastructure Refactoring:** Modularized UI dialogs (About, Profiling, Cleaning, etc.) into a dedicated `ui/modals.py` for improved code maintainability.
+* **Async Processing:** Implemented multi-threading (Async) for all data transformation tasks to prevent UI freezing ("Not Responding") on long-running processes.
+* **Button Lock Logic:** Fixed a deadlock issue where UI controls remained disabled after quick background tasks.
+
+### Español
+#### Corregido
+* **Refactorización de Infraestructura:** Se modularizaron los diálogos de la interfaz (Acerca de, Radiografía, Limpieza, etc.) en un archivo dedicado `ui/modals.py` para mejorar el mantenimiento del código.
+* **Procesamiento Asíncrono:** Implementación de multihilos (Threading) para todas las tareas de transformación de datos, evitando que la interfaz se congele ("No responde") en procesos largos.
+* **Lógica de Bloqueo:** Se corrigió un error de bloqueo donde los controles de la interfaz permanecían desactivados tras finalizar tareas rápidas en segundo plano.
+
+---
+
 ## [1.5.1] - 2026-04-07
 ### English
 #### Fixed
