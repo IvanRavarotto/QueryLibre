@@ -18,7 +18,7 @@ class ModalesUI:
         if hasattr(app_root, 'fijar_icono'):
             app_root.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.5.2", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.5.3", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
@@ -134,8 +134,8 @@ class ModalesUI:
 
         def ejecutar():
             col = col_combo.get()
-            # Seguridad: Confirmación antes de borrar
-            if messagebox.askyesno("Confirmar", f"¿Estás seguro de eliminar la columna '{col}'?"):
+            if messagebox.askyesno("Confirmar", f"¿Estás seguro de eliminar '{col}'?"):
+                # IMPORTANTE: app_root DEBE ser la instancia de QueryLibreApp
                 app_root.ejecutar_tarea_pesada(tab.motor.eliminar_columna, col)
                 dialog.destroy()
 

@@ -4,7 +4,7 @@ import pandas as pd
 import pytest
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.data_engine import MotorDatos
-from main import PestañaTrabajo
+from main import PestanaTrabajo
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data_test')
 VENTAS = os.path.join(DATA_DIR, 'ventas_caoticas_exigente.csv')
@@ -107,9 +107,9 @@ def test_cambiar_tipo_fecha_indica_posiciones_invalidas():
     assert 'Ejemplo (fila, valor)' in texto
 
 def test_macro_whitelist_no_methods_maliciosas():
-    assert 'eliminar_duplicados' in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
-    assert '__init__' not in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
-    assert '__dict__' not in PestañaTrabajo.ALLOWED_MACRO_ACTIONS
+    assert 'eliminar_duplicados' in PestanaTrabajo.ALLOWED_MACRO_ACTIONS
+    assert '__init__' not in PestanaTrabajo.ALLOWED_MACRO_ACTIONS
+    assert '__dict__' not in PestanaTrabajo.ALLOWED_MACRO_ACTIONS
 
 
 def test_editar_celda_fuera_rango_lanza_indexerror():
@@ -179,7 +179,7 @@ def test_macro_rollback_en_error_de_paso():
 
     root = tk.Tk()
     root.withdraw()
-    tab = PestañaTrabajo(root, root)
+    tab = PestanaTrabajo(root, root)
     tab.motor.df = pd.DataFrame({'x': ['2024-01-01', 'not a date']})
 
     pasos = [
@@ -208,8 +208,8 @@ def test_macro_fuzz_parametros_peligrosos():
     # Mock Tk para evitar problemas en entorno sin display
     import unittest.mock as mock
     with mock.patch('tkinter.Tk'):
-        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
-            tab = PestañaTrabajo(None, None)
+        with mock.patch('main.PestanaTrabajo.__init__', return_value=None):
+            tab = PestanaTrabajo(None, None)
             tab.motor = MotorDatos()
             tab.motor.df = pd.DataFrame({'x': [1, 2]})
             tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}
@@ -234,8 +234,8 @@ def test_macro_accion_no_permitida():
     # Mock Tk
     import unittest.mock as mock
     with mock.patch('tkinter.Tk'):
-        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
-            tab = PestañaTrabajo(None, None)
+        with mock.patch('main.PestanaTrabajo.__init__', return_value=None):
+            tab = PestanaTrabajo(None, None)
             tab.motor = MotorDatos()
             tab.motor.df = pd.DataFrame({'x': [1, 2]})
             tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}
@@ -319,8 +319,8 @@ def test_macro_valores_no_seguros():
     # Mock Tk
     import unittest.mock as mock
     with mock.patch('tkinter.Tk'):
-        with mock.patch('main.PestañaTrabajo.__init__', return_value=None):
-            tab = PestañaTrabajo(None, None)
+        with mock.patch('main.PestanaTrabajo.__init__', return_value=None):
+            tab = PestanaTrabajo(None, None)
             tab.motor = MotorDatos()
             tab.motor.df = pd.DataFrame({'x': [1, 2]})
             tab.ALLOWED_MACRO_ACTIONS = {'eliminar_duplicados'}

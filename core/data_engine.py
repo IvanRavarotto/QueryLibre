@@ -3,6 +3,8 @@ import pandas as pd
 import os
 import sqlite3
 import re
+import shutil
+import tempfile
 
 LOGGER = logging.getLogger("QueryLibre")
 class MotorDatos:
@@ -15,33 +17,57 @@ class MotorDatos:
         self.df = None
         self.df2 = None  
         self.historial_pasos = []
-        self.df_history = []
         self.macro_steps = []
+        # Nueva lógica de caché
+        self.cache_dir = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
+        self.step_counter = 0 
+        
+        if not os.path.exists(self.cache_dir):
+            os.makedirs(self.cache_dir)
 
     def registrar_paso(self, descripcion):
         self.historial_pasos.append(descripcion)
 
     def _savepoint(self):
-        if self.df is None:
-            return
-        self.df_history.append(self.df.copy(deep=True))
+        if self.df is None: return
         
-        # PARCHE v1.5.1: Límite de seguridad para no saturar la RAM
+        # Guardamos el estado actual en un archivo Parquet (rápido y comprimido)
+        self.step_counter += 1
+        file_path = os.path.join(self.cache_dir, f"undo_{self.step_counter}.parquet")
+        self.df.to_parquet(file_path)
+        
+        # Guardamos la ruta en lugar del objeto DataFrame
+        self.df_history.append(file_path)
+
+        # Mantenemos el límite de 10 pasos, pero borrando archivos físicos
         if len(self.df_history) > 10:
-            self.df_history.pop(0) # Borra el paso más antiguo
+            old_file = self.df_history.pop(0)
+            if os.path.exists(old_file):
+                os.remove(old_file)
 
     def deshacer(self):
-        if not self.df_history or len(self.historial_pasos) <= 1:
-            return False
+        if not self.df_history: return False
 
-        self.df = self.df_history.pop()
-        if self.historial_pasos:
-            self.historial_pasos.pop()
-        if self.macro_steps:
-            self.macro_steps.pop()
-
-        return True
-
+        # Recuperamos la ruta del último estado
+        last_file = self.df_history.pop() # <--- DEBE SER ASÍ
+        
+        if os.path.exists(last_file):
+            self.df = pd.read_parquet(last_file)
+            os.remove(last_file) # Limpiamos el archivo ya usado
+            
+            if self.historial_pasos: self.historial_pasos.pop()
+            if self.macro_steps: self.macro_steps.pop()
+            return True
+        return False
+    
+    def _rollback_error(self):
+        """Restaura el DataFrame desde el disco si una operación falla a la mitad."""
+        if self.df_history:
+            last_file = self.df_history.pop()
+            if os.path.exists(last_file):
+                self.df = pd.read_parquet(last_file)
+                os.remove(last_file)
+    
     def _check_df(self):
         if self.df is None:
             raise ValueError("No hay dataset cargado.")
@@ -166,13 +192,17 @@ class MotorDatos:
         self.registrar_paso(f"Se eliminaron {eliminadas} filas {tipo}" if eliminadas > 0 else f"Limpieza de nulos (0 filas {tipo})")
         self.macro_steps.append({"action": "limpiar_nulos", "params": {"modo": modo}})
 
+    def limpiar_cache(self):
+        """Borra la carpeta temporal de la sesión."""
+        if os.path.exists(self.cache_dir):
+            shutil.rmtree(self.cache_dir)
+    
     def eliminar_columna(self, col_name):
         self._check_df()
         if col_name in self.df.columns:
-            self._savepoint()
+            self._savepoint() # <--- Guarda el .parquet en .ql_cache
             self.df = self.df.drop(columns=[col_name])
-            self.registrar_paso(f"Columna eliminada: '{col_name}'")
-            self.macro_steps.append({"action": "eliminar_columna", "params": {"col_name": col_name}})
+            self.registrar_paso(f"Columna eliminada: '{col_name}'") # <--- Esto actualiza la lista
             return True
         return False
 
@@ -378,9 +408,8 @@ class MotorDatos:
             return True
 
         except Exception as e:
-            if self.df_history:
-                self.df = self.df_history.pop()
-            raise RuntimeError(f"Error en cambiar_tipo_dato: {e}") from e
+            self._rollback_error() # 1. Restauramos la tabla real leyendo el disco
+            raise e                # 2. Lanzamos el error EXACTO sin envolverlo
 
 
     # =========================================================
@@ -421,15 +450,15 @@ class MotorDatos:
                     self.df = pd.merge(self.df, self.df2, left_on=k1, right_on=k2, how=how_join)
                 except Exception as e2:
                     if self.df_history:
-                        self.df = self.df_history.pop()
+                        self.df = self._rollback_error()
                     raise e2
             else:
                 if self.df_history:
-                    self.df = self.df_history.pop()
+                    self.df = self._rollback_error()
                 raise e
         except Exception as e:
             if self.df_history:
-                self.df = self.df_history.pop()
+                self.df = self._rollback_error()
             raise e
 
         self.registrar_paso(f"Unión ({how_join}): usando '{k1}' = '{k2}'")
@@ -455,59 +484,61 @@ class MotorDatos:
         self.registrar_paso(f"💾 Exportado a {tipo_save}: {os.path.basename(file_path)}")
         
     def agrupar_datos(self, col_agrupar, col_valor, funcion):
-        """Agrupa datos por una columna y aplica una función de agregación a otra columna."""
+        """Agrupa los datos y realiza una operación matemática, forzando valores numéricos."""
         self._check_df()
-        if col_agrupar not in self.df.columns:
-            raise ValueError(f"Columna de agrupación '{col_agrupar}' no existe")
-        if col_valor not in self.df.columns:
-            raise ValueError(f"Columna de valor '{col_valor}' no existe")
-        
-        funciones_validas = {
-            'suma': 'sum',
-            'promedio': 'mean',
-            'conteo': 'count',
-            'mínimo': 'min',
-            'máximo': 'max'
-        }
-        if funcion not in funciones_validas:
-            raise ValueError(f"Función '{funcion}' no válida. Opciones: {list(funciones_validas.keys())}")
-        
         self._savepoint()
         
-        grouped = self.df.groupby(col_agrupar)[col_valor].agg(funciones_validas[funcion])
-        grouped = grouped.reset_index()
-        grouped.columns = [col_agrupar, f"{funcion}_{col_valor}"]
+        # Copiamos para no dañar el original si algo falla
+        temp_df = self.df.copy()
         
-        self.df = grouped
+        # Limpieza forzada: Quitamos $, quitamos comas, y convertimos a número. Lo que no sirva se vuelve 0.
+        temp_df[col_valor] = pd.to_numeric(
+            temp_df[col_valor].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False), 
+            errors='coerce'
+        ).fillna(0)
+        
+        funciones_map = {'suma': 'sum', 'promedio': 'mean', 'conteo': 'count', 'mínimo': 'min', 'máximo': 'max'}
+        
+        # Realizamos la agrupación
+        res = temp_df.groupby(col_agrupar)[col_valor].agg(funciones_map[funcion]).reset_index()
+        
+        # Renombramos la columna de resultado para mayor claridad
+        res.columns = [col_agrupar, f"{funcion}_{col_valor}"]
+        
+        # Aplicamos el resultado y registramos
+        self.df = res
         self.registrar_paso(f"Agrupar: '{col_agrupar}' por '{funcion}' en '{col_valor}'")
-        self.macro_steps.append({"action": "agrupar_datos", "params": {"col_agrupar": col_agrupar, "col_valor": col_valor, "funcion": funcion}})
     
     def buscar_reemplazar(self, buscar, reemplazar, columna=None, usar_regex=False):
-        """Busca y reemplaza texto en el dataset, global o en columna específica."""
+        """Reemplaza valores. Si usar_regex es True, valida la expresión primero."""
         self._check_df()
-        if columna and columna not in self.df.columns:
-            raise ValueError(f"Columna '{columna}' no existe")
-        
         self._savepoint()
-        
+
+        if usar_regex:
+            try:
+                # Validamos que la regex sea sintácticamente correcta
+                re.compile(buscar)
+            except re.error as e:
+                raise ValueError(f"Expresión Regular inválida: {e}")
+
         if columna:
-            # Reemplazar en columna específica
-            if usar_regex:
-                self.df[columna] = self.df[columna].astype(str).str.replace(buscar, reemplazar, regex=True)
-            else:
-                self.df[columna] = self.df[columna].astype(str).str.replace(buscar, reemplazar)
+            if columna not in self.df.columns:
+                raise ValueError(f"Columna '{columna}' no existe.")
+            
+            # Aplicamos el reemplazo
+            self.df[columna] = self.df[columna].astype(str).replace(
+                buscar, reemplazar, regex=usar_regex
+            )
             self.registrar_paso(f"Buscar/Reemplazar en '{columna}': '{buscar}' ➔ '{reemplazar}'")
         else:
-            # Reemplazar global en todas las columnas
-            for col in self.df.columns:
-                if self.df[col].dtype == object or pd.api.types.is_string_dtype(self.df[col]):
-                    if usar_regex:
-                        self.df[col] = self.df[col].astype(str).str.replace(buscar, reemplazar, regex=True)
-                    else:
-                        self.df[col] = self.df[col].astype(str).str.replace(buscar, reemplazar)
+            # Reemplazo global
+            self.df = self.df.replace(buscar, reemplazar, regex=usar_regex)
             self.registrar_paso(f"Buscar/Reemplazar global: '{buscar}' ➔ '{reemplazar}'")
         
-        self.macro_steps.append({"action": "buscar_reemplazar", "params": {"buscar": buscar, "reemplazar": reemplazar, "columna": columna, "usar_regex": usar_regex}})
+        self.macro_steps.append({
+            "action": "buscar_reemplazar", 
+            "params": {"buscar": buscar, "reemplazar": reemplazar, "columna": columna, "usar_regex": usar_regex}
+        })
     
     def obtener_radiografia(self, col_name):
         """Genera un reporte estadístico de la columna solicitada."""

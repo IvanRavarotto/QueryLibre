@@ -1,19 +1,14 @@
-# Librerías estándar
 import os
 import sys
-import math
-import re
 import threading
-import time
 import logging
 from logging.handlers import RotatingFileHandler
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
-from ui.modals import ModalesUI
 import customtkinter as ctk
 
-# IMPORTAMOS NUESTRO CEREBRO
-from core.data_engine import MotorDatos
+from ui.modals import ModalesUI
+from ui.tabs import PestanaTrabajo
 
 # Logging global con rotación
 LOGGER = logging.getLogger("QueryLibre")
@@ -33,308 +28,18 @@ def obtener_ruta(ruta_relativa):
         ruta_base = os.path.dirname(os.path.abspath(__file__))
     return os.path.join(ruta_base, ruta_relativa)
 
-
-# =========================================================================
-# CLASE PESTAÑA (WORKSPACE)
-# =========================================================================
-class PestañaTrabajo(ctk.CTkFrame):
-    ALLOWED_MACRO_ACTIONS = {
-        "eliminar_duplicados",
-        "limpiar_nulos",
-        "eliminar_columna",
-        "renombrar_columna",
-        "editar_celda",
-        "calcular_columna",
-        "combinar_columnas",
-        "dividir_columna",
-        "filtrar_datos",
-        "cambiar_tipo_dato",
-        "aplicar_union",
-        "agrupar_datos",
-        "buscar_reemplazar",
-    }
-
-    DISALLOWED_MACRO_PARAM_KEYS = {
-        "__class__", "__dict__", "__bases__", "__globals__", "__code__",
-        "__closure__", "__func__", "__self__", "__module__"
-    }
-
-    def __init__(self, master, app_root):
-        super().__init__(master, fg_color="transparent")
-        self.app_root = app_root 
-        
-        self.motor = MotorDatos()
-        self.pagina_actual = 1
-        self.filas_por_pagina = 200
-
-        # --- Panel Derecho: Historial y Macros ---
-        self.history_frame = ctk.CTkFrame(self, width=220)
-        self.history_frame.pack_propagate(False)
-        self.history_frame.pack(side="right", fill="y", padx=(10, 0))
-
-        self.history_label = ctk.CTkLabel(self.history_frame, text="📋 Pasos Aplicados", font=ctk.CTkFont(weight="bold"))
-        self.history_label.pack(pady=(10, 5))
-
-        self.history_text = ctk.CTkTextbox(self.history_frame, font=("Arial", 11), state="disabled", width=200)
-        self.history_text.pack(expand=True, fill="both", padx=10, pady=5)
-
-        self.btn_deshacer = ctk.CTkButton(self.history_frame, text="↩️ Deshacer", command=self.deshacer_paso, state="disabled", fg_color="#e74c3c", hover_color="#c0392b")
-        self.btn_deshacer.pack(pady=(5, 5), padx=10, fill="x")
-
-        # --- BOTÓN DESPLEGABLE DE MACRO ---
-        self.macro_frame = ctk.CTkFrame(self.history_frame, fg_color="transparent")
-        self.macro_frame.pack(side="bottom", fill="x", pady=(0, 10), padx=10)
-
-        self.btn_macro = ctk.CTkOptionMenu(
-            self.macro_frame, fg_color="#27ae60", button_color="#2ecc71", dynamic_resizing=False,
-            values=["💾 Guardar Macro actual", "▶️ Ejecutar Macro en Dataset"], # Quitamos el título de las opciones
-            command=self.dispatch_macro
-        )
-        self.btn_macro.set("🤖 Macros") # Título forzado
-        self.btn_macro.pack(pady=2, fill="x")
-
-        # --- Panel Izquierdo: Tabla de Datos ---
-        self.tree_frame = ctk.CTkFrame(self)
-        self.tree_frame.pack(side="left", expand=True, fill="both")
-
-        self.pagination_frame = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
-        self.pagination_frame.pack(side="bottom", fill="x", pady=(5, 0))
-
-        self.btn_prev_page = ctk.CTkButton(self.pagination_frame, text="◀ Anterior", width=80, command=self.pagina_anterior, state="disabled")
-        self.btn_prev_page.pack(side="left", padx=10)
-
-        self.lbl_pagina = ctk.CTkLabel(self.pagination_frame, text="Página 1 de 1", font=ctk.CTkFont(weight="bold"))
-        self.lbl_pagina.pack(side="left", expand=True)
-
-        self.btn_next_page = ctk.CTkButton(self.pagination_frame, text="Siguiente ▶", width=80, command=self.pagina_siguiente, state="disabled")
-        self.btn_next_page.pack(side="right", padx=10)
-
-        self.tree_scroll_y = ctk.CTkScrollbar(self.tree_frame)
-        self.tree_scroll_y.pack(side="right", fill="y")
-        self.tree_scroll_x = ctk.CTkScrollbar(self.tree_frame, orientation="horizontal")
-        self.tree_scroll_x.pack(side="bottom", fill="x")
-
-        self.tree = ttk.Treeview(self.tree_frame, yscrollcommand=self.tree_scroll_y.set, xscrollcommand=self.tree_scroll_x.set, selectmode="extended")
-        self.tree.pack(expand=True, fill="both")
-
-        self.tree_scroll_y.configure(command=self.tree.yview)
-        self.tree_scroll_x.configure(command=self.tree.xview)
-        self.tree.bind("<Double-1>", self.editar_celda)
-
-    # --- Funciones Internas de la Pestaña ---
-    def dispatch_macro(self, eleccion):
-        self.btn_macro.set("🤖 Macros") 
-        if "Guardar" in eleccion: self.guardar_macro()
-        elif "Ejecutar" in eleccion: self.ejecutar_macro()
-
-    def refrescar_interfaz(self):
-        self.actualizar_vista_previa()
-        self.history_text.configure(state="normal")
-        self.history_text.delete("1.0", "end")
-        for i, paso in enumerate(self.motor.historial_pasos, 1):
-            self.history_text.insert("end", f"{i}. {paso}\n\n")
-        self.history_text.configure(state="disabled")
-        self.btn_deshacer.configure(state="normal" if len(self.motor.historial_pasos) > 1 else "disabled")
-        self.app_root.actualizar_lbl_dimensiones()
-        
-        nombre_actual = self.master.get()
-        if len(self.motor.historial_pasos) > 0 and not nombre_actual.endswith("*"):
-            # Nota: Renombrar tabs en CTkTabview es complejo, así que
-            # lo dejamos preparado para la lógica de "Pestañas Avanzadas" de la v1.6.0
-            print(f"DEBUG: Cambios sin exportar en el dataset actual.")
-
-    def actualizar_vista_previa(self):
-        self.tree.delete(*self.tree.get_children())
-        if self.motor.df is not None and not self.motor.df.empty:
-            total_filas = len(self.motor.df)
-            total_paginas = math.ceil(total_filas / self.filas_por_pagina)
-            if self.pagina_actual > total_paginas: self.pagina_actual = max(1, total_paginas)
-            
-            inicio = (self.pagina_actual - 1) * self.filas_por_pagina
-            fin = inicio + self.filas_por_pagina
-            df_preview = self.motor.df.iloc[inicio:fin]
-
-            columnas_visuales = ["#"] + list(df_preview.columns)
-            self.tree["column"] = columnas_visuales
-            self.tree["show"] = "headings"
-            self.tree.heading("#", text="#")
-            self.tree.column("#", width=40, anchor="center", stretch=False)
-
-            for col in df_preview.columns:
-                self.tree.heading(col, text=col)
-                self.tree.column(col, width=120, anchor="center")
-
-            df_preview_filled = df_preview.fillna("")
-            for i, (index, row) in enumerate(df_preview_filled.iterrows(), start=inicio + 1):
-                self.tree.insert("", "end", values=[i] + list(row))
-
-            self.lbl_pagina.configure(text=f"Página {self.pagina_actual} de {total_paginas}")
-            self.btn_prev_page.configure(state="normal" if self.pagina_actual > 1 else "disabled")
-            self.btn_next_page.configure(state="normal" if self.pagina_actual < total_paginas else "disabled")
-        else:
-            self.lbl_pagina.configure(text="Página 0 de 0")
-            self.btn_prev_page.configure(state="disabled")
-            self.btn_next_page.configure(state="disabled")
-
-    def pagina_anterior(self):
-        if self.pagina_actual > 1:
-            self.pagina_actual -= 1
-            self.actualizar_vista_previa()
-
-    def pagina_siguiente(self):
-        self.pagina_actual += 1
-        self.actualizar_vista_previa()
-
-    def deshacer_paso(self):
-        if self.motor.deshacer():
-            self.refrescar_interfaz()
-
-    def editar_celda(self, event):
-        if self.motor.df is None or self.motor.df.empty: return
-        region = self.tree.identify_region(event.x, event.y)
-        if region != "cell": return
-        col_id = self.tree.identify_column(event.x)
-        row_id = self.tree.identify_row(event.y)
-        if not col_id or not row_id: return
-        
-        col_index_visual = int(col_id.replace('#', '')) - 1
-        if col_index_visual == 0: return
-        
-        col_name = self.tree["column"][col_index_visual]
-        valores_fila = self.tree.item(row_id, "values")
-        indice_real = int(valores_fila[0]) - 1
-
-        x, y, width, height = self.tree.bbox(row_id, col_id)
-        valor_actual = self.tree.set(row_id, col_id)
-
-        entry = ttk.Entry(self.tree, font=("Arial", 10))
-        entry.place(x=x, y=y, width=width, height=height)
-        entry.insert(0, valor_actual)
-        entry.focus()
-        entry.select_range(0, 'end')
-
-        def guardar_edicion(e=None):
-            nuevo_valor = entry.get()
-            if nuevo_valor != str(valor_actual):
-                self.motor.editar_celda(indice_real, col_name, nuevo_valor)
-                self.refrescar_interfaz()
-            entry.destroy()
-
-        entry.bind("<Return>", guardar_edicion)
-        entry.bind("<FocusOut>", guardar_edicion)
-        entry.bind("<Escape>", lambda e: entry.destroy())
-
-    def guardar_macro(self):
-        if not self.motor.macro_steps: return 
-        carpeta_docs = os.path.join(os.path.expanduser('~'), 'Documents')
-        carpeta_macros = os.path.join(carpeta_docs, 'Macros_QueryLibre')
-        if not os.path.exists(carpeta_macros):
-            try: os.makedirs(carpeta_macros)
-            except: carpeta_macros = os.path.expanduser('~') 
-            
-        file_path = filedialog.asksaveasfilename(
-            initialdir=carpeta_macros, defaultextension=".json", 
-            filetypes=[("QueryLibre Macro", "*.json")], title="Guardar Macro"
-        )
-        if file_path:
-            import json
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    json.dump(self.motor.macro_steps, f, indent=4)
-                self.motor.registrar_paso(f"🤖 Macro Guardada: {os.path.basename(file_path)}")
-                self.refrescar_interfaz()
-            except Exception as e:
-                LOGGER.error(f"Error al guardar macro: {e}")
-
-    def _is_safe_value(self, value):
-        """Valida que el valor sea de tipo seguro para evitar inyección."""
-        if isinstance(value, (str, int, float, bool)):
-            return True
-        elif isinstance(value, list):
-            return all(self._is_safe_value(item) for item in value)
-        elif isinstance(value, dict):
-            return all(isinstance(k, str) and self._is_safe_value(v) for k, v in value.items())
-        return False
-
-    def _apply_macro_steps(self, pasos):
-        backup_df = self.motor.df.copy(deep=True)
-        backup_history = list(self.motor.df_history)
-        backup_steps = list(self.motor.macro_steps)
-        backup_historial_pasos = list(self.motor.historial_pasos)
-
-        try:
-            for paso in pasos:
-                nombre_funcion = paso.get("action")
-                parametros = paso.get("params", {})
-
-                if nombre_funcion not in self.ALLOWED_MACRO_ACTIONS:
-                    LOGGER.error(f"Macro bloqueada por seguridad: acción no permitida {nombre_funcion}")
-                    continue
-
-                if not isinstance(parametros, dict):
-                    LOGGER.error(f"Macro bloqueada por seguridad: params inválidos para acción {nombre_funcion}")
-                    continue
-
-                if any(
-                    not isinstance(key, str) or key.startswith("__") or key in self.DISALLOWED_MACRO_PARAM_KEYS
-                    for key in parametros.keys()
-                ):
-                    LOGGER.error(f"Macro bloqueada por seguridad: parámetros maliciosos en acción {nombre_funcion}")
-                    continue
-
-                if not all(self._is_safe_value(v) for v in parametros.values()):
-                    LOGGER.error(f"Macro bloqueada por seguridad: valores de parámetros no seguros en acción {nombre_funcion}")
-                    continue
-
-                if hasattr(self.motor, nombre_funcion):
-                    metodo = getattr(self.motor, nombre_funcion)
-                    metodo(**parametros)
-        except Exception:
-            self.motor.df = backup_df
-            self.motor.df_history = backup_history
-            self.motor.macro_steps = backup_steps
-            self.motor.historial_pasos = backup_historial_pasos
-            raise
-
-    def ejecutar_macro(self):
-        if self.motor.df is None:
-            return
-
-        carpeta_docs = os.path.join(os.path.expanduser('~'), 'Documents')
-        carpeta_macros = os.path.join(carpeta_docs, 'Macros_QueryLibre')
-        if not os.path.exists(carpeta_macros):
-            carpeta_macros = os.path.expanduser('~')
-
-        file_path = filedialog.askopenfilename(
-            initialdir=carpeta_macros, title="Seleccionar Macro",
-            filetypes=[("QueryLibre Macro", "*.json")]
-        )
-        if file_path:
-            import json
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    pasos = json.load(f)
-
-                self._apply_macro_steps(pasos)
-                self.refrescar_interfaz()
-            except Exception as e:
-                LOGGER.error(f"Error al ejecutar macro: {e}")
-                messagebox.showerror("Error al ejecutar macro", f"Macro abortada y estado restaurado.\n\n{e}")
-                self.refrescar_interfaz()
-
-
-# =========================================================================
-# APP PRINCIPAL (CONTENEDOR Y MENÚS DESPLEGABLES)
-# =========================================================================
 class QueryLibreApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
-        self.pestañas = {} 
+        self.pestanas = {} 
 
         self.title("QueryLibre - Motor de Transformación de Datos")
         self.geometry("1100x650")
         self.minsize(900, 500)
+        
+        # Interceptar la X de la ventana para limpiar la basura
+        self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
         # --- PARCHE DE ÍCONOS GLOBALES ---
         try: 
@@ -365,7 +70,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.2", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.3", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -402,7 +107,7 @@ class QueryLibreApp(ctk.CTk):
         self.menu_analisis.set("🔬 Análisis")
         self.menu_analisis.pack(side="left", padx=5)
 
-        # ---- 4. GESTOR DE PESTAÑAS ----
+        # ---- 4. GESTOR DE PESTANAS ----
         self.tabview = ctk.CTkTabview(self.main_frame, command=self.actualizar_lbl_dimensiones)
         
         self.lbl_dimensiones = ctk.CTkLabel(self.main_frame, text="", text_color="gray", font=ctk.CTkFont(size=12, weight="bold"))
@@ -452,12 +157,16 @@ class QueryLibreApp(ctk.CTk):
         try: ventana.after(200, lambda: ventana.iconbitmap(self.ruta_icono))
         except: pass
 
-    def obtener_pestaña_activa(self):
-        if not self.pestañas: return None
-        return self.pestañas.get(self.tabview.get())
+    def obtener_pestana_activa(self):
+        """Retorna el objeto PestanaTrabajo actual."""
+        try:
+            nombre_tab = self.tabview.get() # Esto devuelve el texto del Tab
+            return self.pestanas.get(nombre_tab) # Buscamos el objeto en el diccionario
+        except Exception:
+            return None
 
     def actualizar_lbl_dimensiones(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if tab and tab.motor.df is not None:
             self.lbl_dimensiones.configure(text=f"Filas: {len(tab.motor.df)} | Columnas: {len(tab.motor.df.columns)}")
         else:
@@ -470,11 +179,11 @@ class QueryLibreApp(ctk.CTk):
                 nombre_archivo = os.path.basename(file_path)
                 nombre_tab = nombre_archivo
                 contador = 1
-                while nombre_tab in self.pestañas:
+                while nombre_tab in self.pestanas:
                     nombre_tab = f"{nombre_archivo} ({contador})"
                     contador += 1
 
-                if len(self.pestañas) == 0:
+                if len(self.pestanas) == 0:
                     self.welcome_label.pack_forget()
                     self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
                     self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
@@ -482,12 +191,12 @@ class QueryLibreApp(ctk.CTk):
                     self.btn_exportar.configure(state="normal")
 
                 self.tabview.add(nombre_tab)
-                nueva_pestaña = PestañaTrabajo(self.tabview.tab(nombre_tab), self)
-                nueva_pestaña.pack(expand=True, fill="both")
+                nueva_pestana = PestanaTrabajo(self.tabview.tab(nombre_tab), self)
+                nueva_pestana.pack(expand=True, fill="both")
                 
-                self.pestañas[nombre_tab] = nueva_pestaña
-                nueva_pestaña.motor.cargar_archivo(file_path)
-                nueva_pestaña.refrescar_interfaz()
+                self.pestanas[nombre_tab] = nueva_pestana
+                nueva_pestana.motor.cargar_archivo(file_path)
+                nueva_pestana.refrescar_interfaz()
                 self.tabview.set(nombre_tab)
                 self.actualizar_lbl_dimensiones()
 
@@ -496,14 +205,14 @@ class QueryLibreApp(ctk.CTk):
 
     # --- Funciones Delegadas (Modales) ---
     def eliminar_duplicados(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if tab and tab.motor.df is not None:
             # En lugar de llamarlo directo, usamos nuestro ejecutor de hilos
             self.ejecutar_tarea_pesada(tab.motor.eliminar_duplicados)
 
     def limpiar_nulos(self):
         """Llama al diálogo de limpieza desde el módulo UI."""
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None:
             return
             
@@ -512,20 +221,20 @@ class QueryLibreApp(ctk.CTk):
         ModalesUI.limpiar_nulos(self, tab)
 
     def eliminar_columna(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         ModalesUI.eliminar_columna(self, tab)
 
     def renombrar_columna(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         ModalesUI.renombrar_columna(self, tab)
                     
     def cambiar_tipo_dato(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         # Llamamos a la "habitación nueva" (ui/modals.py)
         ModalesUI.cambiar_tipo_dato(self, tab)
 
     def calcular_columna(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None: return
         dialog = ctk.CTkToplevel(self)
         dialog.title("Calcular"); dialog.geometry("400x380"); dialog.grab_set()
@@ -544,7 +253,7 @@ class QueryLibreApp(ctk.CTk):
         ctk.CTkButton(dialog, text="Aplicar", command=ejecutar).pack(pady=20)
 
     def combinar_columnas(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None: return
         dialog = ctk.CTkToplevel(self)
         dialog.title("Combinar"); dialog.geometry("400x410"); dialog.grab_set()
@@ -563,7 +272,7 @@ class QueryLibreApp(ctk.CTk):
         ctk.CTkButton(dialog, text="Aplicar", command=ejecutar).pack(pady=20)
 
     def dividir_columna(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None: return
         dialog = ctk.CTkToplevel(self)
         dialog.title("Dividir"); dialog.geometry("350x300"); dialog.grab_set()
@@ -576,7 +285,7 @@ class QueryLibreApp(ctk.CTk):
         ctk.CTkButton(dialog, text="Aplicar", command=ejecutar).pack(pady=15)
 
     def filtrar_datos(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None: return
         dialog = ctk.CTkToplevel(self)
         dialog.title("Filtrar"); dialog.geometry("400x380"); dialog.grab_set()
@@ -595,7 +304,7 @@ class QueryLibreApp(ctk.CTk):
         ctk.CTkButton(dialog, text="Aplicar", command=ejecutar).pack(pady=15)
 
     def agrupar_datos(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None: return
         dialog = ctk.CTkToplevel(self)
         dialog.title("Agrupar Datos"); dialog.geometry("400x350"); dialog.grab_set()
@@ -624,7 +333,7 @@ class QueryLibreApp(ctk.CTk):
         ctk.CTkButton(dialog, text="Aplicar Agrupación", command=ejecutar, fg_color="#8e44ad").pack(pady=20)
 
     def buscar_reemplazar(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None: return
         dialog = ctk.CTkToplevel(self)
         dialog.title("Buscar y Reemplazar"); dialog.geometry("450x400"); dialog.grab_set()
@@ -658,7 +367,7 @@ class QueryLibreApp(ctk.CTk):
         ctk.CTkButton(dialog, text="Aplicar Reemplazo", command=ejecutar, fg_color="#8e44ad").pack(pady=20)
 
     def unir_datasets(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None: return
         dialog = ctk.CTkToplevel(self)
         dialog.title("Unir Datasets (Merge / JOIN)"); dialog.geometry("650x650"); dialog.transient(self); dialog.grab_set()
@@ -711,7 +420,7 @@ class QueryLibreApp(ctk.CTk):
         ctk.CTkButton(opc_frame, text="Aplicar Unión", command=aplicar, fg_color="#27ae60").pack(pady=15)
 
     def exportar_datos(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         if not tab or tab.motor.df is None: return
         dialog = ctk.CTkToplevel(self)
         dialog.title("Exportar"); dialog.geometry("400x300"); dialog.transient(self); dialog.grab_set() 
@@ -735,43 +444,56 @@ class QueryLibreApp(ctk.CTk):
         ModalesUI.mostrar_acerca_de(self)
     
     def mostrar_radiografia(self):
-        tab = self.obtener_pestaña_activa()
+        tab = self.obtener_pestana_activa()
         ModalesUI.mostrar_radiografia(self.master, tab)
         
-    # En main.py
-def ejecutar_tarea_pesada(self, tarea_func, *args):
-    tab = self.obtener_pestaña_activa()
-    if not tab: return
+    def ejecutar_tarea_pesada(self, tarea_func, *args):
+        """Ejecuta una función del motor en un hilo secundario para no congelar la UI."""
+        tab = self.obtener_pestana_activa()
+        if not tab: return
 
-    self.configurar_estado_botones("disabled")
-    self.lbl_dimensiones.configure(text="⏳ Procesando datos...", text_color="#e67e22")
+        self.configurar_estado_botones("disabled")
+        self.lbl_dimensiones.configure(text="⏳ Procesando datos...", text_color="#e67e22")
 
-    def wrapper():
+        def task_thread():
+            error_msg = None
+            try:
+                tarea_func(*args)
+            except Exception as ex:
+                error_msg = str(ex)
+            
+            # Volvemos al hilo principal con una ÚNICA llamada, pasando el resultado
+            self.after(0, lambda: self._finalizar_tarea_hilo(tab, error_msg))
+
+        threading.Thread(target=task_thread, daemon=True).start()
+
+    def on_closing(self):
+        """Protocolo de cierre: Limpia la caché temporal antes de salir."""
+        LOGGER.info("Cerrando QueryLibre y limpiando caché temporal...")
+        for nombre, tab in self.pestanas.items():
+            try:
+                tab.motor.limpiar_cache()
+            except Exception as e:
+                LOGGER.error(f"Error al limpiar caché de {nombre}: {e}")
+        self.destroy()
+    
+    def _finalizar_tarea_hilo(self, tab, error_msg):
+        """Maneja el final del hilo en el proceso principal (Mainloop) de Tkinter."""
+        # 1. Si hubo error, mostramos la ventana
+        if error_msg:
+            LOGGER.error(f"Error en tarea: {error_msg}")
+            messagebox.showerror("Error", f"Ocurrió un problema:\n{error_msg}")
+        
+        # 2. Refrescar interfaz siempre (hace que no quede en blanco)
         try:
-            tarea_func(*args)
-            # Éxito: Volvemos al hilo principal para avisar
-            self.after(0, self.finalizar_tarea_exitosa)
+            tab.refrescar_interfaz()
         except Exception as e:
-            # Error: Avisamos y desbloqueamos
-            self.after(0, lambda: self.finalizar_tarea_error(str(e)))
-        finally:
-            # SIEMPRE: Refrescamos la tabla y aseguramos el estado "normal"
-            self.after(0, tab.refrescar_interfaz)
-            self.after(0, lambda: self.configurar_estado_botones("normal"))
-
-    threading.Thread(target=wrapper, daemon=True).start()
-
-    def finalizar_tarea_exitosa(self):
-        self.configurar_estado_botones("normal") # <--- Asegurate que esta línea esté primera
-        self.actualizar_lbl_dimensiones()
-        # Quitamos el mensaje de espera
-        self.lbl_dimensiones.configure(text_color="gray")
-
-    def finalizar_tarea_error(self, mensaje):
-        LOGGER.error(f"Error en tarea en segundo plano: {mensaje}")
-        messagebox.showerror("Error", f"Ocurrió un problema durante el proceso:\n\n{mensaje}")
+            LOGGER.error(f"Error al refrescar interfaz post-hilo: {e}")
+        
+        # 3. Limpiar estado visual de los botones y el "Procesando"
         self.configurar_estado_botones("normal")
-        self.actualizar_lbl_dimensiones()
+        self.actualizar_lbl_dimensiones() # Esto sobreescribe el "Procesando..." con "Filas: X | Columnas: Y"
+        self.lbl_dimensiones.configure(text_color="gray")
 
     def configurar_estado_botones(self, estado):
         """Habilita o deshabilita los botones principales durante el procesamiento."""

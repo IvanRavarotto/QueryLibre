@@ -3,6 +3,35 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.5.3] - 2026-04-09
+### English
+#### Added
+* **Disk-Based Caching:** Migrated the Undo history from RAM to temporary `.parquet` files using `pyarrow`, eliminating memory bottlenecks for large datasets.
+* **Garbage Collection:** Added an `on_closing` protocol to automatically clean up temporary `.ql_cache` directories upon application exit.
+* **Security (ReDoS):** Implemented regex syntax validation in the Search/Replace engine to prevent CPU freezing from malicious expressions.
+
+#### Fixed
+* **Thread Stability & UI Recovery:** Overhauled the multi-threading error handler to prevent the UI from freezing or turning blank when a Pandas operation fails.
+* **Silent Rollback:** Fixed a critical bug where failed data casting operations corrupted the internal DataFrame structure.
+
+#### Changed
+* **Architecture Refactoring:** Extracted the massive `PestanaTrabajo` class from `main.py` into a dedicated `ui/tabs.py` module, improving code maintainability.
+
+### Español
+#### Añadido
+* **Caché en Disco:** Migración del historial de Deshacer de la memoria RAM a archivos `.parquet` temporales usando `pyarrow`, eliminando cuellos de botella de memoria en datasets gigantes.
+* **Recolección de Basura:** Se agregó un protocolo `on_closing` para limpiar automáticamente la carpeta temporal `.ql_cache` al cerrar la aplicación.
+* **Seguridad (ReDoS):** Implementación de validación de sintaxis Regex en el motor de Buscar/Reemplazar para evitar el congelamiento de CPU por expresiones infinitas.
+
+#### Corregido
+* **Estabilidad de Hilos y Recuperación UI:** Se reescribió el manejador de errores del multithreading para evitar que la interfaz se quede en blanco o trabada al fallar una operación de Pandas.
+* **Rollback Silencioso:** Se corrigió un error crítico donde un fallo al convertir tipos de datos corrompía la estructura interna del DataFrame.
+
+#### Cambios
+* **Refactorización de Arquitectura:** Se extrajo la clase `PestanaTrabajo` de `main.py` a su propio archivo `ui/tabs.py`, reduciendo drásticamente la complejidad del código principal.
+
+---
+
 ## [1.5.2] - 2026-04-08
 ### English
 #### Fixed
