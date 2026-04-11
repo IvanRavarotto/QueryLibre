@@ -32,11 +32,20 @@ class QueryLibreApp(ctk.CTk):
     def __init__(self):
         super().__init__()
 
+        import tempfile
+        import shutil
+        self.master_cache = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
+        if os.path.exists(self.master_cache):
+            shutil.rmtree(self.master_cache, ignore_errors=True)
+        
         self.pestanas = {} 
 
         self.title("QueryLibre - Motor de Transformación de Datos")
         self.geometry("1100x650")
+        self.bind("<Control-w>", lambda e: self.cerrar_pestana_actual())
         self.minsize(900, 500)
+    
+        
         
         # Interceptar la X de la ventana para limpiar la basura
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
@@ -59,19 +68,28 @@ class QueryLibreApp(ctk.CTk):
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
         # Logging setup global en LOGGER definido a nivel de módulo
+        # Logging setup global en LOGGER definido a nivel de módulo
         LOGGER.info("Iniciando QueryLibre")
 
         self.btn_cargar = ctk.CTkButton(self.sidebar_frame, text="📁 Cargar Archivo", command=self.cargar_archivo)
         self.btn_cargar.grid(row=1, column=0, padx=20, pady=10)
 
+        # --- NUEVOS BOTONES DE PROYECTO v1.5.4 ---
+        self.btn_abrir_proj = ctk.CTkButton(self.sidebar_frame, text="📂 Abrir Proyecto", command=self.accion_abrir_proyecto)
+        self.btn_abrir_proj.grid(row=2, column=0, padx=20, pady=(0, 5))
+
+        self.btn_guardar_proj = ctk.CTkButton(self.sidebar_frame, text="📦 Guardar Proyecto", command=self.accion_guardar_proyecto)
+        self.btn_guardar_proj.grid(row=3, column=0, padx=20, pady=5)
+
+        # --- SE MUEVEN HACIA ABAJO ---
         self.btn_transformar = ctk.CTkButton(self.sidebar_frame, text="🔗 Unir Datasets", state="disabled", command=self.unir_datasets)
-        self.btn_transformar.grid(row=2, column=0, padx=20, pady=10)
+        self.btn_transformar.grid(row=4, column=0, padx=20, pady=10)
 
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
-        self.btn_exportar.grid(row=3, column=0, padx=20, pady=10)
+        self.btn_exportar.grid(row=5, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.3", font=ctk.CTkFont(size=11), text_color="gray")
-        self.version_label.grid(row=4, column=0, padx=20, pady=20, sticky="s")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.4", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
@@ -468,13 +486,24 @@ class QueryLibreApp(ctk.CTk):
         threading.Thread(target=task_thread, daemon=True).start()
 
     def on_closing(self):
-        """Protocolo de cierre: Limpia la caché temporal antes de salir."""
-        LOGGER.info("Cerrando QueryLibre y limpiando caché temporal...")
-        for nombre, tab in self.pestanas.items():
-            try:
-                tab.motor.limpiar_cache()
-            except Exception as e:
-                LOGGER.error(f"Error al limpiar caché de {nombre}: {e}")
+        """Protocolo de cierre global: Valida cambios y limpia la caché temporal maestra."""
+        # 1. Verificamos si alguna pestaña tiene cambios pendientes
+        hay_pendientes = any(getattr(tab.motor, 'hay_cambios', False) for tab in self.pestanas.values())
+        
+        if hay_pendientes:
+            res = messagebox.askyesno(
+                "Salir de QueryLibre", 
+                "Tienes pestañas con cambios sin guardar.\n\n¿Estás seguro de que deseas salir y perder esos cambios?"
+            )
+            if not res:
+                return # El usuario canceló el cierre global
+                
+        # 2. Destruimos la carpeta maestra con todas las subcarpetas adentro
+        LOGGER.info("Cerrando QueryLibre y limpiando caché maestra...")
+        if hasattr(self, 'master_cache') and os.path.exists(self.master_cache):
+            import shutil
+            shutil.rmtree(self.master_cache, ignore_errors=True)
+            
         self.destroy()
     
     def _finalizar_tarea_hilo(self, tab, error_msg):
@@ -503,8 +532,130 @@ class QueryLibreApp(ctk.CTk):
         self.menu_limpieza.configure(state=estado)
         self.menu_estructura.configure(state=estado)
         self.menu_analisis.configure(state=estado)
+    
+    def cerrar_pestana_actual(self):
+        """Cierra la pestaña activa validando si hay cambios sin guardar."""
+        try:
+            # Obtenemos el nombre de la pestaña que el usuario está mirando
+            nombre_tab = self.tabview.get()
+            tab = self.pestanas.get(nombre_tab)
+        except Exception:
+            return # Falla silenciosa si no hay tabview activo
+
+        if not tab: return
+
+        # VALIDACIÓN DE SEGURIDAD v1.5.4
+        if getattr(tab.motor, 'hay_cambios', False):
+            res = messagebox.askyesnocancel(
+                "Cambios sin guardar", 
+                f"La pestaña '{nombre_tab}' tiene cambios pendientes.\n\n¿Deseas exportar los datos antes de cerrar?"
+            )
+            
+            if res is True: 
+                # El usuario quiere guardar: disparamos la ventana de exportación
+                self.btn_exportar.invoke() 
+                # Detenemos el cierre. Una vez que exporte exitosamente, 
+                # el asterisco desaparecerá y podrá cerrar la pestaña con seguridad.
+                return 
+            elif res is None: 
+                # El usuario apretó "Cancelar" o la 'X' del mensaje
+                return 
         
+        # Si llega acá (no hay cambios, o eligió 'No' guardar), borramos la pestaña
+        self.tabview.delete(nombre_tab)
+        del self.pestanas[nombre_tab]
         
+        # Limpieza de caché temporal de esta pestaña específica
+        import shutil
+        if hasattr(tab.motor, 'cache_dir') and os.path.exists(tab.motor.cache_dir):
+            try:
+                shutil.rmtree(tab.motor.cache_dir, ignore_errors=True)
+            except Exception as e:
+                LOGGER.error(f"Error al limpiar caché de pestaña cerrada: {e}")
+
+        # Si cerramos la última pestaña abierta, volvemos a la pantalla de bienvenida
+        if not self.pestanas:
+            self.welcome_label.pack(expand=True)
+            self.tabview.pack_forget()
+            # Ocultamos la barra de herramientas si existe
+            if hasattr(self, 'toolbar_frame'):
+                self.toolbar_frame.pack_forget()
+                
+            # APAGAMOS LOS BOTONES LATERALES
+            self.btn_transformar.configure(state="disabled")
+            self.btn_exportar.configure(state="disabled")
+    
+    def actualizar_titulo_pestana(self, objeto_pestana, nuevo_titulo):
+        """Busca la pestaña por objeto y actualiza su texto visible."""
+        for nombre_tab, obj in self.pestanas.items():
+            if obj == objeto_pestana:
+                # Intentamos renombrar en el Tabview
+                try:
+                    self.tabview._segmented_button._buttons_dict[nombre_tab].configure(text=nuevo_titulo)
+                except Exception as e:
+                    LOGGER.error(f"No se pudo actualizar el título visual: {e}")
+                break
+    
+    def accion_guardar_proyecto(self):
+        """Diálogo para guardar la sesión actual."""
+        nombre_tab = self.tabview.get()
+        tab = self.pestanas.get(nombre_tab)
+        if not tab or getattr(tab.motor, 'df', None) is None: return
+
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=".qlp",
+            filetypes=[("Proyecto QueryLibre", "*.qlp")],
+            title="Guardar Proyecto"
+        )
+        if filepath:
+            try:
+                # Usamos el motor para empaquetar
+                tab.motor.guardar_proyecto(filepath)
+                # Refrescamos la interfaz para que desaparezca el asterisco (*)
+                tab.refrescar_interfaz()
+                messagebox.showinfo("Éxito", "Proyecto guardado correctamente.")
+            except Exception as e:
+                LOGGER.error(f"Error al guardar proyecto: {e}")
+                messagebox.showerror("Error", f"No se pudo guardar:\n{e}")
+
+    def accion_abrir_proyecto(self):
+        """Diálogo para restaurar una sesión previa."""
+        filepath = filedialog.askopenfilename(
+            filetypes=[("Proyecto QueryLibre", "*.qlp")],
+            title="Abrir Proyecto"
+        )
+        if filepath:
+            nombre_archivo = os.path.basename(filepath)
+            nombre_tab = nombre_archivo
+            contador = 1
+            while nombre_tab in self.pestanas:
+                nombre_tab = f"{nombre_archivo} ({contador})"
+                contador += 1
+
+            if len(self.pestanas) == 0:
+                self.welcome_label.pack_forget()
+                self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
+                self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
+                self.configurar_estado_botones("normal")
+
+            self.tabview.add(nombre_tab)
+            nueva_pestana = PestanaTrabajo(self.tabview.tab(nombre_tab), self)
+            nueva_pestana.pack(expand=True, fill="both")
+            
+            self.pestanas[nombre_tab] = nueva_pestana
+            
+            try:
+                # Le inyectamos el alma (el proyecto cargado)
+                nueva_pestana.motor.cargar_proyecto(filepath)
+                nueva_pestana.refrescar_interfaz()
+                self.tabview.set(nombre_tab)
+                self.actualizar_lbl_dimensiones()
+            except Exception as e:
+                LOGGER.error(f"Error al abrir proyecto: {e}")
+                self.tabview.delete(nombre_tab) # Si falla, borramos la pestaña
+                del self.pestanas[nombre_tab]
+                messagebox.showerror("Error", f"Archivo corrupto o inválido:\n{e}")
+    
 if __name__ == "__main__":
     app = QueryLibreApp()
     app.mainloop()

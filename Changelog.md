@@ -3,6 +3,33 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.5.4] - 2026-04-10
+### English
+#### Added
+* **Project System (.qlp):** Introduced a custom compressed file format to save and load entire workspaces (Datasets + Macro History).
+* **Dirty Flag Indicator:** Tabs now display an asterisk (`*`) when there are unsaved changes.
+* **Safe Close Protocols:** Added warning dialogs when closing a specific tab (Ctrl+W) or the entire application with unsaved changes.
+
+#### Changed
+* **Isolated Caching:** Refactored the temporary cache system to use nested subdirectories (`tab_<id>`) inside a master cache folder, preventing memory conflicts between multiple open datasets.
+
+#### Fixed
+* **Sidebar Styling:** Restored visual consistency for the new Project buttons in the UI.
+
+### Español
+#### Añadido
+* **Sistema de Proyectos (.qlp):** Introducción de un formato de archivo comprimido personalizado para guardar y cargar espacios de trabajo completos (Datasets + Historial de Macros).
+* **Indicador de Cambios:** Las pestañas ahora muestran un asterisco (`*`) cuando hay cambios sin guardar en el motor.
+* **Protocolos de Cierre Seguro:** Se agregaron diálogos de advertencia al intentar cerrar una pestaña específica (Ctrl+W) o la aplicación completa con cambios pendientes.
+
+#### Cambios
+* **Caché Aislada:** Se refactorizó el sistema de caché temporal para usar subcarpetas anidadas (`tab_<id>`) dentro de una carpeta maestra, evitando conflictos de memoria entre múltiples datasets abiertos.
+
+#### Corregido
+* **Estilos del Panel Lateral:** Se restauró la consistencia visual de los nuevos botones de Proyecto en la interfaz.
+
+---
+
 ## [1.5.3] - 2026-04-09
 ### English
 #### Added

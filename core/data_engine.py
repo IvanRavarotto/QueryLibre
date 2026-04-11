@@ -5,6 +5,9 @@ import sqlite3
 import re
 import shutil
 import tempfile
+import zipfile  
+import json      
+import io        
 
 LOGGER = logging.getLogger("QueryLibre")
 class MotorDatos:
@@ -18,15 +21,19 @@ class MotorDatos:
         self.df2 = None  
         self.historial_pasos = []
         self.macro_steps = []
-        # Nueva lógica de caché
-        self.cache_dir = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
+        self.hay_cambios = False
+        
+        # Nueva lógica de caché: Carpeta ÚNICA por pestaña para evitar conflictos
+        master_cache = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
+        self.cache_dir = os.path.join(master_cache, f"tab_{id(self)}")
         self.step_counter = 0 
         
-        if not os.path.exists(self.cache_dir):
-            os.makedirs(self.cache_dir)
+        # exist_ok=True asegura que si la carpeta maestra ya existe, no tire error
+        os.makedirs(self.cache_dir, exist_ok=True)
 
     def registrar_paso(self, descripcion):
         self.historial_pasos.append(descripcion)
+        self.hay_cambios = True
 
     def _savepoint(self):
         if self.df is None: return
@@ -49,7 +56,7 @@ class MotorDatos:
         if not self.df_history: return False
 
         # Recuperamos la ruta del último estado
-        last_file = self.df_history.pop() # <--- DEBE SER ASÍ
+        last_file = self.df_history.pop()
         
         if os.path.exists(last_file):
             self.df = pd.read_parquet(last_file)
@@ -57,6 +64,13 @@ class MotorDatos:
             
             if self.historial_pasos: self.historial_pasos.pop()
             if self.macro_steps: self.macro_steps.pop()
+
+            # --- LÓGICA DE SEGURIDAD v1.5.4 ---
+            # Si solo queda 1 paso (el Origen), significa que volvimos al inicio
+            if len(self.historial_pasos) <= 1:
+                self.hay_cambios = False
+            # ----------------------------------
+            
             return True
         return False
     
@@ -151,6 +165,7 @@ class MotorDatos:
 
     def cargar_archivo(self, file_path):
         ext = self._validate_loader_path(file_path)
+        self.nombre_archivo = os.path.basename(file_path)
 
         if ext == '.csv':
             try:
@@ -164,7 +179,12 @@ class MotorDatos:
         self.historial_pasos = []
         self.df_history = []
         self.macro_steps = []
-        self.registrar_paso(f"Origen: {os.path.basename(file_path)}")
+        
+        # 1. Registramos el origen (esto antes ponía hay_cambios en True)
+        self.registrar_paso(f"Origen: {self.nombre_archivo}")
+        
+        # 2. IMPORTANTE: Forzamos que inicie en False porque la carga no es un "cambio" de usuario
+        self.hay_cambios = False
 
     def eliminar_duplicados(self):
         self._check_df()
@@ -480,6 +500,8 @@ class MotorDatos:
         else:
             raise ValueError("Formato de exportación no soportado")
 
+        self.hay_cambios = False
+        
         tipo_save = formato.split(' ')[1] if ' ' in formato else formato
         self.registrar_paso(f"💾 Exportado a {tipo_save}: {os.path.basename(file_path)}")
         
@@ -566,3 +588,57 @@ class MotorDatos:
             reporte += f"• Promedio: {serie.mean():.2f}\n"
 
         return reporte
+    
+    def guardar_proyecto(self, filepath):
+        """Empaqueta el DataFrame y el historial en un archivo .qlp (ZIP comprimido)."""
+        if self.df is None:
+            raise ValueError("No hay datos para guardar.")
+
+        if not filepath.endswith('.qlp'):
+            filepath += '.qlp'
+
+        # 1. Preparamos el "Cerebro" (Historial y metadatos)
+        metadata = {
+            "nombre_archivo": getattr(self, 'nombre_archivo', 'Proyecto_QueryLibre'),
+            "historial_pasos": self.historial_pasos,
+            "macro_steps": self.macro_steps,
+            "step_counter": getattr(self, 'step_counter', 0)
+        }
+
+        # 2. Preparamos el "Cuerpo" (La tabla de datos) en la memoria RAM
+        parquet_buffer = io.BytesIO()
+        self.df.to_parquet(parquet_buffer)
+
+        # 3. Metemos todo en la "Caja" (.qlp)
+        with zipfile.ZipFile(filepath, 'w', zipfile.ZIP_DEFLATED) as zf:
+            zf.writestr('data.parquet', parquet_buffer.getvalue())
+            zf.writestr('metadata.json', json.dumps(metadata, ensure_ascii=False, indent=4))
+        
+        # 4. Reseteamos la bandera de seguridad porque ya está guardado
+        self.registrar_paso(f"📦 Proyecto guardado: {os.path.basename(filepath)}")
+        self.hay_cambios = False 
+
+    def cargar_proyecto(self, filepath):
+        """Desempaqueta un archivo .qlp y restaura la sesión exacta."""
+        if not zipfile.is_zipfile(filepath):
+            raise ValueError("El archivo está corrupto o no es un proyecto de QueryLibre (.qlp)")
+
+        with zipfile.ZipFile(filepath, 'r') as zf:
+            # 1. Extraemos e inyectamos el historial
+            with zf.open('metadata.json') as f:
+                metadata = json.load(f)
+            
+            # 2. Extraemos e inyectamos la tabla
+            with zf.open('data.parquet') as f:
+                self.df = pd.read_parquet(io.BytesIO(f.read()))
+
+        # 3. Restauramos la memoria del motor
+        self.nombre_archivo = metadata.get("nombre_archivo", os.path.basename(filepath))
+        self.historial_pasos = metadata.get("historial_pasos", [])
+        self.macro_steps = metadata.get("macro_steps", [])
+        self.step_counter = metadata.get("step_counter", 0)
+        
+        # 4. Limpiamos basura vieja y creamos el primer punto de guardado de la sesión
+        self.df_history = []
+        self._savepoint() 
+        self.hay_cambios = False

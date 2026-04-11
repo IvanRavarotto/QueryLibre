@@ -115,6 +115,15 @@ class PestanaTrabajo(ctk.CTkFrame):
         
         # Refrescar la barra de estado inferior
         self.app_root.actualizar_lbl_dimensiones()
+        
+        nombre_base = self.motor.nombre_archivo if hasattr(self.motor, 'nombre_archivo') else "Sin Título"
+        if self.motor.hay_cambios:
+            nuevo_titulo = f"{nombre_base} *"
+        else:
+            nuevo_titulo = nombre_base
+            
+        # Llamamos a un método de la app principal para renombrar el tab
+        self.app_root.actualizar_titulo_pestana(self, nuevo_titulo)
 
     def actualizar_vista_previa(self):
         self.tree.delete(*self.tree.get_children())
@@ -295,4 +304,4 @@ class PestanaTrabajo(ctk.CTkFrame):
                 messagebox.showerror("Error al ejecutar macro", f"Macro abortada y estado restaurado.\n\n{e}")
                 self.refrescar_interfaz()
 
-        
+    
