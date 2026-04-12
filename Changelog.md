@@ -3,6 +3,25 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.5.5] - 2026-04-11
+### English
+#### Fixed
+* **Security (Zip Bomb):** Added a 500MB RAM decompression limit when loading `.qlp` projects to prevent malicious files from freezing the system.
+* **Memory Leak:** Fixed an issue where closing tabs did not free up physical RAM by explicitly destroying the Tkinter widgets before deletion.
+
+#### Changed
+* **Code Refactoring (DRY):** Unified the tab creation logic into a single internal method (`_crear_tab_ui`) to improve code maintainability and prevent duplicate UI bugs.
+
+### Español
+#### Corregido
+* **Seguridad (Zip Bomb):** Se agregó un límite de descompresión en RAM de 500MB al cargar proyectos `.qlp` para evitar que archivos maliciosos congelen el sistema.
+* **Fuga de Memoria (Memory Leak):** Se solucionó un problema por el cual cerrar pestañas no liberaba la memoria RAM física, destruyendo explícitamente los widgets de Tkinter antes de borrarlos.
+
+#### Cambios
+* **Refactorización de Código (DRY):** Se unificó la lógica de creación de pestañas en un único método interno (`_crear_tab_ui`) para mejorar el mantenimiento del código y prevenir bugs de UI duplicados.
+
+---
+
 ## [1.5.4] - 2026-04-10
 ### English
 #### Added
