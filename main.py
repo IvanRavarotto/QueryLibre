@@ -88,7 +88,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=5, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.4", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.5", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -563,6 +563,7 @@ class QueryLibreApp(ctk.CTk):
         
         # Si llega acá (no hay cambios, o eligió 'No' guardar), borramos la pestaña
         self.tabview.delete(nombre_tab)
+        tab.destroy()
         del self.pestanas[nombre_tab]
         
         # Limpieza de caché temporal de esta pestaña específica
@@ -618,6 +619,25 @@ class QueryLibreApp(ctk.CTk):
                 LOGGER.error(f"Error al guardar proyecto: {e}")
                 messagebox.showerror("Error", f"No se pudo guardar:\n{e}")
 
+    def _crear_tab_ui(self, nombre_tab):
+        """Crea la UI de una nueva pestaña y oculta la pantalla de bienvenida."""
+        if len(self.pestanas) == 0:
+            self.welcome_label.pack_forget()
+            if hasattr(self, 'toolbar_frame'):
+                self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
+            self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
+            
+            # Encender botones
+            self.btn_transformar.configure(state="normal")
+            self.btn_exportar.configure(state="normal")
+
+        self.tabview.add(nombre_tab)
+        nueva_pestana = PestanaTrabajo(self.tabview.tab(nombre_tab), self)
+        nueva_pestana.pack(expand=True, fill="both")
+        
+        self.pestanas[nombre_tab] = nueva_pestana
+        return nueva_pestana
+    
     def accion_abrir_proyecto(self):
         """Diálogo para restaurar una sesión previa."""
         filepath = filedialog.askopenfilename(
@@ -632,28 +652,18 @@ class QueryLibreApp(ctk.CTk):
                 nombre_tab = f"{nombre_archivo} ({contador})"
                 contador += 1
 
-            if len(self.pestanas) == 0:
-                self.welcome_label.pack_forget()
-                self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
-                self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
-                self.configurar_estado_botones("normal")
-
-            self.tabview.add(nombre_tab)
-            nueva_pestana = PestanaTrabajo(self.tabview.tab(nombre_tab), self)
-            nueva_pestana.pack(expand=True, fill="both")
-            
-            self.pestanas[nombre_tab] = nueva_pestana
+            # Usamos el nuevo método limpio (DRY)
+            nueva_pestana = self._crear_tab_ui(nombre_tab)
             
             try:
-                # Le inyectamos el alma (el proyecto cargado)
                 nueva_pestana.motor.cargar_proyecto(filepath)
                 nueva_pestana.refrescar_interfaz()
                 self.tabview.set(nombre_tab)
-                self.actualizar_lbl_dimensiones()
+                if hasattr(self, 'actualizar_lbl_dimensiones'):
+                    self.actualizar_lbl_dimensiones()
             except Exception as e:
                 LOGGER.error(f"Error al abrir proyecto: {e}")
-                self.tabview.delete(nombre_tab) # Si falla, borramos la pestaña
-                del self.pestanas[nombre_tab]
+                self.cerrar_pestana_actual() # Se auto-limpia si falla
                 messagebox.showerror("Error", f"Archivo corrupto o inválido:\n{e}")
     
 if __name__ == "__main__":

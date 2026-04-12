@@ -619,17 +619,24 @@ class MotorDatos:
         self.hay_cambios = False 
 
     def cargar_proyecto(self, filepath):
-        """Desempaqueta un archivo .qlp y restaura la sesión exacta."""
+        """Desempaqueta un archivo .qlp y restaura la sesión (Protección Zip Bomb)."""
         if not zipfile.is_zipfile(filepath):
-            raise ValueError("El archivo está corrupto o no es un proyecto de QueryLibre (.qlp)")
+            raise ValueError("El archivo está corrupto o no es un proyecto (.qlp)")
+
+        # Límite de seguridad: 500 MB máximo de descompresión en RAM
+        MAX_SIZE = 500 * 1024 * 1024 
 
         with zipfile.ZipFile(filepath, 'r') as zf:
-            # 1. Extraemos e inyectamos el historial
-            with zf.open('metadata.json') as f:
+            # 1. Validar y extraer el historial
+            info_meta = zf.getinfo('metadata.json')
+            if info_meta.file_size > MAX_SIZE: raise ValueError("Metadatos demasiado grandes.")
+            with zf.open(info_meta) as f:
                 metadata = json.load(f)
             
-            # 2. Extraemos e inyectamos la tabla
-            with zf.open('data.parquet') as f:
+            # 2. Validar y extraer la tabla (Aquí está el riesgo de Zip Bomb)
+            info_data = zf.getinfo('data.parquet')
+            if info_data.file_size > MAX_SIZE: raise ValueError("Datos exceden el límite de seguridad.")
+            with zf.open(info_data) as f:
                 self.df = pd.read_parquet(io.BytesIO(f.read()))
 
         # 3. Restauramos la memoria del motor
@@ -638,7 +645,7 @@ class MotorDatos:
         self.macro_steps = metadata.get("macro_steps", [])
         self.step_counter = metadata.get("step_counter", 0)
         
-        # 4. Limpiamos basura vieja y creamos el primer punto de guardado de la sesión
+        # 4. Limpiamos y creamos el primer punto de guardado
         self.df_history = []
         self._savepoint() 
         self.hay_cambios = False
