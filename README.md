@@ -21,47 +21,26 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🚀 Características Principales (v1.5.1)
+## 🚀 Características Principales (v1.6.0)
 
-> **Versión v1.5.1:** Parche de optimización de memoria RAM y rastreo de estado. Incluye todas las novedades de la v1.5.0 (Agrupación de datos, Buscar/Reemplazar y Macros blindadas).
-
-* **Arquitectura Escalable (MVC):** Motor de datos (`core/data_engine.py`) completamente desacoplado de la interfaz gráfica.
-* **Sistema de Pestañas (Workspace):** Soporte nativo para importar y trabajar con múltiples datasets en simultáneo en la misma sesión, sin colisión de datos.
-* **Automatización con Macros:** Graba pipelines de transformación completos, expórtalos en formato `.json` y ejecútalos con un clic sobre nuevos datasets sucios.
-* **Data Cleaning a un Clic (Ribbon UI):**
-    * Eliminación automática de filas duplicadas y valores nulos (`NaN` / `Null`).
-    * Eliminación y renombrado intuitivo de columnas mediante menús desplegables blindados.
-    * **Casteo Inteligente de Tipos:** Conversión forzada de texto a números enteros/decimales o fechas, con un *Smart Parser* que esquiva errores causados por símbolos (`$`, `,`) o celdas vacías.
-* **Feature Engineering Avanzado:**
-    * **Radiografía de Datos (Profiling):** Panel estadístico en tiempo real por columna (Valores únicos, % de nulos, min/max, promedios).
-    * **Calculadora Mágica:** Operaciones matemáticas vectorizadas entre columnas.
-    * **Dividir y Combinar Columnas:** Herramientas de parsing de texto por delimitadores.
-    * **Filtrado Condicional:** Segmentación de filas mediante operadores lógicos.
-    * **Agrupar Datos (Group By):** Creación de resúmenes con funciones de agregación (suma, promedio, conteo, mínimo, máximo).
-    * **Buscar y Reemplazar:** Búsqueda y reemplazo masivo de valores mediante texto plano o expresiones regulares.
-* **Interacción Directa:** Modificación de celdas individuales al estilo Excel (Doble clic).
-* **Integración Relacional (Merge/JOIN):** Cruce visual de tablas dimensionales (Left Join, Inner Join).
-* **Sistema de Auditoría (Time Travel):** Historial en tiempo real de transformaciones (Pila LIFO) para deshacer acciones paso a paso.
-* **Exportación Industrial:** Descarga de los datos en `.csv`, `.xlsx` o bases de datos `.db` (SQLite).
+* **🧠 Smart Data Profiling:** Genera gráficos automáticos y estadísticas descriptivas según el tipo de columna.
+* **✨ Asistente IA:** Escaneo proactivo que sugiere limpieza de duplicados y optimización de columnas.
+* **🐘 Big Data Ready:** Motor optimizado para procesar millones de filas (v1.6.0 validada con 5.8M de registros).
+* **🛡️ Integridad de Datos:** Sistema de previsualización de errores de conversión y guardado basado en `.parquet`.
 
 ---
 
-## 🗺️ Roadmap
+## Próximas Actualizaciones (v1.6.1 - Rendimiento y UX):**
 
-### ✅ Completado en v1.5.0
-- [x] **Rollback seguro de macros:** ejecutar macros de forma atómica y restaurar el dataset si falla un paso.
-- [x] **UI de filas inválidas:** modal de conversión con tabla, scroll adaptativo, export y copiar al portapapeles.
-- [x] **Validación de cargadores y rutas:** evitar traversal relativo, rutas inválidas y formatos no permitidos en `cargar_archivo`/`cargar_df2`.
-- [x] **Normalización de columnas y seguridad de joins:** resolver colisiones de nombres tras la limpieza y proteger las fusiones.
-- [x] **Agrupación y Resumen (Group By):** Creación de tablas dinámicas con funciones de agregación (Suma, Promedio, etc.).
-- [x] **Buscar y Reemplazar Global:** Búsqueda y reemplazo masivo de valores mediante texto o Regex.
+* 🧭 **Navegación Avanzada:** Implementación de "Salto de Página" (Go-To-Page) para recorrer rápidamente datasets masivos.
+* ⏳ **Feedback Visual de Carga:** Barra de progreso real para operaciones pesadas y resumen de dimensiones (filas/columnas) al finalizar la carga.
+* 🛡️ **Macros con Tolerancia a Fallos:** Sistema "Try-Continue" para que la ejecución de funciones en cadena (o el Asistente IA) ignore errores menores y continúe procesando.
+* 💾 **Protección de Cierre:** Diálogo inteligente (Guardar / No Guardar / Cancelar) al intentar salir de la app con cambios pendientes.
 
-### Próximas versiones (v1.6.0+)
-- [ ] **Panel de Salud Global (Quality Score):** Dashboard en la barra lateral con métricas globales del dataset.
-- [ ] **Pestañas Avanzadas:** Cierre de pestañas individual, reordenamiento dinámico e indicador de "cambios sin guardar".
-- [ ] **Visualizaciones Inline:** Integración de gráficos rápidos (Histogramas/Boxplots) en la ventana de Radiografía.
-- [ ] **Machine Learning Básico:** Clustering automático y detección de outliers.
-- [ ] **API REST para Macros:** Ejecutar macros remotamente vía HTTP.
+**A Mediano Plazo (v1.7.0+):**
+* 🔌 **Conectores a Bases de Datos:** Importación directa de tablas desde servidores SQL Server, MySQL y PostgreSQL.
+* 📊 **Exportación de Insights:** Capacidad de descargar los gráficos interactivos de Matplotlib en formato `.png` o `.pdf`.
+* 🧲 **Inferencia de Tipos:** Botón "Auto-Detectar" para analizar y castear los tipos de datos de todo el dataset con un solo clic.
 
 ---
 

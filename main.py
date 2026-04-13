@@ -68,7 +68,6 @@ class QueryLibreApp(ctk.CTk):
         self.logo_label.grid(row=0, column=0, padx=20, pady=(20, 10))
 
         # Logging setup global en LOGGER definido a nivel de módulo
-        # Logging setup global en LOGGER definido a nivel de módulo
         LOGGER.info("Iniciando QueryLibre")
 
         self.btn_cargar = ctk.CTkButton(self.sidebar_frame, text="📁 Cargar Archivo", command=self.cargar_archivo)
@@ -88,7 +87,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=5, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.5.5", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.0", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -124,7 +123,15 @@ class QueryLibreApp(ctk.CTk):
         )
         self.menu_analisis.set("🔬 Análisis")
         self.menu_analisis.pack(side="left", padx=5)
-
+        
+        # --- NUEVO BOTÓN ASISTENTE v1.6.0 ---
+        self.btn_asistente = ctk.CTkButton(
+            self.toolbar_frame, text="✨ Asistente IA", width=120,
+            fg_color="#d35400", hover_color="#e67e22",
+            command=lambda: ModalesUI.mostrar_asistente_limpieza(self, self.obtener_pestana_activa())
+        )
+        self.btn_asistente.pack(side="right", padx=10) # Lo ponemos a la derecha de todo
+        
         # ---- 4. GESTOR DE PESTANAS ----
         self.tabview = ctk.CTkTabview(self.main_frame, command=self.actualizar_lbl_dimensiones)
         
@@ -463,7 +470,7 @@ class QueryLibreApp(ctk.CTk):
     
     def mostrar_radiografia(self):
         tab = self.obtener_pestana_activa()
-        ModalesUI.mostrar_radiografia(self.master, tab)
+        ModalesUI.mostrar_radiografia(self, tab)
         
     def ejecutar_tarea_pesada(self, tarea_func, *args):
         """Ejecuta una función del motor en un hilo secundario para no congelar la UI."""
@@ -566,13 +573,8 @@ class QueryLibreApp(ctk.CTk):
         tab.destroy()
         del self.pestanas[nombre_tab]
         
-        # Limpieza de caché temporal de esta pestaña específica
-        import shutil
-        if hasattr(tab.motor, 'cache_dir') and os.path.exists(tab.motor.cache_dir):
-            try:
-                shutil.rmtree(tab.motor.cache_dir, ignore_errors=True)
-            except Exception as e:
-                LOGGER.error(f"Error al limpiar caché de pestaña cerrada: {e}")
+        # Limpieza de caché temporal delegada al motor
+        tab.motor.limpiar_cache()
 
         # Si cerramos la última pestaña abierta, volvemos a la pantalla de bienvenida
         if not self.pestanas:

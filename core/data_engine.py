@@ -38,15 +38,20 @@ class MotorDatos:
     def _savepoint(self):
         if self.df is None: return
         
-        # Guardamos el estado actual en un archivo Parquet (rápido y comprimido)
         self.step_counter += 1
         file_path = os.path.join(self.cache_dir, f"undo_{self.step_counter}.parquet")
-        self.df.to_parquet(file_path)
         
-        # Guardamos la ruta en lugar del objeto DataFrame
+        try:
+            self.df.to_parquet(file_path)
+        except Exception as e:
+            # Si hay tipos mixtos, PyArrow falla. Forzamos todo lo que sea 'object' a texto.
+            LOGGER.warning(f"Tipos mixtos detectados, forzando a string para Parquet: {e}")
+            for col in self.df.select_dtypes(include=['object']).columns:
+                self.df[col] = self.df[col].astype(str)
+            self.df.to_parquet(file_path)
+        
         self.df_history.append(file_path)
 
-        # Mantenemos el límite de 10 pasos, pero borrando archivos físicos
         if len(self.df_history) > 10:
             old_file = self.df_history.pop(0)
             if os.path.exists(old_file):
@@ -112,15 +117,6 @@ class MotorDatos:
             else:
                 new_columns.append(col)
         return new_columns
-
-    def _sanitize_column_name(self, col):
-        if not isinstance(col, str):
-            return col
-        normalized = col.strip()
-        normalized = re.sub(r"[^\w]+", "_", normalized)
-        if normalized == "":
-            normalized = "columna"
-        return normalized
 
     def _validate_loader_path(self, file_path):
         if not file_path or not os.path.exists(file_path):
@@ -366,7 +362,8 @@ class MotorDatos:
         self.registrar_paso(f"Filtro: '{col}' {cond} '{val}' (-{eliminadas} filas)")
         self.macro_steps.append({"action": "filtrar_datos", "params": {"col": col, "cond": cond, "val": val}})
 
-    def cambiar_tipo_dato(self, col_name, nuevo_tipo):
+    def cambiar_tipo_dato(self, col_name, nuevo_tipo, forzar=False):
+        """Cambia el tipo de dato. Si forzar=True, ignora los errores y los convierte en NaN."""
         self._check_df()
         if col_name not in self.df.columns:
             raise KeyError("Columna no encontrada")
@@ -384,20 +381,12 @@ class MotorDatos:
                 total_non_null = s.notna().sum()
                 valid = converted.notna().sum()
                 invalid = total_non_null - valid
-                invalid_mask = s.notna() & converted.isna()
-                invalid_indices = self.df.index[invalid_mask].tolist()
-                invalid_values = self.df[col_name].loc[invalid_mask].astype(str).tolist()
-                if valid == 0:
-                    raise ValueError("No se pudo convertir a número: no hay valores numéricos válidos")
-                if invalid > 0:
-                    muestra = list(zip(invalid_indices[:10], invalid_values[:10]))
-                    raise ValueError(
-                        f"No se pudo convertir a número: {invalid} valores inválidos. "
-                        f"Ejemplo (fila, valor): {muestra}"
-                    )
+                
+                # Si hay inválidos y no forzamos, lanzamos el error (protección activa)
+                if invalid > 0 and not forzar:
+                    raise RuntimeError(f"No se pudo convertir a número: {invalid} valores inválidos. Ejemplo (fila, valor): [...]")
 
                 if nuevo_tipo == "Número Entero":
-                    # Conservamos NaN como <NA> en Int64
                     self.df[col_name] = converted.round().astype('Int64')
                 else:
                     self.df[col_name] = converted.astype('float64')
@@ -407,29 +396,47 @@ class MotorDatos:
                 total_non_null = self.df[col_name].notna().sum()
                 valid = converted.notna().sum()
                 invalid = total_non_null - valid
-                invalid_mask = self.df[col_name].notna() & converted.isna()
-                invalid_indices = self.df.index[invalid_mask].tolist()
-                invalid_values = self.df[col_name].loc[invalid_mask].astype(str).tolist()
-                if valid == 0:
-                    raise ValueError("No se pudo convertir a Fecha: no hay valores válidos")
-                if invalid > 0:
-                    muestra = list(zip(invalid_indices[:10], invalid_values[:10]))
-                    raise ValueError(
-                        f"No se pudo convertir a Fecha: {invalid} valores inválidos. "
-                        f"Ejemplo (fila, valor): {muestra}"
-                    )
+                
+                if invalid > 0 and not forzar:
+                    raise RuntimeError(f"No se pudo convertir a Fecha: {invalid} valores inválidos. Ejemplo (fila, valor): [...]")
+                    
                 self.df[col_name] = converted
 
             else:
                 raise ValueError("Tipo de conversión desconocido")
 
             self.registrar_paso(f"Tipo cambiado: '{col_name}' ➔ {nuevo_tipo}")
-            self.macro_steps.append({"action": "cambiar_tipo_dato", "params": {"col_name": col_name, "nuevo_tipo": nuevo_tipo}})
+            self.macro_steps.append({"action": "cambiar_tipo_dato", "params": {"col_name": col_name, "nuevo_tipo": nuevo_tipo, "forzar": forzar}})
             return True
 
         except Exception as e:
-            self._rollback_error() # 1. Restauramos la tabla real leyendo el disco
-            raise e                # 2. Lanzamos el error EXACTO sin envolverlo
+            self._rollback_error() 
+            raise e 
+
+    def previsualizar_casteo(self, col_name, nuevo_tipo):
+        """Simula el casteo en memoria RAM y devuelve un listado de valores que van a fallar."""
+        self._check_df()
+        if col_name not in self.df.columns or nuevo_tipo == "Texto": return []
+
+        serie = self.df[col_name]
+        errores = []
+
+        if nuevo_tipo in ["Número Entero", "Número Decimal"]:
+            s = serie.astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
+            s = s.replace(['', 'nan', 'None', '<NA>'], pd.NA)
+            converted = pd.to_numeric(s, errors='coerce')
+            invalid_mask = s.notna() & converted.isna()
+        elif nuevo_tipo == "Fecha":
+            converted = pd.to_datetime(serie, errors='coerce')
+            invalid_mask = serie.notna() & converted.isna()
+
+        if invalid_mask.any():
+            idx_malos = self.df.index[invalid_mask].tolist()
+            val_malos = serie.loc[invalid_mask].astype(str).tolist()
+            # Tomamos hasta 100 errores para mostrar en la tabla sin congelar la pantalla
+            errores = [{"fila": i+1, "valor": v} for i, v in zip(idx_malos[:100], val_malos[:100])]
+        
+        return errores                # 2. Lanzamos el error EXACTO sin envolverlo
 
 
     # =========================================================
@@ -649,3 +656,45 @@ class MotorDatos:
         self.df_history = []
         self._savepoint() 
         self.hay_cambios = False
+        
+    def generar_sugerencias_limpieza(self):
+        """Escanea el dataset y devuelve una lista de sugerencias de limpieza inteligente."""
+        if self.df is None or self.df.empty: return []
+        sugerencias = []
+
+        # 1. Detectar filas duplicadas
+        duplicados = self.df.duplicated().sum()
+        if duplicados > 0:
+            sugerencias.append({
+                "id": "duplicados",
+                "titulo": "Eliminar Duplicados",
+                "descripcion": f"Se detectaron {duplicados} filas exactamente iguales.",
+                "accion": self.eliminar_duplicados,
+                "kwargs": {}
+            })
+
+        # 2. Detectar columnas inútiles (Más del 50% nulos o 1 solo valor)
+        umbral_nulos = len(self.df) * 0.5
+        for col in self.df.columns:
+            nulos = self.df[col].isna().sum()
+            unicos = self.df[col].nunique()
+
+            if nulos > umbral_nulos:
+                porcentaje = (nulos / len(self.df)) * 100
+                sugerencias.append({
+                    "id": f"nulos_{col}",
+                    "titulo": f"Borrar '{col}' (Casi vacía)",
+                    "descripcion": f"Tiene un {porcentaje:.1f}% de valores nulos (vacíos).",
+                    "accion": self.eliminar_columna,
+                    "kwargs": {"col_name": col}
+                })
+            elif unicos == 1 and nulos == 0:
+                sugerencias.append({
+                    "id": f"constante_{col}",
+                    "titulo": f"Borrar '{col}' (Constante)",
+                    "descripcion": "Todos los valores de esta columna son idénticos. No aporta información.",
+                    "accion": self.eliminar_columna,
+                    "kwargs": {"col_name": col}
+                })
+
+        return sugerencias

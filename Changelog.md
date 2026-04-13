@@ -3,6 +3,31 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.6.0] - 2026-04-13
+### English
+#### Added
+* **Data Visualization:** Integrated Matplotlib for dynamic histograms and bar charts in the "Radiografía" panel.
+* **Smart Cleaning Assistant:** New module that scans datasets for duplicates and useless columns, suggesting automatic fixes.
+* **Safe Type Casting:** Added a "Simulate & Preview" feature that detects conversion errors before applying changes.
+* **Big Data Support:** Confirmed stable processing of 5.8M+ rows (exceeding Excel's 1M limit).
+
+#### Fixed
+* **PyArrow Engine:** Fixed "Expected bytes, got int" error by forcing string conversion for mixed types during savepoints.
+* **UI/UX:** Fixed missing app icons in secondary modals and added memory cleanup for Matplotlib figures.
+
+### Español
+#### Añadido
+* **Visualización de Datos:** Integración de Matplotlib para histogramas y gráficos de barras dinámicos en el panel de Radiografía.
+* **Asistente de Limpieza Inteligente:** Nuevo módulo que escanea el dataset buscando duplicados y columnas inútiles, sugiriendo arreglos automáticos.
+* **Casteo de Datos Seguro:** Función de "Simular y Previsualizar" que detecta errores de conversión antes de aplicar cambios.
+* **Soporte Big Data:** Procesamiento estable confirmado de más de 5.8M de filas (superando el límite de 1M de Excel).
+
+#### Corregido
+* **Motor PyArrow:** Corregido error de tipos mixtos en el guardado de seguridad (_savepoint) mediante conversión forzada a texto.
+* **UI/UX:** Se agregaron íconos faltantes en modales secundarios y limpieza de memoria RAM en los gráficos.
+  
+---
+
 ## [1.5.5] - 2026-04-11
 ### English
 #### Fixed
