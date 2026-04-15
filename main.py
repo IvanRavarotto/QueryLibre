@@ -87,7 +87,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=5, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.0", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.1", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -147,6 +147,11 @@ class QueryLibreApp(ctk.CTk):
 
         self.btn_acerca_de = ctk.CTkButton(self.sidebar_frame, text="ℹ️ Acerca de", command=self.mostrar_acerca_de, fg_color="transparent", text_color="gray")
         self.btn_acerca_de.grid(row=10, column=0, pady=(50, 20), sticky="s")
+        
+        # --- Atajos de Teclado Globales ---
+        self.bind("<Control-s>", lambda event: self.accion_guardar_proyecto() if hasattr(self, 'accion_guardar_proyecto') else None)
+        self.bind("<Control-z>", lambda event: self._atajo_deshacer())
+        self.bind("<Control-y>", lambda event: self._atajo_rehacer())
 
     # =========================================================================
     # ENRUTADORES DE MENÚS (Dispatchers)
@@ -493,24 +498,30 @@ class QueryLibreApp(ctk.CTk):
         threading.Thread(target=task_thread, daemon=True).start()
 
     def on_closing(self):
-        """Protocolo de cierre global: Valida cambios y limpia la caché temporal maestra."""
-        # 1. Verificamos si alguna pestaña tiene cambios pendientes
-        hay_pendientes = any(getattr(tab.motor, 'hay_cambios', False) for tab in self.pestanas.values())
+        """Maneja el evento de cierre de la ventana con opciones de guardado."""
+        hay_cambios = any(tab.motor.hay_cambios for tab in self.pestanas.values())
         
-        if hay_pendientes:
-            res = messagebox.askyesno(
+        if hay_cambios:
+            respuesta = messagebox.askyesnocancel(
                 "Salir de QueryLibre", 
-                "Tienes pestañas con cambios sin guardar.\n\n¿Estás seguro de que deseas salir y perder esos cambios?"
+                "Tienes proyectos con cambios sin guardar.\n¿Deseas guardar antes de salir?"
             )
-            if not res:
-                return # El usuario canceló el cierre global
-                
-        # 2. Destruimos la carpeta maestra con todas las subcarpetas adentro
-        LOGGER.info("Cerrando QueryLibre y limpiando caché maestra...")
-        if hasattr(self, 'master_cache') and os.path.exists(self.master_cache):
-            import shutil
-            shutil.rmtree(self.master_cache, ignore_errors=True)
             
+            if respuesta is None:  # Eligió Cancelar (o cerró la ventanita)
+                return
+            elif respuesta is True:  # Eligió Guardar
+                # Asumimos que tienes una función global para guardar o guarda el actual
+                if hasattr(self, 'accion_guardar_proyecto'):
+                    self.accion_guardar_proyecto()
+        
+        # Limpieza global de la carpeta maestra de caché
+        import shutil
+        if os.path.exists(self.master_cache):
+            try:
+                shutil.rmtree(self.master_cache, ignore_errors=True)
+            except Exception as e:
+                LOGGER.error(f"Error al limpiar caché maestro al salir: {e}")
+                
         self.destroy()
     
     def _finalizar_tarea_hilo(self, tab, error_msg):
@@ -667,6 +678,15 @@ class QueryLibreApp(ctk.CTk):
                 LOGGER.error(f"Error al abrir proyecto: {e}")
                 self.cerrar_pestana_actual() # Se auto-limpia si falla
                 messagebox.showerror("Error", f"Archivo corrupto o inválido:\n{e}")
+    
+    def _atajo_deshacer(self):
+        tab = self.obtener_pestana_activa()
+        if tab and hasattr(tab, 'deshacer_paso'): tab.deshacer_paso()
+
+    def _atajo_rehacer(self):
+        tab = self.obtener_pestana_activa()
+        # Nota: Asegúrate de tener una función 'rehacer_paso' en PestanaTrabajo si la implementaste
+        if tab and hasattr(tab, 'rehacer_paso'): tab.rehacer_paso()
     
 if __name__ == "__main__":
     app = QueryLibreApp()
