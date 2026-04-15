@@ -3,6 +3,27 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.6.1] - 2026-04-14 (En Desarrollo)
+### English
+#### Added
+* **Safe Close Protocol:** Implemented a Save/Don't Save/Cancel dialog when closing the app with unsaved changes.
+* **Keyboard Shortcuts:** Added global hotkeys for Save (Ctrl+S), Undo (Ctrl+Z), and Redo (Ctrl+Y).
+
+#### Fixed
+* **Memory Leak:** Fixed RAM accumulation in the Profiling panel by explicitly clearing Matplotlib figures.
+* **Technical Debt:** Cleaned up test generation artifacts and removed deprecated `fix_tests.py`.
+
+### Español
+#### Añadido
+* **Cierre Seguro:** Se implementó un diálogo de Guardar/No Guardar/Cancelar al cerrar la app con cambios pendientes.
+* **Atajos de Teclado:** Se agregaron atajos globales para Guardar (Ctrl+S), Deshacer (Ctrl+Z) y Rehacer (Ctrl+Y).
+
+#### Corregido
+* **Fuga de Memoria:** Se solucionó la acumulación de memoria RAM en el panel de Radiografía cerrando las figuras de Matplotlib explícitamente.
+* **Deuda Técnica:** Limpieza de artefactos de generación de pruebas y eliminación del archivo obsoleto `fix_tests.py`.
+
+---
+
 ## [1.6.0] - 2026-04-13
 ### English
 #### Added

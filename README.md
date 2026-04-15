@@ -35,7 +35,7 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 * 🧭 **Navegación Avanzada:** Implementación de "Salto de Página" (Go-To-Page) para recorrer rápidamente datasets masivos.
 * ⏳ **Feedback Visual de Carga:** Barra de progreso real para operaciones pesadas y resumen de dimensiones (filas/columnas) al finalizar la carga.
 * 🛡️ **Macros con Tolerancia a Fallos:** Sistema "Try-Continue" para que la ejecución de funciones en cadena (o el Asistente IA) ignore errores menores y continúe procesando.
-* 💾 **Protección de Cierre:** Diálogo inteligente (Guardar / No Guardar / Cancelar) al intentar salir de la app con cambios pendientes.
+* ✅ **Protección de Cierre:** Diálogo inteligente (Guardar / No Guardar / Cancelar) al intentar salir de la app con cambios pendientes. (Completado en Fase 1)
 
 **A Mediano Plazo (v1.7.0+):**
 * 🔌 **Conectores a Bases de Datos:** Importación directa de tablas desde servidores SQL Server, MySQL y PostgreSQL.
