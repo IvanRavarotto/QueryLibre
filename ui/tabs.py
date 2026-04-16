@@ -75,8 +75,16 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.btn_prev_page = ctk.CTkButton(self.pagination_frame, text="◀ Anterior", width=80, command=self.pagina_anterior, state="disabled")
         self.btn_prev_page.pack(side="left", padx=10)
 
-        self.lbl_pagina = ctk.CTkLabel(self.pagination_frame, text="Página 1 de 1", font=ctk.CTkFont(weight="bold"))
-        self.lbl_pagina.pack(side="left", expand=True)
+        # --- NUEVO: Salto de Página (v1.6.1) ---
+        ctk.CTkLabel(self.pagination_frame, text="Página").pack(side="left", padx=(10, 2))
+        
+        self.entry_pagina = ctk.CTkEntry(self.pagination_frame, width=50, justify="center", height=28)
+        self.entry_pagina.pack(side="left", padx=2)
+        self.entry_pagina.bind("<Return>", self._saltar_a_pagina) 
+        
+        self.lbl_total_paginas = ctk.CTkLabel(self.pagination_frame, text="de ?")
+        self.lbl_total_paginas.pack(side="left", padx=(2, 10))
+        # ----------------------------------------
 
         self.btn_next_page = ctk.CTkButton(self.pagination_frame, text="Siguiente ▶", width=80, command=self.pagina_siguiente, state="disabled")
         self.btn_next_page.pack(side="right", padx=10)
@@ -85,6 +93,16 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.tree_scroll_y.pack(side="right", fill="y")
         self.tree_scroll_x = ctk.CTkScrollbar(self.tree_frame, orientation="horizontal")
         self.tree_scroll_x.pack(side="bottom", fill="x")
+
+        # --- NUEVO: Buscador de Columnas (v1.6.2) ---
+        self.frame_buscador_cols = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
+        self.frame_buscador_cols.pack(fill="x", padx=0, pady=(0, 5))
+        
+        ctk.CTkLabel(self.frame_buscador_cols, text="🔍 Buscar Columna:").pack(side="left", padx=(0,5))
+        self.entry_buscar_col = ctk.CTkEntry(self.frame_buscador_cols, width=200, placeholder_text="Ej: ID_Cliente...", height=28)
+        self.entry_buscar_col.pack(side="left")
+        self.entry_buscar_col.bind("<KeyRelease>", self._filtrar_columnas_visibles)
+        # --------------------------------------------
 
         self.tree = ttk.Treeview(self.tree_frame, yscrollcommand=self.tree_scroll_y.set, xscrollcommand=self.tree_scroll_x.set, selectmode="extended")
         self.tree.pack(expand=True, fill="both")
@@ -150,7 +168,10 @@ class PestanaTrabajo(ctk.CTkFrame):
             for i, (index, row) in enumerate(df_preview_filled.iterrows(), start=inicio + 1):
                 self.tree.insert("", "end", values=[i] + list(row))
 
-            self.lbl_pagina.configure(text=f"Página {self.pagina_actual} de {total_paginas}")
+            self.entry_pagina.delete(0, 'end')
+            self.entry_pagina.insert(0, str(self.pagina_actual))
+            self.lbl_total_paginas.configure(text=f"de {total_paginas}")
+
             self.btn_prev_page.configure(state="normal" if self.pagina_actual > 1 else "disabled")
             self.btn_next_page.configure(state="normal" if self.pagina_actual < total_paginas else "disabled")
         else:
@@ -303,5 +324,33 @@ class PestanaTrabajo(ctk.CTkFrame):
                 LOGGER.error(f"Error al ejecutar macro: {e}")
                 messagebox.showerror("Error al ejecutar macro", f"Macro abortada y estado restaurado.\n\n{e}")
                 self.refrescar_interfaz()
-
+                
+    def _filtrar_columnas_visibles(self, event=None):
+        """Oculta las columnas del Treeview que no coinciden con la búsqueda."""
+        if self.motor.df is None: return
+        busqueda = self.entry_buscar_col.get().lower()
+        
+        if busqueda.strip() == "":
+            self.tree["displaycolumns"] = "#all" # Mostrar todas
+        else:
+            todas_las_cols = list(self.motor.df.columns)
+            cols_filtradas = [col for col in todas_las_cols if busqueda in str(col).lower()]
+            # --- CORRECCIÓN: Agregar la columna "#" estática al inicio de la lista ---
+            self.tree["displaycolumns"] = ["#"] + cols_filtradas
     
+    def _saltar_a_pagina(self, event=None):
+        """Salta a la página ingresada por el usuario al presionar Enter."""
+        if self.motor.df is None: return
+        try:
+            pag_deseada = int(self.entry_pagina.get())
+            total_pags = math.ceil(len(self.motor.df) / self.filas_por_pagina)
+            
+            if 1 <= pag_deseada <= total_pags:
+                self.pagina_actual = pag_deseada
+                self.actualizar_vista_previa() # Llama a tu función que refresca el Treeview
+            else:
+                messagebox.showwarning("Página Inválida", f"Por favor, ingresa un número entre 1 y {total_pags}.")
+                self.entry_pagina.delete(0, 'end')
+                self.entry_pagina.insert(0, str(self.pagina_actual))
+        except ValueError:
+            pass # Si escribe letras, lo ignoramos

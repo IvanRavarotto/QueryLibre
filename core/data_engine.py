@@ -698,3 +698,20 @@ class MotorDatos:
                 })
 
         return sugerencias
+
+    def exportar_csv_seguro(self, filepath):
+        """Exporta el DataFrame a CSV en bloques de 100k filas para evitar congelamiento."""
+        self._check_df()
+        
+        chunk_size = 100000 # 100k filas por bloque
+        total_filas = len(self.df)
+        
+        for i in range(0, total_filas, chunk_size):
+            bloque = self.df.iloc[i : i + chunk_size]
+            
+            # Si es el primer bloque (i==0), escribimos el archivo y la cabecera.
+            # Para los siguientes bloques, "adjuntamos" (append mode 'a') sin la cabecera.
+            modo_escritura = 'w' if i == 0 else 'a'
+            escribir_cabecera = True if i == 0 else False
+            
+            bloque.to_csv(filepath, mode=modo_escritura, header=escribir_cabecera, index=False, encoding='utf-8')

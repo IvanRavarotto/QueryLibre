@@ -3,6 +3,29 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.6.2] - 2026-04-15
+### English
+#### Added
+* **Advanced Navigation:** Added a "Go-To" page jump input and a rapid column search bar for massive datasets.
+* **Chunked Export:** Implemented asynchronous CSV export in blocks of 100,000 rows to prevent UI freezing (Not Responding) on Big Data.
+* **Smart Progress UI:** Replaced static loading text with a dynamic progress bar and a final success summary (rows/columns loaded).
+
+#### Fixed
+* **Concurrency:** Fixed an issue where the success message overlapped with the loading screen by ensuring UI cleanup runs first in the main thread.
+* **Treeview Rendering:** Fixed the visual `#` index column disappearing when applying column search filters.
+
+### Español
+#### Añadido
+* **Navegación Avanzada:** Se agregó un campo de "Salto de Página" (Go-To) y un buscador rápido de columnas para datasets masivos.
+* **Exportación Fragmentada:** Implementación de exportación CSV asíncrona en bloques de 100.000 filas para evitar el congelamiento de la interfaz (Big Data).
+* **UI de Progreso Inteligente:** Se reemplazó el texto estático por una barra de progreso dinámica y un resumen final de éxito (filas/columnas cargadas).
+
+#### Corregido
+* **Concurrencia:** Se solucionó un problema donde el mensaje de éxito se superponía a la pantalla de carga, asegurando la limpieza previa en el hilo principal.
+* **Renderizado de Treeview:** Se corrigió la desaparición de la columna visual de índice `#` al aplicar filtros de búsqueda de columnas.
+
+---
+
 ## [1.6.1] - 2026-04-14 (En Desarrollo)
 ### English
 #### Added

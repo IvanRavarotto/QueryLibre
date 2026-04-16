@@ -87,7 +87,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=5, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.1", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.2", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -225,13 +225,13 @@ class QueryLibreApp(ctk.CTk):
                 nueva_pestana.pack(expand=True, fill="both")
                 
                 self.pestanas[nombre_tab] = nueva_pestana
-                nueva_pestana.motor.cargar_archivo(file_path)
-                nueva_pestana.refrescar_interfaz()
-                self.tabview.set(nombre_tab)
-                self.actualizar_lbl_dimensiones()
+                self.tabview.set(nombre_tab) # Enfocamos la pestaña primero
+                
+                # --- CORRECCIÓN: Enviar la carga pesada al hilo con barra de progreso ---
+                self.ejecutar_tarea_pesada(nueva_pestana.motor.cargar_archivo, file_path)
 
             except Exception as e:
-                LOGGER.error(f"Error al cargar: {e}")
+                LOGGER.error(f"Error al preparar carga: {e}")
 
     # --- Funciones Delegadas (Modales) ---
     def eliminar_duplicados(self):
@@ -466,9 +466,16 @@ class QueryLibreApp(ctk.CTk):
             ext = ".csv" if "CSV" in fmt else ".xlsx" if "Excel" in fmt else ".db"
             file_path = filedialog.asksaveasfilename(defaultextension=ext)
             if file_path:
-                try: tab.motor.exportar_archivo(fmt, file_path); tab.refrescar_interfaz(); dialog.destroy()
-                except Exception as e: err.configure(text=f"⚠️ Error al guardar."); print(e)
-        ctk.CTkButton(dialog, text="Guardar Como...", command=guardar, fg_color="#2980b9").pack(pady=15)
+                try: 
+                    # --- NUEVO: Exportación inteligente con Hilos ---
+                    if "CSV" in fmt:
+                        self.ejecutar_tarea_pesada(tab.motor.exportar_csv_seguro, file_path)
+                    else:
+                        self.ejecutar_tarea_pesada(tab.motor.exportar_archivo, fmt, file_path)
+                    dialog.destroy()
+                except Exception as e: 
+                    err.configure(text=f"⚠️ Error al guardar.")
+                    print(e)
         
     def mostrar_acerca_de(self):
         ModalesUI.mostrar_acerca_de(self)
@@ -477,25 +484,52 @@ class QueryLibreApp(ctk.CTk):
         tab = self.obtener_pestana_activa()
         ModalesUI.mostrar_radiografia(self, tab)
         
-    def ejecutar_tarea_pesada(self, tarea_func, *args):
-        """Ejecuta una función del motor en un hilo secundario para no congelar la UI."""
-        tab = self.obtener_pestana_activa()
-        if not tab: return
+    def ejecutar_tarea_pesada(self, funcion, *args, **kwargs):
+        """Ejecuta una tarea en un hilo separado mostrando un modal con barra de progreso."""
+        pantalla_carga = ctk.CTkToplevel(self)
+        pantalla_carga.title("Procesando...")
+        pantalla_carga.geometry("300x150")
+        pantalla_carga.resizable(False, False)
+        pantalla_carga.transient(self)
+        pantalla_carga.grab_set()
+        
+        if hasattr(self, 'fijar_icono'): self.fijar_icono(pantalla_carga)
 
-        self.configurar_estado_botones("disabled")
-        self.lbl_dimensiones.configure(text="⏳ Procesando datos...", text_color="#e67e22")
+        ctk.CTkLabel(pantalla_carga, text="Procesando Datos", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(25, 10))
+        
+        barra = ctk.CTkProgressBar(pantalla_carga, width=200, mode="indeterminate", fg_color="#34495e", progress_color="#3498db")
+        barra.pack(pady=10)
+        barra.start() 
 
-        def task_thread():
+        def tarea_hilo():
             error_msg = None
             try:
-                tarea_func(*args)
-            except Exception as ex:
-                error_msg = str(ex)
-            
-            # Volvemos al hilo principal con una ÚNICA llamada, pasando el resultado
-            self.after(0, lambda: self._finalizar_tarea_hilo(tab, error_msg))
+                funcion(*args, **kwargs)
+            except Exception as e:
+                error_msg = str(e)
+                LOGGER.error(f"Error en tarea: {e}")
 
-        threading.Thread(target=task_thread, daemon=True).start()
+            # Esta sub-función se envía al hilo principal (GUI) para actualizar la pantalla sin trabarse
+            def finalizar_ui():
+                # 1. Destruimos la pantalla de carga INMEDIATAMENTE
+                pantalla_carga.destroy() 
+                
+                # 2. Refrescamos la pestaña
+                tab = self.obtener_pestana_activa()
+                if tab: tab.refrescar_interfaz()
+                
+                # 3. Lanzamos los pop-ups de error o éxito al final, con la pantalla limpia
+                if error_msg:
+                    messagebox.showerror("Error", f"Ocurrió un error:\n{error_msg}")
+                elif funcion.__name__ in ['cargar_archivo', 'cargar_proyecto'] and tab and tab.motor.df is not None:
+                    filas = f"{len(tab.motor.df):,}".replace(",", ".")
+                    cols = len(tab.motor.df.columns)
+                    messagebox.showinfo("✅ Éxito", f"Operación completada con éxito.\nSe cargaron {filas} filas y {cols} columnas.")
+
+            # self.after(0) obliga a que finalizar_ui se ejecute en el hilo visual de Tkinter
+            self.after(0, finalizar_ui)
+
+        threading.Thread(target=tarea_hilo, daemon=True).start()
 
     def on_closing(self):
         """Maneja el evento de cierre de la ventana con opciones de guardado."""
@@ -669,7 +703,7 @@ class QueryLibreApp(ctk.CTk):
             nueva_pestana = self._crear_tab_ui(nombre_tab)
             
             try:
-                nueva_pestana.motor.cargar_proyecto(filepath)
+                self.ejecutar_tarea_pesada(nueva_pestana.motor.cargar_proyecto, filepath)
                 nueva_pestana.refrescar_interfaz()
                 self.tabview.set(nombre_tab)
                 if hasattr(self, 'actualizar_lbl_dimensiones'):
