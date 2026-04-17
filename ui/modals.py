@@ -22,7 +22,7 @@ class ModalesUI:
         if hasattr(app_root, 'fijar_icono'):
             app_root.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.6.2", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.6.3", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
@@ -340,3 +340,109 @@ class ModalesUI:
             dialog.destroy()
 
         ctk.CTkButton(dialog, text=f"Aplicar Seleccionadas", command=aplicar_sugerencias, fg_color="#27ae60", height=40).pack(pady=20, padx=20, fill="x")
+    
+    @staticmethod
+    def mostrar_health_check(app_root, tab):
+        """Muestra el dashboard inicial de salud del dataset."""
+        if not tab or tab.motor.df is None: return
+
+        reporte = tab.motor.generar_reporte_salud()
+        if not reporte: return
+
+        dialog = ctk.CTkToplevel(app_root)
+        
+        # CORRECCIÓN 1: Quitamos el emoji del título para evitar el "doble icono" en Windows
+        dialog.title("Health Check del Dataset")
+        dialog.geometry("450x350")
+        dialog.transient(app_root)
+        dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+
+        # CORRECCIÓN 2: Función y botón flotante de Ayuda (?)
+        def mostrar_ayuda():
+            texto_ayuda = (
+                "📌 Diccionario de Métricas:\n\n"
+                "• Datos Completos: Porcentaje de celdas con información real. "
+                "Si está en rojo (menor a 80%), tu dataset tiene demasiados nulos y necesita limpieza.\n\n"
+                "• Peso en RAM: Memoria física que ocupa el dataset en tu computadora. Útil para "
+                "prevenir cuelgues si te acercas a tu límite.\n\n"
+                "• Dimensiones: Cantidad total de filas (registros) y columnas (variables).\n\n"
+                "• Tipos Detectados: Diferencia entre columnas numéricas (para cálculos estadísticos) y "
+                "columnas de texto (para agrupaciones o categorías)."
+            )
+            messagebox.showinfo("¿Qué significan estos datos?", texto_ayuda)
+
+        # Ubicamos el botón de forma absoluta (place) arriba a la derecha
+        btn_ayuda = ctk.CTkButton(dialog, text="❓", width=30, height=30, 
+                                  fg_color="transparent", hover_color="#34495e", text_color="#3498db",
+                                  font=ctk.CTkFont(size=16), command=mostrar_ayuda)
+        btn_ayuda.place(x=400, y=10)
+
+        ctk.CTkLabel(dialog, text="📊 Resumen de Salud del Dataset", font=ctk.CTkFont(weight="bold", size=18)).pack(pady=(20, 10))
+        
+        # Crear un frame tipo "Grid" para las tarjetas
+        frame_cards = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame_cards.pack(fill="both", expand=True, padx=20, pady=10)
+        
+        # Fila 1: Salud y Memoria
+        salud_float = float(reporte["Salud"].replace('%', ''))
+        color_salud = "#27ae60" if salud_float >= 80.0 else "#c0392b"
+        
+        card_salud = ctk.CTkFrame(frame_cards, fg_color=color_salud, corner_radius=10)
+        card_salud.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
+        ctk.CTkLabel(card_salud, text="Datos Completos", font=ctk.CTkFont(size=12)).pack(pady=(10,0))
+        ctk.CTkLabel(card_salud, text=reporte["Salud"], font=ctk.CTkFont(weight="bold", size=24)).pack(pady=(0,10))
+        
+        card_memoria = ctk.CTkFrame(frame_cards, fg_color="#2c3e50", corner_radius=10)
+        card_memoria.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
+        ctk.CTkLabel(card_memoria, text="Peso en RAM", font=ctk.CTkFont(size=12)).pack(pady=(10,0))
+        ctk.CTkLabel(card_memoria, text=reporte["Memoria"], font=ctk.CTkFont(weight="bold", size=24)).pack(pady=(0,10))
+
+        # Fila 2: Dimensiones
+        card_dim = ctk.CTkFrame(frame_cards, fg_color="#34495e", corner_radius=10)
+        card_dim.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+        texto_dim = f"Dimensiones: {reporte['Filas']} filas × {reporte['Columnas']} columnas"
+        ctk.CTkLabel(card_dim, text=texto_dim, font=ctk.CTkFont(weight="bold", size=14)).pack(pady=12)
+
+        # Fila 3: Tipos de datos
+        card_tipos = ctk.CTkFrame(frame_cards, fg_color="#34495e", corner_radius=10)
+        card_tipos.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
+        texto_tipos = f"Tipos detectados: {reporte['Numéricas']} Numéricas  |  {reporte['Texto']} Texto/Categorías"
+        ctk.CTkLabel(card_tipos, text=texto_tipos, font=ctk.CTkFont(size=13)).pack(pady=12)
+
+        # Configurar las columnas para que tengan el mismo ancho
+        frame_cards.columnconfigure(0, weight=1)
+        frame_cards.columnconfigure(1, weight=1)
+
+        ctk.CTkButton(dialog, text="Comenzar a Trabajar", command=dialog.destroy, width=200).pack(pady=15)
+    
+    @staticmethod
+    def mostrar_preview_autocasteo(app_root, tab, propuestas):
+        """Muestra un diálogo para que el usuario confirme los casteos detectados."""
+        dialog = ctk.CTkToplevel(app_root)
+        dialog.title("Confirmar Auto-Casteo")
+        dialog.geometry("450x450")
+        dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+
+        ctk.CTkLabel(dialog, text="✨ Conversiones Seguras Detectadas", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(20, 10))
+        ctk.CTkLabel(dialog, text="El motor detectó que las siguientes columnas\npueden optimizarse sin perder datos:", text_color="gray").pack(pady=(0, 15))
+
+        # Panel scrolleable con los cambios
+        scroll_frame = ctk.CTkScrollableFrame(dialog, fg_color="#2b2b2b", height=120)
+        scroll_frame.pack(fill="x", padx=20, pady=5)
+
+        for col, tipo in propuestas.items():
+            ctk.CTkLabel(scroll_frame, text=f"• '{col}' ➔ {tipo}", font=ctk.CTkFont(weight="bold", size=13), text_color="#3498db").pack(anchor="w", pady=2, padx=10)
+
+        def confirmar():
+            # Si dice que sí, mandamos la ejecución pesada al hilo
+            app_root.ejecutar_tarea_pesada(tab.motor.aplicar_autocasteo_confirmado, propuestas)
+            dialog.destroy()
+
+        # Botones de decisión
+        frame_btns = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame_btns.pack(fill="x", pady=20, padx=20)
+        
+        ctk.CTkButton(frame_btns, text="Cancelar", command=dialog.destroy, fg_color="#7f8c8d", hover_color="#95a5a6").pack(side="left", expand=True, padx=5)
+        ctk.CTkButton(frame_btns, text="Aplicar Cambios", command=confirmar, fg_color="#27ae60").pack(side="right", expand=True, padx=5)

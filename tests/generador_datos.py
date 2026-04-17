@@ -86,16 +86,13 @@ df_clientes = pd.DataFrame(datos_clientes)
 
 
 # --- 3. GUARDAR LOS ARCHIVOS ---
-carpeta_destino = 'data_test'
+# Guarda los archivos en una subcarpeta 'data' dentro de 'tests'
+carpeta_destino = os.path.join(os.path.dirname(__file__), 'data')
 os.makedirs(carpeta_destino, exist_ok=True)
 
 ruta_ventas = os.path.join(carpeta_destino, 'ventas_caoticas.csv')
 ruta_ventas_exigente = os.path.join(carpeta_destino, 'ventas_caoticas_exigente.csv')
 ruta_clientes = os.path.join(carpeta_destino, 'clientes_dim.csv')
-
-df_ventas.to_csv(ruta_ventas, index=False)
-df_ventas.to_csv(ruta_ventas_exigente, index=False)
-df_clientes.to_csv(ruta_clientes, index=False)
 
 print("-" * 50)
 print(f"Archivos de prueba generados con éxito en la carpeta '{carpeta_destino}'")

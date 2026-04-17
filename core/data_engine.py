@@ -715,3 +715,72 @@ class MotorDatos:
             escribir_cabecera = True if i == 0 else False
             
             bloque.to_csv(filepath, mode=modo_escritura, header=escribir_cabecera, index=False, encoding='utf-8')
+            
+    def generar_reporte_salud(self):
+        """Genera un diccionario con métricas globales de salud del dataset (Data Profiling)."""
+        if self.df is None or self.df.empty: return None
+        
+        total_filas = len(self.df)
+        total_cols = len(self.df.columns)
+        total_celdas = total_filas * total_cols
+        celdas_nulas = self.df.isna().sum().sum()
+        
+        # Calcular el porcentaje de celdas con datos reales
+        porcentaje_nulos = (celdas_nulas / total_celdas) * 100 if total_celdas > 0 else 0
+        
+        cols_numericas = len(self.df.select_dtypes(include='number').columns)
+        cols_texto = total_cols - cols_numericas
+        
+        # Calcular cuánto pesa este dataframe en la memoria RAM
+        memoria_mb = self.df.memory_usage(deep=True).sum() / (1024 * 1024)
+
+        return {
+            "Filas": f"{total_filas:,}".replace(',', '.'),
+            "Columnas": total_cols,
+            "Salud": f"{100 - porcentaje_nulos:.1f}%",
+            "Numéricas": cols_numericas,
+            "Texto": cols_texto,
+            "Memoria": f"{memoria_mb:.2f} MB"
+        }
+    
+    def detectar_autocasteo(self):
+        """Escanea el dataset sin modificarlo y devuelve un diccionario con sugerencias seguras."""
+        self._check_df()
+        propuestas = {}
+        
+        for col in self.df.columns:
+            if self.df[col].dtype == 'object' or pd.api.types.is_string_dtype(self.df[col]):
+                # 1. Probar Números (Limpiando $ y comas temporalmente en la serie)
+                s = self.df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
+                s = s.replace(['', 'nan', 'None', '<NA>', 'NaN'], pd.NA)
+                
+                s_numeric = pd.to_numeric(s, errors='coerce')
+                datos_reales = s.notna().sum()
+                
+                if datos_reales > 0 and s_numeric.notna().sum() == datos_reales:
+                    propuestas[col] = "Número"
+                    continue
+                
+                # 2. Probar Fechas
+                s_date = pd.to_datetime(self.df[col], errors='coerce')
+                validos_orig_date = self.df[col].notna().sum()
+                if validos_orig_date > 0 and s_date.notna().sum() == validos_orig_date:
+                    propuestas[col] = "Fecha"
+                    
+        return propuestas
+
+    def aplicar_autocasteo_confirmado(self, propuestas):
+        """Aplica los casteos que el usuario aprobó en la interfaz."""
+        if not propuestas: return
+        self._savepoint()
+        
+        for col, tipo in propuestas.items():
+            if tipo == "Número":
+                s = self.df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
+                s = s.replace(['', 'nan', 'None', '<NA>', 'NaN'], pd.NA)
+                self.df[col] = pd.to_numeric(s, errors='coerce')
+            elif tipo == "Fecha":
+                self.df[col] = pd.to_datetime(self.df[col], errors='coerce')
+                
+        self.registrar_paso(f"✨ Auto-Casteo: {len(propuestas)} columnas")
+        self.macro_steps.append({"action": "aplicar_autocasteo_confirmado", "params": {"propuestas": propuestas}})

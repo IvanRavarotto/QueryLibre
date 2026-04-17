@@ -6,7 +6,8 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from core.data_engine import MotorDatos
 from main import PestanaTrabajo
 
-DATA_DIR = os.path.join(os.path.dirname(__file__), '..', 'data_test')
+# --- Rutas actualizadas post-fusión ---
+DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
 VENTAS = os.path.join(DATA_DIR, 'ventas_caoticas_exigente.csv')
 CLIENTES = os.path.join(DATA_DIR, 'clientes_dim.csv')
 

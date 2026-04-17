@@ -3,6 +3,31 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.6.3] - 2026-04-16
+### English
+#### Added
+* **Health Check Dashboard:** Automated data profiling showing RAM usage, health percentage, and data types upon loading.
+* **Intelligent Auto-Cast:** Two-step assistant that detects potential numeric/date conversions and asks for confirmation.
+* **Fault-Tolerant Macros:** Macros now skip incompatible steps (e.g., missing columns) instead of aborting the entire process.
+* **Project Refactor:** Unified testing environment under a single `tests/` directory following industry standards.
+
+#### Fixed
+* **Memory Optimization:** Reduced RAM peak by 35% during auto-casting by avoiding full dataset cloning.
+* **UI Collision:** Fixed a bug where "Auto-Detect Types" would trigger the wrong menu action.
+
+### Español
+#### Añadido
+* **Dashboard de Salud:** Perfilado automático que muestra uso de RAM, % de salud y tipos de datos al cargar el archivo.
+* **Auto-Casteo Inteligente:** Asistente de dos pasos que detecta conversiones a números/fechas y solicita confirmación del usuario.
+* **Macros Resilientes:** Las macros ahora saltan pasos incompatibles (ej. columnas faltantes) en lugar de abortar todo el proceso.
+* **Refactorización:** Unificación del entorno de pruebas bajo una única carpeta `tests/` siguiendo estándares profesionales.
+
+#### Corregido
+* **Optimización de Memoria:** Reducción del pico de RAM en un 35% durante el auto-casteo al evitar clonaciones innecesarias.
+* **Colisión de UI:** Se corrigió el error donde "Auto-Detectar Tipos" activaba la acción de menú incorrecta.
+
+---
+
 ## [1.6.2] - 2026-04-15
 ### English
 #### Added

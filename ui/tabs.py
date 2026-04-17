@@ -24,6 +24,7 @@ class PestanaTrabajo(ctk.CTkFrame):
         "aplicar_union",
         "agrupar_datos",
         "buscar_reemplazar",
+        "aplicar_autocasteo_confirmado", # <--- NUEVO
     }
 
     DISALLOWED_MACRO_PARAM_KEYS = {
@@ -265,6 +266,8 @@ class PestanaTrabajo(ctk.CTkFrame):
         backup_steps = list(self.motor.macro_steps)
         backup_historial_pasos = list(self.motor.historial_pasos)
 
+        errores_macro = [] # <-- Llevaremos un registro de los pasos que fallan
+
         try:
             for paso in pasos:
                 nombre_funcion = paso.get("action")
@@ -291,13 +294,29 @@ class PestanaTrabajo(ctk.CTkFrame):
 
                 if hasattr(self.motor, nombre_funcion):
                     metodo = getattr(self.motor, nombre_funcion)
-                    metodo(**parametros)
-        except Exception:
+                    
+                    # --- NUEVO: Bloque Try-Continue individual por paso ---
+                    try:
+                        metodo(**parametros)
+                    except Exception as e:
+                        LOGGER.warning(f"El paso '{nombre_funcion}' falló y fue omitido: {e}")
+                        errores_macro.append(f"Paso '{nombre_funcion}' omitido: {e}")
+                        continue # Salta este paso pero sigue ejecutando el resto de la macro
+
+        except Exception as e:
+            # Si ocurre un error catastrofico a nivel general, restauramos la memoria
             self.motor.df = backup_df
             self.motor.df_history = backup_history
             self.motor.macro_steps = backup_steps
             self.motor.historial_pasos = backup_historial_pasos
-            raise
+            raise e
+            
+        # Si la macro terminó pero hubo pasos omitidos, le avisamos al usuario amablemente
+        if errores_macro:
+            msg = "La macro se aplicó exitosamente, pero algunos pasos no eran compatibles con este archivo y fueron omitidos:\n\n• " + "\n• ".join(errores_macro[:5])
+            if len(errores_macro) > 5:
+                msg += f"\n... y {len(errores_macro) - 5} errores más."
+            messagebox.showwarning("Macro finalizada con omisiones", msg)
 
     def ejecutar_macro(self):
         if self.motor.df is None:

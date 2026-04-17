@@ -1,6 +1,8 @@
 import os
 import sys
+import shutil
 import threading
+import tempfile
 import logging
 from logging.handlers import RotatingFileHandler
 import tkinter as tk
@@ -31,9 +33,7 @@ def obtener_ruta(ruta_relativa):
 class QueryLibreApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-
-        import tempfile
-        import shutil
+        
         self.master_cache = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
         if os.path.exists(self.master_cache):
             shutil.rmtree(self.master_cache, ignore_errors=True)
@@ -87,7 +87,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=5, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.2", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.3", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -110,7 +110,7 @@ class QueryLibreApp(ctk.CTk):
 
         self.menu_estructura = ctk.CTkOptionMenu(
             self.toolbar_frame, width=150, fg_color="#2980b9", button_color="#1f618d", dynamic_resizing=False,
-            values=["Renombrar Columna", "Cambiar Tipo", "Dividir Columna", "Combinar Columnas"],
+            values=["Renombrar Columna", "Cambiar Tipo", "Auto-Detectar Tipos", "Dividir Columna", "Combinar Columnas"],
             command=self.dispatch_estructura
         )
         self.menu_estructura.set("🏗️ Estructura")
@@ -165,7 +165,8 @@ class QueryLibreApp(ctk.CTk):
     def dispatch_estructura(self, eleccion):
         self.menu_estructura.set("🏗️ Estructura")
         if "Renombrar" in eleccion: self.renombrar_columna()
-        elif "Tipo" in eleccion: self.cambiar_tipo_dato()
+        elif "Cambiar Tipo" in eleccion: self.cambiar_tipo_dato() # <--- CORRECCIÓN: Ahora exige la frase completa
+        elif "Auto-Detectar" in eleccion: self.auto_detectar_tipos() 
         elif "Dividir" in eleccion: self.dividir_columna()
         elif "Combinar" in eleccion: self.combinar_columnas()
 
@@ -518,13 +519,12 @@ class QueryLibreApp(ctk.CTk):
                 tab = self.obtener_pestana_activa()
                 if tab: tab.refrescar_interfaz()
                 
-                # 3. Lanzamos los pop-ups de error o éxito al final, con la pantalla limpia
+                # 3. Lanzamos los pop-ups de error o el Health Check al final
                 if error_msg:
                     messagebox.showerror("Error", f"Ocurrió un error:\n{error_msg}")
                 elif funcion.__name__ in ['cargar_archivo', 'cargar_proyecto'] and tab and tab.motor.df is not None:
-                    filas = f"{len(tab.motor.df):,}".replace(",", ".")
-                    cols = len(tab.motor.df.columns)
-                    messagebox.showinfo("✅ Éxito", f"Operación completada con éxito.\nSe cargaron {filas} filas y {cols} columnas.")
+                    # En lugar del mensaje básico, abrimos el Dashboard de BI
+                    ModalesUI.mostrar_health_check(self, tab)
 
             # self.after(0) obliga a que finalizar_ui se ejecute en el hilo visual de Tkinter
             self.after(0, finalizar_ui)
@@ -721,6 +721,28 @@ class QueryLibreApp(ctk.CTk):
         tab = self.obtener_pestana_activa()
         # Nota: Asegúrate de tener una función 'rehacer_paso' en PestanaTrabajo si la implementaste
         if tab and hasattr(tab, 'rehacer_paso'): tab.rehacer_paso()
+    
+    def auto_detectar_tipos(self):
+        tab = self.obtener_pestana_activa()
+        if not tab or tab.motor.df is None: return
+        
+        # Diccionario para guardar el resultado del hilo
+        resultado = {"propuestas": {}}
+        
+        def tarea_deteccion():
+            # Solo escanea, no modifica RAM pesada
+            resultado["propuestas"] = tab.motor.detectar_autocasteo()
+            
+            def mostrar_decision():
+                if resultado["propuestas"]:
+                    # Si hay propuestas, abrimos el modal para preguntar
+                    ModalesUI.mostrar_preview_autocasteo(self, tab, resultado["propuestas"])
+                else:
+                    messagebox.showinfo("Auto-Casteo", "No se detectaron columnas que requieran o puedan ser convertidas de forma 100% segura.")
+            
+            self.after(0, mostrar_decision)
+            
+        self.ejecutar_tarea_pesada(tarea_deteccion)
     
 if __name__ == "__main__":
     app = QueryLibreApp()
