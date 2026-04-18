@@ -22,7 +22,7 @@ class ModalesUI:
         if hasattr(app_root, 'fijar_icono'):
             app_root.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.6.3", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.6.4", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))

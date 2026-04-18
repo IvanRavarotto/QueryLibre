@@ -3,6 +3,27 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.6.4] - 2026-04-18
+### English
+#### Added
+* **Time Travel (Redo Stack):** Implemented full `Ctrl+Y` functionality, allowing users to restore undone actions securely.
+* **Scatter Plot Scaffold:** Prepared the UI architecture for the upcoming interactive correlation charts.
+
+#### Fixed
+* **State Management:** Fixed the "dirty flag" bug where the app incorrectly prompted to save when undoing back to the original load state.
+* **Loader Optimization:** Removed a duplicate initialization step (Ninja bug) that could crash the engine when loading non-CSV files.
+
+### Español
+#### Añadido
+* **Viaje en el Tiempo (Rehacer):** Se implementó la funcionalidad `Ctrl+Y`, permitiendo recuperar acciones deshechas de forma segura.
+* **Estructura Scatter Plot:** Se preparó la arquitectura de la interfaz para los próximos gráficos interactivos de correlación.
+
+#### Corregido
+* **Gestión de Estados:** Se corrigió el error del "asterisco" que pedía guardar cambios al deshacer todo hasta el archivo original.
+* **Optimización de Carga:** Se eliminó un paso de inicialización duplicado que podía generar cierres inesperados al cargar archivos Excel.
+
+---
+
 ## [1.6.3] - 2026-04-16
 ### English
 #### Added

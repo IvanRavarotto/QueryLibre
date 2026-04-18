@@ -189,8 +189,12 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.pagina_actual += 1
         self.actualizar_vista_previa()
 
-    def deshacer_paso(self):
+    def deshacer_paso(self, event=None):
         if self.motor.deshacer():
+            self.refrescar_interfaz()
+
+    def rehacer_paso(self, event=None):
+        if self.motor.rehacer():
             self.refrescar_interfaz()
 
     def editar_celda(self, event):

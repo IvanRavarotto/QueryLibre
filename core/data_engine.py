@@ -23,20 +23,30 @@ class MotorDatos:
         self.macro_steps = []
         self.hay_cambios = False
         
-        # Nueva lógica de caché: Carpeta ÚNICA por pestaña para evitar conflictos
+        # Pilas de Deshacer (Undo)
+        self.df_history = []
+        
+        # Pilas de Rehacer (Redo)
+        self.redo_history = []
+        self.redo_historial_pasos = []
+        self.redo_macro_steps = []
+
+        self.step_counter = 0 
         master_cache = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
         self.cache_dir = os.path.join(master_cache, f"tab_{id(self)}")
-        self.step_counter = 0 
-        
-        # exist_ok=True asegura que si la carpeta maestra ya existe, no tire error
         os.makedirs(self.cache_dir, exist_ok=True)
 
     def registrar_paso(self, descripcion):
         self.historial_pasos.append(descripcion)
         self.hay_cambios = True
 
-    def _savepoint(self):
+    def _savepoint(self, limpiar_redo=True):
         if self.df is None: return
+        
+        if limpiar_redo:
+            self.redo_history.clear()
+            self.redo_historial_pasos.clear()
+            self.redo_macro_steps.clear()
         
         self.step_counter += 1
         file_path = os.path.join(self.cache_dir, f"undo_{self.step_counter}.parquet")
@@ -58,26 +68,45 @@ class MotorDatos:
                 os.remove(old_file)
 
     def deshacer(self):
-        if not self.df_history: return False
-
-        # Recuperamos la ruta del último estado
-        last_file = self.df_history.pop()
+        """Retrocede al estado anterior guardando el actual en la pila de rehacer."""
+        if len(self.df_history) <= 1: # Mantenemos al menos el estado inicial
+            return False
         
-        if os.path.exists(last_file):
-            self.df = pd.read_parquet(last_file)
-            os.remove(last_file) # Limpiamos el archivo ya usado
-            
-            if self.historial_pasos: self.historial_pasos.pop()
-            if self.macro_steps: self.macro_steps.pop()
+        # 1. Guardar el presente en REDO
+        archivo_presente = os.path.join(self.cache_dir, f"redo_{len(self.redo_history)}.parquet")
+        self.df.to_parquet(archivo_presente)
+        self.redo_history.append(archivo_presente)
+        
+        if self.historial_pasos: self.redo_historial_pasos.append(self.historial_pasos.pop())
+        if self.macro_steps: self.redo_macro_steps.append(self.macro_steps.pop())
+        
+        # 2. Recuperar el pasado de UNDO
+        self.df_history.pop() # Eliminamos el 'yo' actual de la pila de historia
+        archivo_pasado = self.df_history[-1] # El nuevo tope es el pasado real
+        self.df = pd.read_parquet(archivo_pasado)
+        
+        self.hay_cambios = len(self.historial_pasos) > 1
+        
+        return True
 
-            # --- LÓGICA DE SEGURIDAD v1.5.4 ---
-            # Si solo queda 1 paso (el Origen), significa que volvimos al inicio
-            if len(self.historial_pasos) <= 1:
-                self.hay_cambios = False
-            # ----------------------------------
+    def rehacer(self):
+        """Avanza al estado futuro recuperando desde la pila de rehacer."""
+        if not self.redo_history:
+            return False
             
-            return True
-        return False
+        # 1. Guardar el presente de vuelta en UNDO (SIN destruir el REDO)
+        self._savepoint(limpiar_redo=False)
+        
+        # 2. Cargar el futuro desde REDO
+        archivo_futuro = self.redo_history.pop()
+        self.df = pd.read_parquet(archivo_futuro)
+        
+        if self.redo_historial_pasos: self.historial_pasos.append(self.redo_historial_pasos.pop())
+        if self.redo_macro_steps: self.macro_steps.append(self.redo_macro_steps.pop())
+        
+        self.hay_cambios = len(self.historial_pasos) > 1
+        
+        return True
     
     def _rollback_error(self):
         """Restaura el DataFrame desde el disco si una operación falla a la mitad."""
@@ -159,27 +188,30 @@ class MotorDatos:
                 df_copy[c] = df_copy[c].apply(protect)
         return df_copy
 
-    def cargar_archivo(self, file_path):
-        ext = self._validate_loader_path(file_path)
-        self.nombre_archivo = os.path.basename(file_path)
+    def cargar_archivo(self, filepath):
+        ext = self._validate_loader_path(filepath)
+        self.nombre_archivo = os.path.basename(filepath)
 
         if ext == '.csv':
             try:
-                self.df = pd.read_csv(file_path, encoding='utf-8')
+                self.df = pd.read_csv(filepath, encoding='utf-8')
             except Exception:
-                self.df = pd.read_csv(file_path, encoding='latin-1')
+                self.df = pd.read_csv(filepath, encoding='latin-1')
         elif ext in ['.xls', '.xlsx']:
-            self.df = pd.read_excel(file_path, engine='openpyxl')
+            self.df = pd.read_excel(filepath, engine='openpyxl')
 
         self._normalize_columns()
         self.historial_pasos = []
         self.df_history = []
         self.macro_steps = []
         
-        # 1. Registramos el origen (esto antes ponía hay_cambios en True)
+        # 1. Guardamos el estado inicial en la memoria (Undo)
+        self._savepoint()
+        
+        # 2. Registramos el paso (Esto pondrá hay_cambios en True temporalmente)
         self.registrar_paso(f"Origen: {self.nombre_archivo}")
         
-        # 2. IMPORTANTE: Forzamos que inicie en False porque la carga no es un "cambio" de usuario
+        # 3. Restauramos la bandera para que no marque el asterisco (*) recién abierto
         self.hay_cambios = False
 
     def eliminar_duplicados(self):

@@ -87,7 +87,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=5, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.3", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.6.4", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -150,8 +150,11 @@ class QueryLibreApp(ctk.CTk):
         
         # --- Atajos de Teclado Globales ---
         self.bind("<Control-s>", lambda event: self.accion_guardar_proyecto() if hasattr(self, 'accion_guardar_proyecto') else None)
-        self.bind("<Control-z>", lambda event: self._atajo_deshacer())
-        self.bind("<Control-y>", lambda event: self._atajo_rehacer())
+        # Atajos en minúsculas y mayúsculas para asegurar captura
+        self.bind("<Control-z>", lambda e: self._atajo_deshacer())
+        self.bind("<Control-Z>", lambda e: self._atajo_deshacer())
+        self.bind("<Control-y>", lambda e: self._atajo_rehacer())
+        self.bind("<Control-Y>", lambda e: self._atajo_rehacer())
 
     # =========================================================================
     # ENRUTADORES DE MENÚS (Dispatchers)
