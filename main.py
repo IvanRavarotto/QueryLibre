@@ -118,7 +118,7 @@ class QueryLibreApp(ctk.CTk):
 
         self.menu_analisis = ctk.CTkOptionMenu(
             self.toolbar_frame, width=150, fg_color="#8e44ad", button_color="#732d91", dynamic_resizing=False,
-            values=["Calcular Columna", "Filtrar Datos", "Agrupar Datos", "Buscar/Reemplazar", "Radiografía de Datos"],
+            values=["Calcular Columna", "Filtrar Datos", "Agrupar Datos", "Buscar/Reemplazar", "Radiografía de Datos", "Gráfico de Correlación"],
             command=self.dispatch_analisis
         )
         self.menu_analisis.set("🔬 Análisis")
@@ -182,6 +182,7 @@ class QueryLibreApp(ctk.CTk):
         elif "Agrupar" in eleccion: self.agrupar_datos()
         elif "Buscar" in eleccion: self.buscar_reemplazar()
         elif "Radiografía" in eleccion: self.mostrar_radiografia()
+        elif "Gráfico de Correlación" in eleccion: self.abrir_grafico_correlacion()
 
     # =========================================================================
     # LÓGICA DE CONTROLADORES Y UTILS
@@ -452,6 +453,11 @@ class QueryLibreApp(ctk.CTk):
                 tab.refrescar_interfaz(); dialog.destroy()
             except: err.configure(text="⚠️ Error en llaves."); tab.motor.df_history.pop() 
         ctk.CTkButton(opc_frame, text="Aplicar Unión", command=aplicar, fg_color="#27ae60").pack(pady=15)
+
+    def abrir_grafico_correlacion(self):
+        tab = self.obtener_pestana_activa()
+        if tab:
+            ModalesUI.mostrar_scatter(self, tab)
 
     def exportar_datos(self):
         tab = self.obtener_pestana_activa()

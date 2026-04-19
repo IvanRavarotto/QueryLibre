@@ -3,6 +3,23 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.7.0] - 2026-04-18
+### English
+#### Added
+* **Interactive Correlation (BI):** New Scatter Plot tool to analyze relationships between numeric columns.
+* **View Synchronization:** Clicking a point on the scatter plot automatically navigates the main data grid to the exact row and highlights it.
+* **Custom Navigation Toolbar:** Fully integrated, Spanish-translated Matplotlib controls (Zoom, Pan, Home) matching the dark theme.
+* **Export Insights:** Users can now export generated plots directly to `.png` or `.pdf`.
+
+### Español
+#### Añadido
+* **Correlación Interactiva (BI):** Nueva herramienta de Gráfico de Dispersión para analizar relaciones entre variables numéricas.
+* **Sincronización de Vistas:** Al hacer clic en un punto del gráfico, la cuadrícula de datos principal viaja automáticamente a esa fila y la resalta.
+* **Barra de Navegación Personalizada:** Controles de Matplotlib (Zoom, Mover) traducidos al español e integrados al tema oscuro nativo.
+* **Exportación de Reportes:** Los usuarios ahora pueden descargar los gráficos generados en formato `.png` o `.pdf`.
+
+---
+
 ## [1.6.4] - 2026-04-18
 ### English
 #### Added
