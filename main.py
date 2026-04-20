@@ -107,7 +107,7 @@ class QueryLibreApp(ctk.CTk):
         )
         self.menu_limpieza.set("🧹 Limpieza")
         self.menu_limpieza.pack(side="left", padx=5)
-
+        
         self.menu_estructura = ctk.CTkOptionMenu(
             self.toolbar_frame, width=150, fg_color="#2980b9", button_color="#1f618d", dynamic_resizing=False,
             values=["Renombrar Columna", "Cambiar Tipo", "Auto-Detectar Tipos", "Dividir Columna", "Combinar Columnas"],
@@ -123,6 +123,16 @@ class QueryLibreApp(ctk.CTk):
         )
         self.menu_analisis.set("🔬 Análisis")
         self.menu_analisis.pack(side="left", padx=5)
+        
+        self.btn_sql = ctk.CTkButton(
+            self.toolbar_frame, 
+            text="🔌 Importar SQL", 
+            command=self.abrir_conector_sql,
+            width=140, 
+            fg_color="#1e3799", 
+            hover_color="#4a69bd"
+        )
+        self.btn_sql.pack(side="left", padx=5)
         
         # --- NUEVO BOTÓN ASISTENTE v1.6.0 ---
         self.btn_asistente = ctk.CTkButton(
@@ -693,6 +703,12 @@ class QueryLibreApp(ctk.CTk):
         
         self.pestanas[nombre_tab] = nueva_pestana
         return nueva_pestana
+    
+    def abrir_conector_sql(self):
+        """Llama al modal de conexión SQL para la pestaña activa."""
+        tab = self.obtener_pestana_activa()
+        if tab:
+            ModalesUI.mostrar_conector_sql(self, tab)
     
     def accion_abrir_proyecto(self):
         """Diálogo para restaurar una sesión previa."""

@@ -631,3 +631,57 @@ class ModalesUI:
             dialog.destroy()
             
         dialog.protocol("WM_DELETE_WINDOW", on_close)
+    
+    @staticmethod
+    def mostrar_conector_sql(app_root, tab):
+        """Muestra la ventana para configurar la conexión a bases de datos SQL."""
+        dialog = ctk.CTkToplevel(app_root)
+        dialog.title("🔌 Conectar a Base de Datos SQL")
+        dialog.geometry("400x550")
+        dialog.resizable(False, False)
+        dialog.transient(app_root)
+        dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+
+        ctk.CTkLabel(dialog, text="Configuración del Servidor", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(20, 15))
+
+        # --- Selección de Motor ---
+        ctk.CTkLabel(dialog, text="Motor de Base de Datos:").pack(anchor="w", padx=40)
+        combo_motor = ctk.CTkOptionMenu(dialog, values=["MySQL", "PostgreSQL", "SQL Server"], width=320)
+        combo_motor.pack(pady=(5, 15))
+
+        # --- Host y Puerto ---
+        frame_red = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame_red.pack(fill="x", padx=40)
+        
+        ctk.CTkLabel(frame_red, text="Host / IP:").grid(row=0, column=0, sticky="w")
+        entry_host = ctk.CTkEntry(frame_red, placeholder_text="localhost", width=200)
+        entry_host.grid(row=1, column=0, padx=(0, 10), pady=(5, 10))
+
+        ctk.CTkLabel(frame_red, text="Puerto:").grid(row=0, column=1, sticky="w")
+        entry_port = ctk.CTkEntry(frame_red, placeholder_text="3306", width=110)
+        entry_port.grid(row=1, column=1, pady=(5, 10))
+
+        # --- Credenciales ---
+        ctk.CTkLabel(dialog, text="Usuario:").pack(anchor="w", padx=40)
+        entry_user = ctk.CTkEntry(dialog, width=320)
+        entry_user.pack(pady=(5, 10))
+
+        ctk.CTkLabel(dialog, text="Contraseña:").pack(anchor="w", padx=40)
+        entry_pass = ctk.CTkEntry(dialog, width=320, show="*")
+        entry_pass.pack(pady=(5, 10))
+
+        ctk.CTkLabel(dialog, text="Nombre de la Base de Datos:").pack(anchor="w", padx=40)
+        entry_db = ctk.CTkEntry(dialog, width=320, placeholder_text="schema_name")
+        entry_db.pack(pady=(5, 20))
+
+        def test_conexion():
+            # Aquí irá la lógica con SQLAlchemy mañana
+            messagebox.showinfo("SQL Connection", "Próximamente: Conexión mediante SQLAlchemy")
+
+        # --- Botones de Acción ---
+        btn_test = ctk.CTkButton(dialog, text="⚡ Probar Conexión", command=test_conexion, fg_color="#34495e", hover_color="#2c3e50")
+        btn_test.pack(pady=5)
+
+        btn_conectar = ctk.CTkButton(dialog, text="🔗 Conectar e Importar", fg_color="#27ae60", hover_color="#2ecc71")
+        btn_conectar.pack(pady=10)
