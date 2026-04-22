@@ -637,7 +637,7 @@ class ModalesUI:
         """Muestra la ventana para configurar la conexión a bases de datos SQL."""
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("🔌 Conectar a Base de Datos SQL")
-        dialog.geometry("400x550")
+        dialog.geometry("450x580")
         dialog.resizable(False, False)
         dialog.transient(app_root)
         dialog.grab_set()
@@ -675,13 +675,58 @@ class ModalesUI:
         entry_db = ctk.CTkEntry(dialog, width=320, placeholder_text="schema_name")
         entry_db.pack(pady=(5, 20))
 
+        # --- NUEVO: Selector de Tablas (Oculto inicialmente) ---
+        frame_tablas = ctk.CTkFrame(dialog, fg_color="transparent")
+        ctk.CTkLabel(frame_tablas, text="Selecciona la tabla a importar:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=40)
+        combo_tablas = ctk.CTkOptionMenu(frame_tablas, width=320, values=[""])
+        combo_tablas.pack(pady=(5, 10))
+
         def test_conexion():
-            # Aquí irá la lógica con SQLAlchemy mañana
-            messagebox.showinfo("SQL Connection", "Próximamente: Conexión mediante SQLAlchemy")
+            motor_bd = combo_motor.get()
+            host = entry_host.get().strip() or "localhost"
+            puerto_default = "3306" if motor_bd == "MySQL" else "5432" if motor_bd == "PostgreSQL" else "1433"
+            puerto = entry_port.get().strip() or puerto_default
+            usuario = entry_user.get().strip()
+            password = entry_pass.get().strip()
+            base_datos = entry_db.get().strip()
 
-        # --- Botones de Acción ---
-        btn_test = ctk.CTkButton(dialog, text="⚡ Probar Conexión", command=test_conexion, fg_color="#34495e", hover_color="#2c3e50")
-        btn_test.pack(pady=5)
+            if not usuario or not base_datos:
+                messagebox.showwarning("Faltan Datos", "Usuario y Base de Datos son obligatorios.")
+                return
 
-        btn_conectar = ctk.CTkButton(dialog, text="🔗 Conectar e Importar", fg_color="#27ae60", hover_color="#2ecc71")
-        btn_conectar.pack(pady=10)
+            btn_test.configure(state="disabled", text="⏳ Conectando...")
+            dialog.update()
+
+            def ejecutar_prueba():
+                try:
+                    # Si es exitoso, 'mensaje' ahora es la lista de tablas
+                    exito, mensaje = tab.motor.probar_conexion_sql(motor_bd, host, puerto, usuario, password, base_datos)
+                except Exception as e:
+                    print(f"\n--- ERROR SQL CRÍTICO ---\n{e}\n-------------------------\n")
+                    exito, mensaje = False, f"Falta una librería o error crítico:\n{str(e)}"
+                    
+                def restaurar_ui():
+                    btn_test.configure(state="normal", text="⚡ Probar Conexión")
+                    if exito:
+                        # Hacemos visible el selector ANTES del contenedor de botones
+                        frame_tablas.pack(before=frame_botones, fill="x", pady=(5, 10))
+                        combo_tablas.configure(values=mensaje)
+                        combo_tablas.set(mensaje[0] if mensaje else "Sin tablas")
+                        btn_conectar.configure(state="normal")
+                        messagebox.showinfo("✅ Éxito", f"¡Conexión establecida!\nSe detectaron {len(mensaje)} tablas en '{base_datos}'.")
+                    else:
+                        messagebox.showerror("❌ Error de Conexión", mensaje)
+                
+                app_root.after(0, restaurar_ui)
+
+            app_root.ejecutar_tarea_pesada(ejecutar_prueba)
+
+        # --- NUEVO: Botones de Acción Lado a Lado ---
+        frame_botones = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame_botones.pack(pady=10, fill="x", padx=40)
+
+        btn_test = ctk.CTkButton(frame_botones, text="⚡ Probar Conexión", command=test_conexion, fg_color="#34495e", hover_color="#2c3e50")
+        btn_test.pack(side="left", expand=True, padx=(0, 5))
+
+        btn_conectar = ctk.CTkButton(frame_botones, text="🔗 Importar Tabla", fg_color="#27ae60", hover_color="#2ecc71", state="disabled")
+        btn_conectar.pack(side="right", expand=True, padx=(5, 0))

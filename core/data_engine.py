@@ -7,7 +7,10 @@ import shutil
 import tempfile
 import zipfile  
 import json      
-import io        
+import io
+from sqlalchemy import create_engine, text, inspect
+from sqlalchemy.exc import SQLAlchemyError
+import urllib.parse
 
 LOGGER = logging.getLogger("QueryLibre")
 class MotorDatos:
@@ -816,3 +819,29 @@ class MotorDatos:
                 
         self.registrar_paso(f"✨ Auto-Casteo: {len(propuestas)} columnas")
         self.macro_steps.append({"action": "aplicar_autocasteo_confirmado", "params": {"propuestas": propuestas}})
+        
+    def probar_conexion_sql(self, motor_bd, host, puerto, usuario, password, base_datos):
+        """Intenta establecer una conexión con el servidor SQL y devuelve un mensaje de estado."""
+        
+        # Codificamos la contraseña para que los caracteres especiales (@, #, /, etc.) no rompan la URL
+        pass_segura = urllib.parse.quote_plus(password) if password else ""
+        
+        if motor_bd == "MySQL":
+            url = f"mysql+pymysql://{usuario}:{pass_segura}@{host}:{puerto}/{base_datos}"
+        elif motor_bd == "PostgreSQL":
+            url = f"postgresql://{usuario}:{pass_segura}@{host}:{puerto}/{base_datos}"
+        elif motor_bd == "SQL Server":
+            url = f"mssql+pyodbc://{usuario}:{pass_segura}@{host}:{puerto}/{base_datos}?driver=ODBC+Driver+17+for+SQL+Server"
+        else:
+            return False, "Motor de base de datos no soportado."
+
+        try:
+            engine = create_engine(url, connect_args={'connect_timeout': 5})
+            # Inspeccionamos el motor para extraer los nombres de las tablas
+            inspector = inspect(engine)
+            tablas = inspector.get_table_names()
+            return True, tablas
+        except SQLAlchemyError as e:
+            # Corrección: Un solo corchete [-1] para acceder al último elemento de la lista
+            mensaje_limpio = str(e).split(']')[-1].strip() if ']' in str(e) else str(e)
+            return False, f"Error de conexión:\n{mensaje_limpio}"
