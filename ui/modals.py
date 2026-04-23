@@ -787,3 +787,76 @@ class ModalesUI:
                         break
 
         dialog.protocol("WM_DELETE_WINDOW", al_cerrar_ventana)
+        
+    @staticmethod
+    def mostrar_unpivot(app_root, tab):
+        """Muestra la ventana para Anular Dinamización (Unpivot)."""
+        if not tab or tab.motor.df is None: return
+
+        dialog = ctk.CTkToplevel(app_root)
+        dialog.title("🔄 Anular Dinamización (Unpivot)")
+        dialog.geometry("500x550")
+        dialog.transient(app_root)
+        dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+
+        ctk.CTkLabel(dialog, text="Configuración de Unpivot", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="Selecciona qué columnas mantener fijas (Anclas).\nLas que NO selecciones, se transformarán en filas.", text_color="gray").pack(pady=(0, 15))
+
+        columnas = list(tab.motor.df.columns)
+        vars_ancla = {}
+
+        # --- Lista interactiva de columnas ---
+        frame_lista = ctk.CTkFrame(dialog, fg_color="#2b2b2b", corner_radius=10)
+        frame_lista.pack(fill="both", expand=True, padx=30, pady=5)
+        
+        ctk.CTkLabel(frame_lista, text="📌 Seleccionar Columnas Ancla:", font=ctk.CTkFont(weight="bold")).pack(anchor="w", padx=10, pady=(10, 5))
+
+        scroll_ancla = ctk.CTkScrollableFrame(frame_lista, height=150, fg_color="transparent")
+        scroll_ancla.pack(fill="both", expand=True, padx=5, pady=5)
+
+        for col in columnas:
+            var = ctk.BooleanVar(value=False)
+            vars_ancla[col] = var
+            chk = ctk.CTkCheckBox(scroll_ancla, text=col, variable=var, checkbox_width=20, checkbox_height=20)
+            chk.pack(anchor="w", pady=4, padx=10)
+
+        # --- Nombres de las nuevas columnas ---
+        frame_nombres = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame_nombres.pack(fill="x", padx=30, pady=15)
+        frame_nombres.grid_columnconfigure(0, weight=1)
+        frame_nombres.grid_columnconfigure(1, weight=1)
+
+        ctk.CTkLabel(frame_nombres, text="Nombre nueva col. 'Atributo':").grid(row=0, column=0, sticky="w", padx=5)
+        entry_var = ctk.CTkEntry(frame_nombres, placeholder_text="Ej: Mes")
+        entry_var.grid(row=1, column=0, padx=5, sticky="ew")
+
+        ctk.CTkLabel(frame_nombres, text="Nombre nueva col. 'Valor':").grid(row=0, column=1, sticky="w", padx=5)
+        entry_val = ctk.CTkEntry(frame_nombres, placeholder_text="Ej: Ventas")
+        entry_val.grid(row=1, column=1, padx=5, sticky="ew")
+
+        def aplicar_unpivot():
+            anclas = [col for col, var in vars_ancla.items() if var.get()]
+            valores = [col for col in columnas if col not in anclas]
+
+            if not anclas:
+                messagebox.showwarning("Faltan Datos", "Debes seleccionar al menos una columna fija (Ancla).")
+                return
+            if not valores:
+                messagebox.showwarning("Faltan Datos", "No quedan columnas restantes para desdinamizar.")
+                return
+
+            n_var = entry_var.get().strip() or "Atributo"
+            n_val = entry_val.get().strip() or "Valor"
+
+            def tarea_unpivot():
+                # El motor hace el trabajo pesado
+                tab.motor.anular_dinamizacion(anclas, valores, n_var, n_val)
+                tab.pagina_actual = 1
+
+            # Lo enviamos al hilo de carga para que no se congele la PC
+            # Esto automáticamente llamará a tab.refrescar_interfaz() al terminar
+            app_root.ejecutar_tarea_pesada(tarea_unpivot)
+            dialog.destroy()
+
+        ctk.CTkButton(dialog, text="✅ Aplicar Unpivot", command=aplicar_unpivot, fg_color="#27ae60", hover_color="#2ecc71").pack(pady=20)

@@ -136,6 +136,16 @@ class QueryLibreApp(ctk.CTk):
         )
         self.btn_sql.pack(side="left", padx=5)
         
+        self.btn_unpivot = ctk.CTkButton(
+            self.toolbar_frame, 
+            text="🔄 Unpivot", 
+            command=self.abrir_unpivot,
+            width=100, 
+            fg_color="#8e44ad", 
+            hover_color="#9b59b6"
+        )
+        self.btn_unpivot.pack(side="left", padx=5)
+        
         # --- NUEVO BOTÓN ASISTENTE v1.6.0 ---
         self.btn_asistente = ctk.CTkButton(
             self.toolbar_frame, text="✨ Asistente IA", width=120,
@@ -712,6 +722,13 @@ class QueryLibreApp(ctk.CTk):
         if tab:
             ModalesUI.mostrar_conector_sql(self, tab)
             
+    def abrir_unpivot(self):
+        """Llama al modal de Unpivot para la pestaña activa."""
+        tab = self.obtener_pestana_activa()
+        if tab:
+            ModalesUI.mostrar_unpivot(self, tab)
+            
+    
     def iniciar_importacion_sql(self):
         """Crea una pestaña desde cero y abre directamente el conector SQL."""
         nombre_base = "Conexión SQL"

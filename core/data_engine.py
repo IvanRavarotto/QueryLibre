@@ -876,3 +876,27 @@ class MotorDatos:
         self._savepoint()
         self.registrar_paso(f"Origen SQL: {tabla}")
         self.hay_cambios = False
+    
+    def anular_dinamizacion(self, columnas_ancla, columnas_valor, nombre_variable="Atributo", nombre_valor="Valor"):
+        """Transforma columnas en filas usando pandas.melt (Unpivot)."""
+        if self.df is None: return
+        self._savepoint()
+
+        try:
+            # Pandas hace la magia del Unpivot con 'melt'
+            self.df = pd.melt(
+                self.df,
+                id_vars=columnas_ancla,
+                value_vars=columnas_valor,
+                var_name=nombre_variable,
+                value_name=nombre_valor
+            )
+            
+            # Limpiamos los tipos de las nuevas columnas para evitar conflictos
+            self._normalize_columns()
+            
+            self.registrar_paso(f"Unpivot: {len(columnas_valor)} columnas pasaron a filas")
+            
+        except Exception as e:
+            self.deshacer_paso()
+            raise RuntimeError(f"Error al anular dinamización:\n{e}")

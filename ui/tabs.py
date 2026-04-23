@@ -24,7 +24,8 @@ class PestanaTrabajo(ctk.CTkFrame):
         "aplicar_union",
         "agrupar_datos",
         "buscar_reemplazar",
-        "aplicar_autocasteo_confirmado", # <--- NUEVO
+        "aplicar_autocasteo_confirmado",
+        "anular_dinamizacion" # <--- NUEVO
     }
 
     DISALLOWED_MACRO_PARAM_KEYS = {
