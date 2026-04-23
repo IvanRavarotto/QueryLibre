@@ -46,7 +46,6 @@ class QueryLibreApp(ctk.CTk):
         self.minsize(900, 500)
     
         
-        
         # Interceptar la X de la ventana para limpiar la basura
         self.protocol("WM_DELETE_WINDOW", self.on_closing)
         
@@ -73,22 +72,25 @@ class QueryLibreApp(ctk.CTk):
         self.btn_cargar = ctk.CTkButton(self.sidebar_frame, text="📁 Cargar Archivo", command=self.cargar_archivo)
         self.btn_cargar.grid(row=1, column=0, padx=20, pady=10)
 
-        # --- NUEVOS BOTONES DE PROYECTO v1.5.4 ---
+        # --- NUEVO: Botón de SQL en el panel lateral ---
+        self.btn_sql_lateral = ctk.CTkButton(self.sidebar_frame, text="🔌 Importar BD SQL", command=self.iniciar_importacion_sql, fg_color="#1e3799", hover_color="#4a69bd")
+        self.btn_sql_lateral.grid(row=2, column=0, padx=20, pady=(0, 10))
+
+        # --- SE MUEVEN HACIA ABAJO (Ajuste de filas) ---
         self.btn_abrir_proj = ctk.CTkButton(self.sidebar_frame, text="📂 Abrir Proyecto", command=self.accion_abrir_proyecto)
-        self.btn_abrir_proj.grid(row=2, column=0, padx=20, pady=(0, 5))
+        self.btn_abrir_proj.grid(row=3, column=0, padx=20, pady=(0, 5))
 
         self.btn_guardar_proj = ctk.CTkButton(self.sidebar_frame, text="📦 Guardar Proyecto", command=self.accion_guardar_proyecto)
-        self.btn_guardar_proj.grid(row=3, column=0, padx=20, pady=5)
+        self.btn_guardar_proj.grid(row=4, column=0, padx=20, pady=5)
 
-        # --- SE MUEVEN HACIA ABAJO ---
         self.btn_transformar = ctk.CTkButton(self.sidebar_frame, text="🔗 Unir Datasets", state="disabled", command=self.unir_datasets)
-        self.btn_transformar.grid(row=4, column=0, padx=20, pady=10)
+        self.btn_transformar.grid(row=5, column=0, padx=20, pady=10)
 
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
-        self.btn_exportar.grid(row=5, column=0, padx=20, pady=10)
+        self.btn_exportar.grid(row=6, column=0, padx=20, pady=10)
         
         self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v1.7.0", font=ctk.CTkFont(size=11), text_color="gray")
-        self.version_label.grid(row=6, column=0, padx=20, pady=20, sticky="s")
+        self.version_label.grid(row=7, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
@@ -624,7 +626,7 @@ class QueryLibreApp(ctk.CTk):
             
             if res is True: 
                 # El usuario quiere guardar: disparamos la ventana de exportación
-                self.btn_exportar.invoke() 
+                self.exportar_datos()
                 # Detenemos el cierre. Una vez que exporte exitosamente, 
                 # el asterisco desaparecerá y podrá cerrar la pestaña con seguridad.
                 return 
@@ -709,6 +711,22 @@ class QueryLibreApp(ctk.CTk):
         tab = self.obtener_pestana_activa()
         if tab:
             ModalesUI.mostrar_conector_sql(self, tab)
+            
+    def iniciar_importacion_sql(self):
+        """Crea una pestaña desde cero y abre directamente el conector SQL."""
+        nombre_base = "Conexión SQL"
+        nombre_tab = nombre_base
+        contador = 1
+        while nombre_tab in self.pestanas:
+            nombre_tab = f"{nombre_base} ({contador})"
+            contador += 1
+
+        # Creamos la pestaña visualmente usando nuestra función DRY
+        nueva_pestana = self._crear_tab_ui(nombre_tab)
+        self.tabview.set(nombre_tab)
+        
+        # Invocamos el modal amarrándolo a esta pestaña nueva
+        ModalesUI.mostrar_conector_sql(self, nueva_pestana)
     
     def accion_abrir_proyecto(self):
         """Diálogo para restaurar una sesión previa."""

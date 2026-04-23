@@ -767,7 +767,7 @@ class MotorDatos:
         cols_texto = total_cols - cols_numericas
         
         # Calcular cuánto pesa este dataframe en la memoria RAM
-        memoria_mb = self.df.memory_usage(deep=True).sum() / (1024 * 1024)
+        memoria_mb = self.df.memory_usage(deep=False).sum() / (1024 * 1024)
 
         return {
             "Filas": f"{total_filas:,}".replace(',', '.'),
@@ -845,3 +845,34 @@ class MotorDatos:
             # Corrección: Un solo corchete [-1] para acceder al último elemento de la lista
             mensaje_limpio = str(e).split(']')[-1].strip() if ']' in str(e) else str(e)
             return False, f"Error de conexión:\n{mensaje_limpio}"
+        
+    def importar_tabla_sql(self, motor_bd, host, puerto, usuario, password, base_datos, tabla):
+        """Conecta a la base de datos e importa la tabla seleccionada al DataFrame principal."""
+        pass_segura = urllib.parse.quote_plus(password) if password else ""
+
+        if motor_bd == "MySQL":
+            url = f"mysql+pymysql://{usuario}:{pass_segura}@{host}:{puerto}/{base_datos}"
+        elif motor_bd == "PostgreSQL":
+            url = f"postgresql://{usuario}:{pass_segura}@{host}:{puerto}/{base_datos}"
+        elif motor_bd == "SQL Server":
+            url = f"mssql+pyodbc://{usuario}:{pass_segura}@{host}:{puerto}/{base_datos}?driver=ODBC+Driver+17+for+SQL+Server"
+        else:
+            raise ValueError("Motor de base de datos no soportado.")
+
+        # Creamos el motor de conexión
+        engine = create_engine(url)
+
+        # ¡AQUÍ OCURRE LA MAGIA! Pandas lee directamente desde SQL
+        self.df = pd.read_sql_table(tabla, con=engine)
+
+        # Reseteamos el entorno como si fuera un archivo nuevo
+        self.nombre_archivo = f"SQL: {base_datos}.{tabla}"
+        self._normalize_columns()
+        self.historial_pasos = []
+        self.df_history = []
+        self.redo_history.clear()
+        self.macro_steps = []
+
+        self._savepoint()
+        self.registrar_paso(f"Origen SQL: {tabla}")
+        self.hay_cambios = False

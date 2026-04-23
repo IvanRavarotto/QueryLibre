@@ -653,14 +653,18 @@ class ModalesUI:
         # --- Host y Puerto ---
         frame_red = ctk.CTkFrame(dialog, fg_color="transparent")
         frame_red.pack(fill="x", padx=40)
-        
+
+        # Hacemos que las columnas sean elásticas (Host toma 2 partes, Puerto 1 parte)
+        frame_red.grid_columnconfigure(0, weight=2)
+        frame_red.grid_columnconfigure(1, weight=1)
+
         ctk.CTkLabel(frame_red, text="Host / IP:").grid(row=0, column=0, sticky="w")
-        entry_host = ctk.CTkEntry(frame_red, placeholder_text="localhost", width=200)
-        entry_host.grid(row=1, column=0, padx=(0, 10), pady=(5, 10))
+        entry_host = ctk.CTkEntry(frame_red, placeholder_text="localhost")
+        entry_host.grid(row=1, column=0, sticky="ew", padx=(0, 10), pady=(5, 10))
 
         ctk.CTkLabel(frame_red, text="Puerto:").grid(row=0, column=1, sticky="w")
-        entry_port = ctk.CTkEntry(frame_red, placeholder_text="3306", width=110)
-        entry_port.grid(row=1, column=1, pady=(5, 10))
+        entry_port = ctk.CTkEntry(frame_red, placeholder_text="3306")
+        entry_port.grid(row=1, column=1, sticky="ew", pady=(5, 10))
 
         # --- Credenciales ---
         ctk.CTkLabel(dialog, text="Usuario:").pack(anchor="w", padx=40)
@@ -721,6 +725,47 @@ class ModalesUI:
 
             app_root.ejecutar_tarea_pesada(ejecutar_prueba)
 
+        def realizar_importacion():
+            tabla_seleccionada = combo_tablas.get()
+            if not tabla_seleccionada or tabla_seleccionada == "Sin tablas":
+                return
+
+            motor_bd = combo_motor.get()
+            host = entry_host.get().strip() or "localhost"
+            puerto_default = "3306" if motor_bd == "MySQL" else "5432" if motor_bd == "PostgreSQL" else "1433"
+            puerto = entry_port.get().strip() or puerto_default
+            usuario = entry_user.get().strip()
+            password = entry_pass.get().strip()
+            base_datos = entry_db.get().strip()
+
+            btn_conectar.configure(state="disabled", text="⏳ Importando...")
+            dialog.update()
+
+            def tarea_ingesta():
+                try:
+                    tab.motor.importar_tabla_sql(motor_bd, host, puerto, usuario, password, base_datos, tabla_seleccionada)
+                    exito = True
+                    error_msg = ""
+                except Exception as e:
+                    exito = False
+                    error_msg = str(e)
+
+                def finalizar_ui():
+                    if exito:
+                        tab.pagina_actual = 1
+                        tab.actualizar_vista_previa()
+                        tab.actualizar_historial_interfaz()
+                        app_root.actualizar_estado()
+                        dialog.destroy()
+                        messagebox.showinfo("✅ Éxito", f"Tabla '{tabla_seleccionada}' importada correctamente.")
+                    else:
+                        btn_conectar.configure(state="normal", text="🔗 Importar Tabla")
+                        messagebox.showerror("❌ Error de Ingesta", f"No se pudo importar:\n{error_msg}")
+
+                app_root.after(0, finalizar_ui)
+
+            app_root.ejecutar_tarea_pesada(tarea_ingesta)
+        
         # --- NUEVO: Botones de Acción Lado a Lado ---
         frame_botones = ctk.CTkFrame(dialog, fg_color="transparent")
         frame_botones.pack(pady=10, fill="x", padx=40)
@@ -728,5 +773,17 @@ class ModalesUI:
         btn_test = ctk.CTkButton(frame_botones, text="⚡ Probar Conexión", command=test_conexion, fg_color="#34495e", hover_color="#2c3e50")
         btn_test.pack(side="left", expand=True, padx=(0, 5))
 
-        btn_conectar = ctk.CTkButton(frame_botones, text="🔗 Importar Tabla", fg_color="#27ae60", hover_color="#2ecc71", state="disabled")
+        btn_conectar = ctk.CTkButton(frame_botones, text="🔗 Importar Tabla", command=realizar_importacion, fg_color="#27ae60", hover_color="#2ecc71", state="disabled")
         btn_conectar.pack(side="right", expand=True, padx=(5, 0))
+        
+        def al_cerrar_ventana():
+            dialog.destroy()
+            # Si el usuario cierra con la 'X' y no llegó a importar nada, limpiamos la pestaña vacía
+            if tab.motor.df is None:
+                for nombre, t in app_root.pestanas.items():
+                    if t == tab:
+                        app_root.tabview.set(nombre)
+                        app_root.cerrar_pestana_actual()
+                        break
+
+        dialog.protocol("WM_DELETE_WINDOW", al_cerrar_ventana)
