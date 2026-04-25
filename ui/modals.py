@@ -751,16 +751,17 @@ class ModalesUI:
                     error_msg = str(e)
 
                 def finalizar_ui():
+                    # 1. ¡DESTRUIR EL DIÁLOGO PRIMERO! Esto libera el bloqueo y evita el Deadlock
+                    dialog.destroy()
+                    
                     if exito:
                         tab.pagina_actual = 1
-                        tab.actualizar_vista_previa()
-                        tab.actualizar_historial_interfaz()
-                        app_root.actualizar_estado()
-                        dialog.destroy()
-                        messagebox.showinfo("✅ Éxito", f"Tabla '{tabla_seleccionada}' importada correctamente.")
+                        if hasattr(tab, 'actualizar_vista_previa'): tab.actualizar_vista_previa()
+                        if hasattr(tab, 'refrescar_interfaz'): tab.refrescar_interfaz()
+                        if hasattr(app_root, 'actualizar_estado'): app_root.actualizar_estado()
                     else:
-                        btn_conectar.configure(state="normal", text="🔗 Importar Tabla")
-                        messagebox.showerror("❌ Error de Ingesta", f"No se pudo importar:\n{error_msg}")
+                        # 2. Forzamos que el mensaje aparezca sobre la ventana principal
+                        messagebox.showerror("❌ Error", f"No se pudo crear la columna:\n{error_msg}", parent=app_root)
 
                 app_root.after(0, finalizar_ui)
 
@@ -860,3 +861,97 @@ class ModalesUI:
             dialog.destroy()
 
         ctk.CTkButton(dialog, text="✅ Aplicar Unpivot", command=aplicar_unpivot, fg_color="#27ae60", hover_color="#2ecc71").pack(pady=20)
+        
+    @staticmethod
+    def mostrar_columna_condicional(app_root, tab):
+        """Muestra la ventana para crear Columnas Condicionales (IF-THEN-ELSE)."""
+        if not tab or tab.motor.df is None: return
+
+        dialog = ctk.CTkToplevel(app_root)
+        dialog.title("🔀 Columna Condicional (IF-THEN-ELSE)")
+        dialog.geometry("450x580")
+        dialog.transient(app_root)
+        dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+
+        columnas = list(tab.motor.df.columns)
+        
+        ctk.CTkLabel(dialog, text="Lógica Condicional", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(20, 5))
+        
+        frame_form = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame_form.pack(fill="both", expand=True, padx=30, pady=5)
+
+        # --- Formulario Paso a Paso ---
+        ctk.CTkLabel(frame_form, text="1. Si la columna:").pack(anchor="w", pady=(5, 0))
+        combo_columna = ctk.CTkOptionMenu(frame_form, values=columnas)
+        combo_columna.pack(fill="x", pady=(0, 10))
+
+        ctk.CTkLabel(frame_form, text="2. Es:").pack(anchor="w")
+        combo_operador = ctk.CTkOptionMenu(frame_form, values=["==", "!=", ">", "<", ">=", "<="])
+        combo_operador.pack(fill="x", pady=(0, 10))
+
+        ctk.CTkLabel(frame_form, text="3. A este valor:").pack(anchor="w")
+        entry_condicion = ctk.CTkEntry(frame_form, placeholder_text="Ej: 100 o 'Aprobado'")
+        entry_condicion.pack(fill="x", pady=(0, 15))
+
+        ctk.CTkLabel(frame_form, text="4. Entonces escribir (Verdadero):").pack(anchor="w")
+        entry_verdadero = ctk.CTkEntry(frame_form, placeholder_text="Ej: Alto")
+        entry_verdadero.pack(fill="x", pady=(0, 10))
+
+        ctk.CTkLabel(frame_form, text="5. Sino escribir (Falso):").pack(anchor="w")
+        entry_falso = ctk.CTkEntry(frame_form, placeholder_text="Ej: Bajo")
+        entry_falso.pack(fill="x", pady=(0, 15))
+
+        ctk.CTkLabel(frame_form, text="6. Nombre de la nueva columna:").pack(anchor="w")
+        entry_nueva_col = ctk.CTkEntry(frame_form, placeholder_text="Ej: Categoria_Ventas")
+        entry_nueva_col.pack(fill="x", pady=(0, 20))
+
+        def aplicar_condicion():
+            col = combo_columna.get()
+            op = combo_operador.get()
+            val_cond = entry_condicion.get().strip()
+            val_true = entry_verdadero.get().strip()
+            val_false = entry_falso.get().strip()
+            nueva_col = entry_nueva_col.get().strip()
+
+            if not all([col, op, val_cond, val_true, val_false, nueva_col]):
+                # Agregamos parent=dialog para que el aviso no quede oculto atrás
+                messagebox.showwarning("Faltan Datos", "Por favor completa todos los campos del formulario.", parent=dialog)
+                return
+
+            btn_aplicar.configure(state="disabled", text="⏳ Procesando...")
+            dialog.update()
+
+            def tarea_condicional():
+                try:
+                    tab.motor.agregar_columna_condicional(col, op, val_cond, val_true, val_false, nueva_col)
+                    exito = True
+                    error_msg = ""
+                except Exception as e:
+                    exito = False
+                    error_msg = str(e)
+                    
+                def finalizar_ui():
+                    # 1. Liberamos el foco y ocultamos la ventana para que parezca instantáneo
+                    dialog.grab_release()
+                    dialog.withdraw()
+                    
+                    if exito:
+                        tab.pagina_actual = 1
+                        if hasattr(tab, 'actualizar_vista_previa'): tab.actualizar_vista_previa()
+                        if hasattr(tab, 'refrescar_interfaz'): tab.refrescar_interfaz()
+                        if hasattr(app_root, 'actualizar_estado'): app_root.actualizar_estado()
+                    else:
+                        # 2. Mostramos el error de forma segura sobre la ventana principal
+                        messagebox.showerror("❌ Error", f"No se pudo crear la columna:\n{error_msg}", parent=app_root)
+                    
+                    # 3. Destruimos la ventana en la memoria 250ms después 
+                    # Esto evita el 'TclError' interno de CustomTkinter
+                    app_root.after(250, dialog.destroy)
+                        
+                app_root.after(0, finalizar_ui)
+
+            app_root.ejecutar_tarea_pesada(tarea_condicional)
+
+        btn_aplicar = ctk.CTkButton(dialog, text="✅ Crear Columna", command=aplicar_condicion, fg_color="#27ae60", hover_color="#2ecc71")
+        btn_aplicar.pack(pady=(0, 20))

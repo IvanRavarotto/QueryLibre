@@ -146,6 +146,16 @@ class QueryLibreApp(ctk.CTk):
         )
         self.btn_unpivot.pack(side="left", padx=5)
         
+        self.btn_condicional = ctk.CTkButton(
+            self.toolbar_frame, 
+            text="🔀 Col. Condicional", 
+            command=self.abrir_condicional,
+            width=130, 
+            fg_color="#d35400", 
+            hover_color="#e67e22"
+        )
+        self.btn_condicional.pack(side="left", padx=5)
+        
         # --- NUEVO BOTÓN ASISTENTE v1.6.0 ---
         self.btn_asistente = ctk.CTkButton(
             self.toolbar_frame, text="✨ Asistente IA", width=120,
@@ -727,6 +737,12 @@ class QueryLibreApp(ctk.CTk):
         tab = self.obtener_pestana_activa()
         if tab:
             ModalesUI.mostrar_unpivot(self, tab)
+        
+    def abrir_condicional(self):
+        """Llama al modal de Columna Condicional para la pestaña activa."""
+        tab = self.obtener_pestana_activa()
+        if tab:
+            ModalesUI.mostrar_columna_condicional(self, tab)
             
     
     def iniciar_importacion_sql(self):

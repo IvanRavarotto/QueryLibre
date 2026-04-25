@@ -11,6 +11,7 @@ import io
 from sqlalchemy import create_engine, text, inspect
 from sqlalchemy.exc import SQLAlchemyError
 import urllib.parse
+import numpy as np
 
 LOGGER = logging.getLogger("QueryLibre")
 class MotorDatos:
@@ -900,3 +901,51 @@ class MotorDatos:
         except Exception as e:
             self.deshacer_paso()
             raise RuntimeError(f"Error al anular dinamización:\n{e}")
+    
+    def agregar_columna_condicional(self, columna_origen, operador, valor_condicion, valor_verdadero, valor_falso, nueva_columna):
+        """Crea una nueva columna basada en una condición lógica usando np.where."""
+        if self.df is None or columna_origen not in self.df.columns: return
+        self._savepoint()
+
+        try:
+            try:
+                # Si el usuario ingresó un número, forzamos la columna a numérica
+                val_cond = float(valor_condicion)
+                serie = pd.to_numeric(self.df[columna_origen], errors='coerce')
+            except ValueError:
+                # Si el usuario ingresó texto (Ej: 'Aprobado'), forzamos la columna a texto
+                val_cond = str(valor_condicion)
+                serie = self.df[columna_origen].astype(str)
+
+            # Evaluamos la condición lógica
+            if operador == ">":
+                condicion = serie > val_cond
+            elif operador == "<":
+                condicion = serie < val_cond
+            elif operador == ">=":
+                condicion = serie >= val_cond
+            elif operador == "<=":
+                condicion = serie <= val_cond
+            elif operador == "==":
+                condicion = self.df[columna_origen].astype(str) == str(valor_condicion)
+            elif operador == "!=":
+                condicion = self.df[columna_origen].astype(str) != str(valor_condicion)
+            else:
+                raise ValueError("Operador lógico no soportado.")
+
+            # np.where hace la magia vectorizada
+            self.df[nueva_columna] = np.where(condicion, valor_verdadero, valor_falso)
+            
+            # Limpiamos tipos y registramos en el historial
+            self._normalize_columns()
+            self.registrar_paso(f"Condicional: {nueva_columna} basada en {columna_origen}")
+            
+        except Exception as e:
+            # Reversión segura: Leemos el archivo Parquet desde el disco
+            if getattr(self, 'df_history', None) and len(self.df_history) > 0:
+                archivo_cache = self.df_history.pop()
+                if isinstance(archivo_cache, str) and os.path.exists(archivo_cache):
+                    self.df = pd.read_parquet(archivo_cache) # Recuperamos la tabla real
+                else:
+                    self.df = archivo_cache # Respaldo por si es un DataFrame en RAM
+            raise RuntimeError(f"Error al evaluar la lógica:\n{e}")
