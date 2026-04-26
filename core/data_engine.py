@@ -427,8 +427,8 @@ class MotorDatos:
                 else:
                     self.df[col_name] = converted.astype('float64')
 
-            elif nuevo_tipo == "Fecha":
-                converted = pd.to_datetime(self.df[col_name], errors='coerce')
+            elif nuevo_tipo == 'Fecha':
+                converted = pd.to_datetime(self.df[col_name], errors='coerce', format='mixed')
                 total_non_null = self.df[col_name].notna().sum()
                 valid = converted.notna().sum()
                 invalid = total_non_null - valid

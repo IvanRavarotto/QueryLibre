@@ -1,0 +1,451 @@
+ ID Transaccion ,ID_Cliente,Producto_Nombre,Categoria_Prod,Sub_Cat,Cantidad ,precio_unitario_usd,Fecha Compra,Notas_Internas
+TRX-0001,41,Escritorio Standing,Mobiliario,Genérica,6,"$1,048.73",2024-01-01,Borrar esta columna
+TRX-0002,8,Teclado Mecánico,Electronica,Genérica,10,$251.29,2024-01-02,Borrar esta columna
+TRX-0003,2,Auriculares Sony,Perifericos,Genérica,12,"$1,075.51",2024-01-03,Borrar esta columna
+TRX-0004,48,Mouse Inalámbrico,Mobiliario,Genérica,7,"$1,667.79",2024-01-04,Borrar esta columna
+TRX-0005,18,Teclado Mecánico,Mobiliario,Genérica,11,$945.14,2024-01-05,Borrar esta columna
+TRX-0006,16,Escritorio Standing,Perifericos,Genérica,2,$394.31,2024-01-06,Borrar esta columna
+TRX-0007,15,Laptop Dell XPS,Perifericos,Genérica,14,"$2,308.62",2024-01-07,Borrar esta columna
+TRX-0008,9,Laptop Dell XPS,Mobiliario,Genérica,6,$181.83,2024-01-08,Borrar esta columna
+TRX-0009,48,Silla Ergonomica,Electronica,Genérica,14,"$2,081.95",2024-01-09,Borrar esta columna
+TRX-0010,7,Mouse Inalámbrico,Electronica,Genérica,11,$246.68,2024-01-10,Borrar esta columna
+TRX-0011,44,Escritorio Standing,Mobiliario,Genérica,14,$254.96,2024-01-11,Borrar esta columna
+TRX-0012,48,Teclado Mecánico,Mobiliario,Genérica,9,"$1,850.91",2024-01-12,Borrar esta columna
+TRX-0013,35,Laptop Dell XPS,Mobiliario,Genérica,7,"$2,032.25",2024-01-13,Borrar esta columna
+TRX-0014,6,Laptop Dell XPS,Electronica,Genérica,6,"$1,397.58",2024-01-14,Borrar esta columna
+TRX-0015,38,Teclado Mecánico,Electronica,Genérica,11,"$1,472.37",2024-01-15,Borrar esta columna
+TRX-0016,28,Escritorio Standing,Mobiliario,Genérica,12,"$1,410.54",2024-01-16,Borrar esta columna
+TRX-0017,3,"Monitor LG 27""",Perifericos,Genérica,15,$834.17,2024-01-17,Borrar esta columna
+TRX-0018,2,Silla Ergonomica,Mobiliario,Genérica,13,$318.74,2024-01-18,Borrar esta columna
+TRX-0019,6,Teclado Mecánico,Mobiliario,Genérica,8,$893.69,2024-01-19,Borrar esta columna
+TRX-0020,14,"Monitor LG 27""",Electronica,Genérica,14,"$1,668.37",2024-01-20,Borrar esta columna
+TRX-0021,15,Silla Ergonomica,Mobiliario,Genérica,9,"$1,879.46",2024-01-21,Borrar esta columna
+TRX-0022,33,Mouse Inalámbrico,Electronica,Genérica,1,"$2,172.21",2024-01-22,Borrar esta columna
+TRX-0023,39,Auriculares Sony,Perifericos,Genérica,10,"$1,806.84",2024-01-23,Borrar esta columna
+TRX-0024,2,Silla Ergonomica,Mobiliario,Genérica,2,"$2,421.47",2024-01-24,Borrar esta columna
+TRX-0025,36,Mouse Inalámbrico,Perifericos,Genérica,4,"$1,507.02",2024-01-25,Borrar esta columna
+TRX-0026,13,Auriculares Sony,Mobiliario,Genérica,11,$888.84,2024-01-26,Borrar esta columna
+TRX-0027,46,Laptop Dell XPS,Perifericos,Genérica,11,"$1,451.13",2024-01-27,Borrar esta columna
+TRX-0028,42,Laptop Dell XPS,Electronica,Genérica,15,$543.66,2024-01-28,Borrar esta columna
+TRX-0029,45,Laptop Dell XPS,Mobiliario,Genérica,5,"$1,646.99",2024-01-29,Borrar esta columna
+TRX-0030,35,Silla Ergonomica,Mobiliario,Genérica,4,$572.25,2024-01-30,Borrar esta columna
+TRX-0031,27,"Monitor LG 27""",Perifericos,Genérica,12,$283.92,2024-01-31,Borrar esta columna
+TRX-0032,15,Auriculares Sony,Electronica,Genérica,2,"$2,115.75",2024-02-01,Borrar esta columna
+TRX-0033,29,Laptop Dell XPS,Perifericos,Genérica,7,$928.39,2024-02-02,Borrar esta columna
+TRX-0034,38,Escritorio Standing,Perifericos,Genérica,2,"$1,910.07",2024-02-03,Borrar esta columna
+TRX-0035,18,Teclado Mecánico,Electronica,Genérica,13,"$1,441.64",2024-02-04,Borrar esta columna
+TRX-0036,1,Auriculares Sony,Perifericos,Genérica,11,"$2,020.95",2024-02-05,Borrar esta columna
+TRX-0037,49,Auriculares Sony,Perifericos,Genérica,12,"$2,115.21",2024-02-06,Borrar esta columna
+TRX-0038,11,"Monitor LG 27""",Mobiliario,Genérica,14,"$2,436.75",2024-02-07,Borrar esta columna
+TRX-0039,45,Mouse Inalámbrico,Perifericos,Genérica,2,"$2,048.79",2024-02-08,Borrar esta columna
+TRX-0040,28,"Monitor LG 27""",Mobiliario,Genérica,8,"$1,539.73",2024-02-09,Borrar esta columna
+TRX-0041,22,Laptop Dell XPS,Electronica,Genérica,3,"$1,612.11",2024-02-10,Borrar esta columna
+TRX-0042,18,Teclado Mecánico,Perifericos,Genérica,12,$80.24,2024-02-11,Borrar esta columna
+TRX-0043,10,Teclado Mecánico,Electronica,Genérica,5,"$2,323.77",2024-02-12,Borrar esta columna
+TRX-0044,14,Escritorio Standing,Mobiliario,Genérica,15,"$2,076.21",2024-02-13,Borrar esta columna
+TRX-0045,49,Escritorio Standing,Mobiliario,Genérica,1,$679.61,2024-02-14,Borrar esta columna
+TRX-0046,22,Laptop Dell XPS,Mobiliario,Genérica,1,$463.33,2024-02-15,Borrar esta columna
+TRX-0047,7,Teclado Mecánico,Perifericos,Genérica,6,"$1,761.21",2024-02-16,Borrar esta columna
+TRX-0048,6,"Monitor LG 27""",Mobiliario,Genérica,13,$782.83,2024-02-17,Borrar esta columna
+TRX-0049,25,Silla Ergonomica,Mobiliario,Genérica,1,$859.46,2024-02-18,Borrar esta columna
+TRX-0050,7,"Monitor LG 27""",Perifericos,Genérica,5,$30.17,2024-02-19,Borrar esta columna
+TRX-0051,23,Silla Ergonomica,Perifericos,Genérica,6,"$2,176.61",2024-02-20,Borrar esta columna
+TRX-0052,23,Laptop Dell XPS,Perifericos,Genérica,6,"$1,422.31",2024-02-21,Borrar esta columna
+TRX-0053,39,Teclado Mecánico,Mobiliario,Genérica,7,"$1,010.95",2024-02-22,Borrar esta columna
+TRX-0054,17,Escritorio Standing,Mobiliario,Genérica,3,$367.56,2024-02-23,Borrar esta columna
+TRX-0055,3,Auriculares Sony,Perifericos,Genérica,4,"$1,588.43",2024-02-24,Borrar esta columna
+TRX-0056,47,Escritorio Standing,Perifericos,Genérica,9,$91.18,2024-02-25,Borrar esta columna
+TRX-0057,30,Mouse Inalámbrico,Electronica,Genérica,7,"$1,869.09",2024-02-26,Borrar esta columna
+TRX-0058,35,Auriculares Sony,Electronica,Genérica,10,$549.61,2024-02-27,Borrar esta columna
+TRX-0059,8,Silla Ergonomica,Perifericos,Genérica,11,"$1,058.28",2024-02-28,Borrar esta columna
+TRX-0060,25,"Monitor LG 27""",Perifericos,Genérica,13,$862.13,2024-02-29,Borrar esta columna
+TRX-0061,6,"Monitor LG 27""",Electronica,Genérica,3,$934.58,2024-03-01,Borrar esta columna
+TRX-0062,36,Escritorio Standing,Perifericos,Genérica,3,"$1,808.17",2024-03-02,Borrar esta columna
+TRX-0063,19,"Monitor LG 27""",Mobiliario,Genérica,3,"$1,945.44",2024-03-03,Borrar esta columna
+TRX-0064,41,Escritorio Standing,Mobiliario,Genérica,2,"$1,425.47",2024-03-04,Borrar esta columna
+TRX-0065,40,Escritorio Standing,Mobiliario,Genérica,10,$226.12,2024-03-05,Borrar esta columna
+TRX-0066,24,"Monitor LG 27""",Perifericos,Genérica,14,$145.73,2024-03-06,Borrar esta columna
+TRX-0067,37,Mouse Inalámbrico,Perifericos,Genérica,7,$406.16,2024-03-07,Borrar esta columna
+TRX-0068,13,Laptop Dell XPS,Electronica,Genérica,10,"$1,550.33",2024-03-08,Borrar esta columna
+TRX-0069,46,"Monitor LG 27""",Perifericos,Genérica,11,"$1,689.81",2024-03-09,Borrar esta columna
+TRX-0070,5,Silla Ergonomica,Perifericos,Genérica,4,$691.18,2024-03-10,Borrar esta columna
+TRX-0071,3,Teclado Mecánico,Electronica,Genérica,8,"$1,659.92",2024-03-11,Borrar esta columna
+TRX-0072,43,Escritorio Standing,Perifericos,Genérica,15,"$1,221.87",2024-03-12,Borrar esta columna
+TRX-0073,15,Mouse Inalámbrico,Electronica,Genérica,10,"$1,113.48",2024-03-13,Borrar esta columna
+TRX-0074,50,Escritorio Standing,Perifericos,Genérica,3,$693.82,2024-03-14,Borrar esta columna
+TRX-0075,19,Silla Ergonomica,Perifericos,Genérica,4,"$1,891.03",2024-03-15,Borrar esta columna
+TRX-0076,6,Escritorio Standing,Perifericos,Genérica,8,$297.84,2024-03-16,Borrar esta columna
+TRX-0077,15,Silla Ergonomica,Perifericos,Genérica,11,"$1,083.34",2024-03-17,Borrar esta columna
+TRX-0078,7,Escritorio Standing,Mobiliario,Genérica,5,$718.87,2024-03-18,Borrar esta columna
+TRX-0079,25,"Monitor LG 27""",Mobiliario,Genérica,8,"$1,701.04",2024-03-19,Borrar esta columna
+TRX-0080,18,Teclado Mecánico,Perifericos,Genérica,5,"$1,224.28",2024-03-20,Borrar esta columna
+TRX-0081,30,"Monitor LG 27""",Mobiliario,Genérica,11,"$1,672.82",2024-03-21,Borrar esta columna
+TRX-0082,41,Escritorio Standing,Electronica,Genérica,1,$127.86,2024-03-22,Borrar esta columna
+TRX-0083,24,Silla Ergonomica,Mobiliario,Genérica,15,$997.23,2024-03-23,Borrar esta columna
+TRX-0084,11,Laptop Dell XPS,Electronica,Genérica,13,"$1,504.32",2024-03-24,Borrar esta columna
+TRX-0085,24,Mouse Inalámbrico,Electronica,Genérica,8,$34.10,2024-03-25,Borrar esta columna
+TRX-0086,23,Escritorio Standing,Electronica,Genérica,15,$764.03,2024-03-26,Borrar esta columna
+TRX-0087,14,Laptop Dell XPS,Mobiliario,Genérica,5,$539.92,2024-03-27,Borrar esta columna
+TRX-0088,43,Escritorio Standing,Perifericos,Genérica,11,$356.03,2024-03-28,Borrar esta columna
+TRX-0089,18,Mouse Inalámbrico,Perifericos,Genérica,9,$649.97,2024-03-29,Borrar esta columna
+TRX-0090,45,"Monitor LG 27""",Mobiliario,Genérica,3,$830.38,2024-03-30,Borrar esta columna
+TRX-0091,44,"Monitor LG 27""",Electronica,Genérica,2,$34.21,2024-03-31,Borrar esta columna
+TRX-0092,42,Escritorio Standing,Mobiliario,Genérica,8,"$1,871.33",2024-04-01,Borrar esta columna
+TRX-0093,5,Mouse Inalámbrico,Perifericos,Genérica,6,$451.60,2024-04-02,Borrar esta columna
+TRX-0094,39,Teclado Mecánico,Mobiliario,Genérica,10,$959.82,2024-04-03,Borrar esta columna
+TRX-0095,41,Teclado Mecánico,Mobiliario,Genérica,5,"$1,763.62",2024-04-04,Borrar esta columna
+TRX-0096,11,Escritorio Standing,Perifericos,Genérica,11,"$1,258.15",2024-04-05,Borrar esta columna
+TRX-0097,35,Escritorio Standing,Perifericos,Genérica,7,"$2,085.89",2024-04-06,Borrar esta columna
+TRX-0098,47,Escritorio Standing,Electronica,Genérica,12,"$2,018.41",2024-04-07,Borrar esta columna
+TRX-0099,16,"Monitor LG 27""",Electronica,Genérica,5,$194.11,2024-04-08,Borrar esta columna
+TRX-0100,11,"Monitor LG 27""",Perifericos,Genérica,8,"$2,156.48",2024-04-09,Borrar esta columna
+TRX-0101,30,Laptop Dell XPS,Electronica,Genérica,14,$120.12,2024-04-10,Borrar esta columna
+TRX-0102,25,Silla Ergonomica,Perifericos,Genérica,5,$61.57,2024-04-11,Borrar esta columna
+TRX-0103,18,"Monitor LG 27""",Mobiliario,Genérica,4,"$2,304.09",2024-04-12,Borrar esta columna
+TRX-0104,41,Mouse Inalámbrico,Electronica,Genérica,7,"$2,157.34",2024-04-13,Borrar esta columna
+TRX-0105,45,Teclado Mecánico,Perifericos,Genérica,14,"$1,445.76",2024-04-14,Borrar esta columna
+TRX-0106,36,Teclado Mecánico,Mobiliario,Genérica,8,"$1,439.90",2024-04-15,Borrar esta columna
+TRX-0107,15,Escritorio Standing,Mobiliario,Genérica,2,"$1,778.10",2024-04-16,Borrar esta columna
+TRX-0108,44,Laptop Dell XPS,Perifericos,Genérica,4,"$1,052.97",2024-04-17,Borrar esta columna
+TRX-0109,21,Escritorio Standing,Perifericos,Genérica,7,$301.21,2024-04-18,Borrar esta columna
+TRX-0110,50,Teclado Mecánico,Mobiliario,Genérica,10,$66.83,2024-04-19,Borrar esta columna
+TRX-0111,50,Teclado Mecánico,Mobiliario,Genérica,6,$822.05,2024-04-20,Borrar esta columna
+TRX-0112,4,Silla Ergonomica,Perifericos,Genérica,10,"$2,006.29",2024-04-21,Borrar esta columna
+TRX-0113,15,Auriculares Sony,Perifericos,Genérica,5,"$1,551.04",2024-04-22,Borrar esta columna
+TRX-0114,3,Mouse Inalámbrico,Mobiliario,Genérica,12,"$2,082.58",2024-04-23,Borrar esta columna
+TRX-0115,21,Silla Ergonomica,Mobiliario,Genérica,5,"$2,300.63",2024-04-24,Borrar esta columna
+TRX-0116,26,Escritorio Standing,Perifericos,Genérica,1,$234.00,2024-04-25,Borrar esta columna
+TRX-0117,18,Auriculares Sony,Perifericos,Genérica,14,"$2,113.54",2024-04-26,Borrar esta columna
+TRX-0118,5,Teclado Mecánico,Mobiliario,Genérica,11,$619.64,2024-04-27,Borrar esta columna
+TRX-0119,14,Laptop Dell XPS,Perifericos,Genérica,7,"$1,478.35",2024-04-28,Borrar esta columna
+TRX-0120,37,Laptop Dell XPS,Perifericos,Genérica,5,"$1,317.05",2024-04-29,Borrar esta columna
+TRX-0121,46,Teclado Mecánico,Perifericos,Genérica,1,$998.48,2024-04-30,Borrar esta columna
+TRX-0122,21,"Monitor LG 27""",Perifericos,Genérica,10,$786.03,2024-05-01,Borrar esta columna
+TRX-0123,14,Auriculares Sony,Electronica,Genérica,14,$858.69,2024-05-02,Borrar esta columna
+TRX-0124,42,Teclado Mecánico,Electronica,Genérica,11,$842.68,2024-05-03,Borrar esta columna
+TRX-0125,32,Laptop Dell XPS,Mobiliario,Genérica,13,$432.81,2024-05-04,Borrar esta columna
+TRX-0126,26,Laptop Dell XPS,Electronica,Genérica,12,"$1,283.55",2024-05-05,Borrar esta columna
+TRX-0127,42,Auriculares Sony,Perifericos,Genérica,1,$298.36,2024-05-06,Borrar esta columna
+TRX-0128,30,Mouse Inalámbrico,Electronica,Genérica,15,"$1,282.23",2024-05-07,Borrar esta columna
+TRX-0129,10,Teclado Mecánico,Mobiliario,Genérica,10,"$2,266.22",2024-05-08,Borrar esta columna
+TRX-0130,17,Silla Ergonomica,Mobiliario,Genérica,12,$883.20,2024-05-09,Borrar esta columna
+TRX-0131,9,Escritorio Standing,Mobiliario,Genérica,8,"$1,822.54",2024-05-10,Borrar esta columna
+TRX-0132,16,Teclado Mecánico,Electronica,Genérica,14,"$2,050.09",2024-05-11,Borrar esta columna
+TRX-0133,48,Mouse Inalámbrico,Electronica,Genérica,15,"$2,040.37",2024-05-12,Borrar esta columna
+TRX-0134,36,Auriculares Sony,Electronica,Genérica,15,$602.13,2024-05-13,Borrar esta columna
+TRX-0135,35,Auriculares Sony,Mobiliario,Genérica,5,$378.91,2024-05-14,Borrar esta columna
+TRX-0136,17,Laptop Dell XPS,Perifericos,Genérica,13,$505.22,2024-05-15,Borrar esta columna
+TRX-0137,48,Mouse Inalámbrico,Perifericos,Genérica,13,"$1,511.96",2024-05-16,Borrar esta columna
+TRX-0138,38,Auriculares Sony,Mobiliario,Genérica,4,"$1,904.14",2024-05-17,Borrar esta columna
+TRX-0139,28,"Monitor LG 27""",Mobiliario,Genérica,10,"$1,643.94",2024-05-18,Borrar esta columna
+TRX-0140,38,Teclado Mecánico,Mobiliario,Genérica,13,$455.21,2024-05-19,Borrar esta columna
+TRX-0141,26,Laptop Dell XPS,Mobiliario,Genérica,6,"$1,935.53",2024-05-20,Borrar esta columna
+TRX-0142,24,Silla Ergonomica,Perifericos,Genérica,4,"$1,242.88",2024-05-21,Borrar esta columna
+TRX-0143,15,Mouse Inalámbrico,Electronica,Genérica,11,"$1,889.80",2024-05-22,Borrar esta columna
+TRX-0144,9,Laptop Dell XPS,Electronica,Genérica,4,"$1,903.29",2024-05-23,Borrar esta columna
+TRX-0145,33,Auriculares Sony,Perifericos,Genérica,10,"$1,130.53",2024-05-24,Borrar esta columna
+TRX-0146,32,Escritorio Standing,Electronica,Genérica,5,"$2,311.52",2024-05-25,Borrar esta columna
+TRX-0147,6,Auriculares Sony,Perifericos,Genérica,11,"$1,417.76",2024-05-26,Borrar esta columna
+TRX-0148,49,Silla Ergonomica,Electronica,Genérica,13,"$1,593.72",2024-05-27,Borrar esta columna
+TRX-0149,4,Silla Ergonomica,Perifericos,Genérica,12,"$1,566.94",2024-05-28,Borrar esta columna
+TRX-0150,8,Silla Ergonomica,Electronica,Genérica,13,"$2,162.65",2024-05-29,Borrar esta columna
+TRX-0151,10,Silla Ergonomica,Mobiliario,Genérica,11,"$1,573.64",2024-05-30,Borrar esta columna
+TRX-0152,41,Silla Ergonomica,Mobiliario,Genérica,11,$390.13,2024-05-31,Borrar esta columna
+TRX-0153,11,"Monitor LG 27""",Electronica,Genérica,14,$184.69,2024-06-01,Borrar esta columna
+TRX-0154,44,Teclado Mecánico,Perifericos,Genérica,3,"$1,113.89",2024-06-02,Borrar esta columna
+TRX-0155,28,Mouse Inalámbrico,Electronica,Genérica,11,$767.51,2024-06-03,Borrar esta columna
+TRX-0156,39,Laptop Dell XPS,Electronica,Genérica,2,$697.56,2024-06-04,Borrar esta columna
+TRX-0157,5,Silla Ergonomica,Mobiliario,Genérica,15,$154.59,2024-06-05,Borrar esta columna
+TRX-0158,25,Teclado Mecánico,Perifericos,Genérica,11,"$1,275.73",2024-06-06,Borrar esta columna
+TRX-0159,25,Auriculares Sony,Mobiliario,Genérica,11,$786.36,2024-06-07,Borrar esta columna
+TRX-0160,39,Teclado Mecánico,Electronica,Genérica,1,"$1,138.01",2024-06-08,Borrar esta columna
+TRX-0161,30,Silla Ergonomica,Mobiliario,Genérica,5,$156.37,2024-06-09,Borrar esta columna
+TRX-0162,34,Escritorio Standing,Perifericos,Genérica,13,"$2,081.77",2024-06-10,Borrar esta columna
+TRX-0163,17,Laptop Dell XPS,Electronica,Genérica,8,$205.68,2024-06-11,Borrar esta columna
+TRX-0164,36,Silla Ergonomica,Electronica,Genérica,1,"$2,162.66",2024-06-12,Borrar esta columna
+TRX-0165,1,Teclado Mecánico,Mobiliario,Genérica,10,"$2,140.40",2024-06-13,Borrar esta columna
+TRX-0166,44,Auriculares Sony,Perifericos,Genérica,6,"$1,543.30",2024-06-14,Borrar esta columna
+TRX-0167,47,Teclado Mecánico,Perifericos,Genérica,12,"$1,275.06",2024-06-15,Borrar esta columna
+TRX-0168,8,Silla Ergonomica,Perifericos,Genérica,3,"$1,164.84",2024-06-16,Borrar esta columna
+TRX-0169,44,Mouse Inalámbrico,Perifericos,Genérica,2,"$1,392.48",2024-06-17,Borrar esta columna
+TRX-0170,35,Teclado Mecánico,Perifericos,Genérica,15,"$1,982.67",2024-06-18,Borrar esta columna
+TRX-0171,49,Mouse Inalámbrico,Electronica,Genérica,5,"$2,241.25",2024-06-19,Borrar esta columna
+TRX-0172,18,Silla Ergonomica,Electronica,Genérica,6,"$1,132.59",2024-06-20,Borrar esta columna
+TRX-0173,50,Teclado Mecánico,Perifericos,Genérica,12,"$2,027.39",2024-06-21,Borrar esta columna
+TRX-0174,42,Auriculares Sony,Perifericos,Genérica,7,"$1,634.82",2024-06-22,Borrar esta columna
+TRX-0175,22,"Monitor LG 27""",Electronica,Genérica,3,$813.99,2024-06-23,Borrar esta columna
+TRX-0176,8,"Monitor LG 27""",Electronica,Genérica,4,"$1,196.94",2024-06-24,Borrar esta columna
+TRX-0177,19,Mouse Inalámbrico,Perifericos,Genérica,3,$389.89,2024-06-25,Borrar esta columna
+TRX-0178,28,Silla Ergonomica,Perifericos,Genérica,13,$168.76,2024-06-26,Borrar esta columna
+TRX-0179,11,Mouse Inalámbrico,Electronica,Genérica,9,$272.20,2024-06-27,Borrar esta columna
+TRX-0180,30,Silla Ergonomica,Mobiliario,Genérica,15,"$2,249.33",2024-06-28,Borrar esta columna
+TRX-0181,1,Silla Ergonomica,Mobiliario,Genérica,6,$868.44,2024-06-29,Borrar esta columna
+TRX-0182,47,"Monitor LG 27""",Mobiliario,Genérica,9,"$1,790.07",2024-06-30,Borrar esta columna
+TRX-0183,47,Auriculares Sony,Electronica,Genérica,9,"$1,268.80",2024-07-01,Borrar esta columna
+TRX-0184,17,Auriculares Sony,Electronica,Genérica,15,$443.81,2024-07-02,Borrar esta columna
+TRX-0185,33,Teclado Mecánico,Electronica,Genérica,5,$630.64,2024-07-03,Borrar esta columna
+TRX-0186,49,Mouse Inalámbrico,Mobiliario,Genérica,14,"$1,102.83",2024-07-04,Borrar esta columna
+TRX-0187,12,Auriculares Sony,Perifericos,Genérica,3,"$1,106.96",2024-07-05,Borrar esta columna
+TRX-0188,33,Escritorio Standing,Electronica,Genérica,5,"$1,314.03",2024-07-06,Borrar esta columna
+TRX-0189,7,Laptop Dell XPS,Electronica,Genérica,15,$409.48,2024-07-07,Borrar esta columna
+TRX-0190,41,Teclado Mecánico,Electronica,Genérica,14,$941.54,2024-07-08,Borrar esta columna
+TRX-0191,20,Teclado Mecánico,Mobiliario,Genérica,8,$717.99,2024-07-09,Borrar esta columna
+TRX-0192,41,"Monitor LG 27""",Perifericos,Genérica,13,"$1,030.79",2024-07-10,Borrar esta columna
+TRX-0193,33,Mouse Inalámbrico,Mobiliario,Genérica,5,$855.84,2024-07-11,Borrar esta columna
+TRX-0194,39,Escritorio Standing,Mobiliario,Genérica,12,"$1,500.75",2024-07-12,Borrar esta columna
+TRX-0195,13,Auriculares Sony,Mobiliario,Genérica,14,"$1,976.23",2024-07-13,Borrar esta columna
+TRX-0196,10,Auriculares Sony,Electronica,Genérica,6,"$1,623.55",2024-07-14,Borrar esta columna
+TRX-0197,24,Silla Ergonomica,Mobiliario,Genérica,13,$178.79,2024-07-15,Borrar esta columna
+TRX-0198,49,Teclado Mecánico,Perifericos,Genérica,2,$249.85,2024-07-16,Borrar esta columna
+TRX-0199,11,Mouse Inalámbrico,Perifericos,Genérica,8,"$1,700.77",2024-07-17,Borrar esta columna
+TRX-0200,35,Mouse Inalámbrico,Perifericos,Genérica,2,$721.11,2024-07-18,Borrar esta columna
+TRX-0201,50,Mouse Inalámbrico,Perifericos,Genérica,3,"$1,813.48",2024-07-19,Borrar esta columna
+TRX-0202,34,Silla Ergonomica,Mobiliario,Genérica,13,"$1,646.56",2024-07-20,Borrar esta columna
+TRX-0203,1,"Monitor LG 27""",Perifericos,Genérica,4,"$2,267.26",2024-07-21,Borrar esta columna
+TRX-0204,39,Auriculares Sony,Perifericos,Genérica,14,"$2,185.10",2024-07-22,Borrar esta columna
+TRX-0205,21,Mouse Inalámbrico,Mobiliario,Genérica,11,$843.40,2024-07-23,Borrar esta columna
+TRX-0206,32,Escritorio Standing,Mobiliario,Genérica,12,"$1,463.11",2024-07-24,Borrar esta columna
+TRX-0207,2,Escritorio Standing,Electronica,Genérica,11,$366.45,2024-07-25,Borrar esta columna
+TRX-0208,8,Silla Ergonomica,Mobiliario,Genérica,7,$884.30,2024-07-26,Borrar esta columna
+TRX-0209,24,"Monitor LG 27""",Mobiliario,Genérica,14,"$2,419.73",2024-07-27,Borrar esta columna
+TRX-0210,20,Silla Ergonomica,Electronica,Genérica,13,"$1,750.72",2024-07-28,Borrar esta columna
+TRX-0211,16,Laptop Dell XPS,Electronica,Genérica,9,$989.02,2024-07-29,Borrar esta columna
+TRX-0212,4,Teclado Mecánico,Mobiliario,Genérica,6,"$1,493.68",2024-07-30,Borrar esta columna
+TRX-0213,16,Auriculares Sony,Electronica,Genérica,2,"$2,345.94",2024-07-31,Borrar esta columna
+TRX-0214,37,Silla Ergonomica,Perifericos,Genérica,13,$784.31,2024-08-01,Borrar esta columna
+TRX-0215,6,Silla Ergonomica,Mobiliario,Genérica,7,$951.05,2024-08-02,Borrar esta columna
+TRX-0216,6,Auriculares Sony,Electronica,Genérica,1,"$1,982.28",2024-08-03,Borrar esta columna
+TRX-0217,47,Teclado Mecánico,Electronica,Genérica,5,"$2,035.76",2024-08-04,Borrar esta columna
+TRX-0218,32,Laptop Dell XPS,Electronica,Genérica,9,"$1,680.24",2024-08-05,Borrar esta columna
+TRX-0219,5,Escritorio Standing,Electronica,Genérica,2,"$2,074.96",2024-08-06,Borrar esta columna
+TRX-0220,49,Escritorio Standing,Mobiliario,Genérica,8,"$1,850.86",2024-08-07,Borrar esta columna
+TRX-0221,35,"Monitor LG 27""",Electronica,Genérica,6,"$1,718.25",2024-08-08,Borrar esta columna
+TRX-0222,50,Silla Ergonomica,Electronica,Genérica,11,"$1,323.09",2024-08-09,Borrar esta columna
+TRX-0223,9,Teclado Mecánico,Electronica,Genérica,12,"$1,620.37",2024-08-10,Borrar esta columna
+TRX-0224,9,"Monitor LG 27""",Perifericos,Genérica,11,"$1,067.16",2024-08-11,Borrar esta columna
+TRX-0225,43,Escritorio Standing,Perifericos,Genérica,5,$914.14,2024-08-12,Borrar esta columna
+TRX-0226,31,"Monitor LG 27""",Mobiliario,Genérica,10,$916.06,2024-08-13,Borrar esta columna
+TRX-0227,36,"Monitor LG 27""",Mobiliario,Genérica,7,$462.95,2024-08-14,Borrar esta columna
+TRX-0228,11,Laptop Dell XPS,Perifericos,Genérica,14,$547.27,2024-08-15,Borrar esta columna
+TRX-0229,17,Laptop Dell XPS,Perifericos,Genérica,11,"$2,369.96",2024-08-16,Borrar esta columna
+TRX-0230,34,"Monitor LG 27""",Electronica,Genérica,6,"$1,223.38",2024-08-17,Borrar esta columna
+TRX-0231,39,Mouse Inalámbrico,Electronica,Genérica,2,$577.96,2024-08-18,Borrar esta columna
+TRX-0232,28,Auriculares Sony,Perifericos,Genérica,11,$356.85,2024-08-19,Borrar esta columna
+TRX-0233,14,Escritorio Standing,Mobiliario,Genérica,4,$206.76,2024-08-20,Borrar esta columna
+TRX-0234,35,Escritorio Standing,Perifericos,Genérica,8,"$2,113.40",2024-08-21,Borrar esta columna
+TRX-0235,49,Laptop Dell XPS,Mobiliario,Genérica,1,$266.33,2024-08-22,Borrar esta columna
+TRX-0236,47,Mouse Inalámbrico,Perifericos,Genérica,10,"$1,930.62",2024-08-23,Borrar esta columna
+TRX-0237,45,Mouse Inalámbrico,Electronica,Genérica,15,"$2,090.27",2024-08-24,Borrar esta columna
+TRX-0238,13,Silla Ergonomica,Mobiliario,Genérica,9,"$2,210.95",2024-08-25,Borrar esta columna
+TRX-0239,46,Auriculares Sony,Electronica,Genérica,6,$108.80,2024-08-26,Borrar esta columna
+TRX-0240,20,"Monitor LG 27""",Perifericos,Genérica,15,$851.86,2024-08-27,Borrar esta columna
+TRX-0241,26,Silla Ergonomica,Mobiliario,Genérica,10,"$1,919.27",2024-08-28,Borrar esta columna
+TRX-0242,43,Silla Ergonomica,Mobiliario,Genérica,4,$340.66,2024-08-29,Borrar esta columna
+TRX-0243,42,Mouse Inalámbrico,Mobiliario,Genérica,11,$951.15,2024-08-30,Borrar esta columna
+TRX-0244,24,Mouse Inalámbrico,Electronica,Genérica,2,$418.18,2024-08-31,Borrar esta columna
+TRX-0245,29,Mouse Inalámbrico,Perifericos,Genérica,11,"$2,080.89",2024-09-01,Borrar esta columna
+TRX-0246,34,"Monitor LG 27""",Electronica,Genérica,14,"$1,931.18",2024-09-02,Borrar esta columna
+TRX-0247,29,"Monitor LG 27""",Mobiliario,Genérica,8,"$2,025.47",2024-09-03,Borrar esta columna
+TRX-0248,8,Silla Ergonomica,Electronica,Genérica,15,$426.36,2024-09-04,Borrar esta columna
+TRX-0249,16,Silla Ergonomica,Mobiliario,Genérica,12,"$1,102.62",2024-09-05,Borrar esta columna
+TRX-0250,15,Laptop Dell XPS,Electronica,Genérica,5,"$1,035.98",2024-09-06,Borrar esta columna
+TRX-0251,5,Escritorio Standing,Perifericos,Genérica,11,"$1,695.76",2024-09-07,Borrar esta columna
+TRX-0252,22,Escritorio Standing,Electronica,Genérica,7,$605.26,2024-09-08,Borrar esta columna
+TRX-0253,2,Escritorio Standing,Electronica,Genérica,2,"$1,118.83",2024-09-09,Borrar esta columna
+TRX-0254,38,Laptop Dell XPS,Electronica,Genérica,3,$723.05,2024-09-10,Borrar esta columna
+TRX-0255,36,Escritorio Standing,Electronica,Genérica,1,"$1,875.11",2024-09-11,Borrar esta columna
+TRX-0256,15,Mouse Inalámbrico,Perifericos,Genérica,1,"$1,130.59",2024-09-12,Borrar esta columna
+TRX-0257,38,"Monitor LG 27""",Mobiliario,Genérica,5,"$1,342.02",2024-09-13,Borrar esta columna
+TRX-0258,15,"Monitor LG 27""",Mobiliario,Genérica,8,$784.03,2024-09-14,Borrar esta columna
+TRX-0259,1,Escritorio Standing,Mobiliario,Genérica,2,"$2,024.43",2024-09-15,Borrar esta columna
+TRX-0260,5,Silla Ergonomica,Perifericos,Genérica,2,"$1,180.50",2024-09-16,Borrar esta columna
+TRX-0261,46,Auriculares Sony,Perifericos,Genérica,4,"$2,090.26",2024-09-17,Borrar esta columna
+TRX-0262,41,Mouse Inalámbrico,Electronica,Genérica,15,$929.08,2024-09-18,Borrar esta columna
+TRX-0263,4,Laptop Dell XPS,Perifericos,Genérica,9,"$2,368.62",2024-09-19,Borrar esta columna
+TRX-0264,15,Auriculares Sony,Mobiliario,Genérica,3,"$2,461.33",2024-09-20,Borrar esta columna
+TRX-0265,5,"Monitor LG 27""",Perifericos,Genérica,7,"$1,162.27",2024-09-21,Borrar esta columna
+TRX-0266,3,Escritorio Standing,Mobiliario,Genérica,8,$715.20,2024-09-22,Borrar esta columna
+TRX-0267,22,Laptop Dell XPS,Perifericos,Genérica,6,$963.95,2024-09-23,Borrar esta columna
+TRX-0268,5,Mouse Inalámbrico,Perifericos,Genérica,11,"$1,325.74",2024-09-24,Borrar esta columna
+TRX-0269,33,"Monitor LG 27""",Mobiliario,Genérica,12,"$2,416.18",2024-09-25,Borrar esta columna
+TRX-0270,16,Escritorio Standing,Mobiliario,Genérica,12,"$2,044.97",2024-09-26,Borrar esta columna
+TRX-0271,18,Mouse Inalámbrico,Perifericos,Genérica,9,"$2,006.13",2024-09-27,Borrar esta columna
+TRX-0272,43,Silla Ergonomica,Perifericos,Genérica,7,$358.92,2024-09-28,Borrar esta columna
+TRX-0273,32,Auriculares Sony,Electronica,Genérica,10,$636.26,2024-09-29,Borrar esta columna
+TRX-0274,14,Auriculares Sony,Mobiliario,Genérica,12,"$1,608.33",2024-09-30,Borrar esta columna
+TRX-0275,35,Auriculares Sony,Electronica,Genérica,12,"$2,187.18",2024-10-01,Borrar esta columna
+TRX-0276,9,Teclado Mecánico,Perifericos,Genérica,3,"$1,393.03",2024-10-02,Borrar esta columna
+TRX-0277,47,Escritorio Standing,Mobiliario,Genérica,15,$269.94,2024-10-03,Borrar esta columna
+TRX-0278,37,Mouse Inalámbrico,Perifericos,Genérica,7,"$2,117.04",2024-10-04,Borrar esta columna
+TRX-0279,37,Auriculares Sony,Mobiliario,Genérica,11,"$2,130.15",2024-10-05,Borrar esta columna
+TRX-0280,31,Escritorio Standing,Perifericos,Genérica,2,$723.38,2024-10-06,Borrar esta columna
+TRX-0281,16,Silla Ergonomica,Electronica,Genérica,14,"$1,911.35",2024-10-07,Borrar esta columna
+TRX-0282,31,Auriculares Sony,Electronica,Genérica,8,$692.89,2024-10-08,Borrar esta columna
+TRX-0283,27,Mouse Inalámbrico,Electronica,Genérica,10,"$2,264.69",2024-10-09,Borrar esta columna
+TRX-0284,13,Escritorio Standing,Mobiliario,Genérica,7,$381.16,2024-10-10,Borrar esta columna
+TRX-0285,7,Auriculares Sony,Mobiliario,Genérica,5,"$1,102.12",2024-10-11,Borrar esta columna
+TRX-0286,7,Mouse Inalámbrico,Mobiliario,Genérica,1,"$2,366.84",2024-10-12,Borrar esta columna
+TRX-0287,43,"Monitor LG 27""",Electronica,Genérica,12,$566.76,2024-10-13,Borrar esta columna
+TRX-0288,28,Silla Ergonomica,Mobiliario,Genérica,6,"$1,136.05",2024-10-14,Borrar esta columna
+TRX-0289,23,Escritorio Standing,Perifericos,Genérica,4,$883.72,2024-10-15,Borrar esta columna
+TRX-0290,28,Mouse Inalámbrico,Mobiliario,Genérica,8,$81.28,2024-10-16,Borrar esta columna
+TRX-0291,27,Mouse Inalámbrico,Electronica,Genérica,8,$147.34,2024-10-17,Borrar esta columna
+TRX-0292,30,Teclado Mecánico,Electronica,Genérica,4,"$1,262.49",2024-10-18,Borrar esta columna
+TRX-0293,47,Escritorio Standing,Perifericos,Genérica,14,$600.91,2024-10-19,Borrar esta columna
+TRX-0294,4,"Monitor LG 27""",Mobiliario,Genérica,6,"$2,486.40",2024-10-20,Borrar esta columna
+TRX-0295,44,Escritorio Standing,Mobiliario,Genérica,2,$946.66,2024-10-21,Borrar esta columna
+TRX-0296,42,Silla Ergonomica,Perifericos,Genérica,11,$85.05,2024-10-22,Borrar esta columna
+TRX-0297,42,Teclado Mecánico,Perifericos,Genérica,6,"$2,328.10",2024-10-23,Borrar esta columna
+TRX-0298,7,Escritorio Standing,Electronica,Genérica,9,"$2,100.35",2024-10-24,Borrar esta columna
+TRX-0299,4,Escritorio Standing,Mobiliario,Genérica,15,"$1,630.15",2024-10-25,Borrar esta columna
+TRX-0300,26,Auriculares Sony,Perifericos,Genérica,11,"$1,981.58",2024-10-26,Borrar esta columna
+TRX-0301,47,Mouse Inalámbrico,Mobiliario,Genérica,6,$356.93,2024-10-27,Borrar esta columna
+TRX-0302,22,Silla Ergonomica,Perifericos,Genérica,1,$727.90,2024-10-28,Borrar esta columna
+TRX-0303,7,"Monitor LG 27""",Electronica,Genérica,7,"$2,076.96",2024-10-29,Borrar esta columna
+TRX-0304,16,Teclado Mecánico,Perifericos,Genérica,5,"$1,744.74",2024-10-30,Borrar esta columna
+TRX-0305,13,Mouse Inalámbrico,Perifericos,Genérica,4,$359.90,2024-10-31,Borrar esta columna
+TRX-0306,13,Laptop Dell XPS,Perifericos,Genérica,2,"$1,768.26",2024-11-01,Borrar esta columna
+TRX-0307,35,Silla Ergonomica,Perifericos,Genérica,14,"$1,129.77",2024-11-02,Borrar esta columna
+TRX-0308,29,Teclado Mecánico,Perifericos,Genérica,14,$28.05,2024-11-03,Borrar esta columna
+TRX-0309,9,"Monitor LG 27""",Mobiliario,Genérica,8,$211.88,2024-11-04,Borrar esta columna
+TRX-0310,28,Teclado Mecánico,Electronica,Genérica,2,$650.97,2024-11-05,Borrar esta columna
+TRX-0311,12,Teclado Mecánico,Electronica,Genérica,11,"$2,089.88",2024-11-06,Borrar esta columna
+TRX-0312,18,Teclado Mecánico,Perifericos,Genérica,4,"$1,378.78",2024-11-07,Borrar esta columna
+TRX-0313,30,Auriculares Sony,Perifericos,Genérica,11,"$1,822.18",2024-11-08,Borrar esta columna
+TRX-0314,16,Laptop Dell XPS,Mobiliario,Genérica,11,"$1,326.51",2024-11-09,Borrar esta columna
+TRX-0315,5,"Monitor LG 27""",Perifericos,Genérica,10,$291.30,2024-11-10,Borrar esta columna
+TRX-0316,29,"Monitor LG 27""",Perifericos,Genérica,1,$730.93,2024-11-11,Borrar esta columna
+TRX-0317,36,"Monitor LG 27""",Mobiliario,Genérica,1,$763.36,2024-11-12,Borrar esta columna
+TRX-0318,7,Mouse Inalámbrico,Perifericos,Genérica,13,$133.66,2024-11-13,Borrar esta columna
+TRX-0319,4,Silla Ergonomica,Mobiliario,Genérica,6,"$1,058.27",2024-11-14,Borrar esta columna
+TRX-0320,42,"Monitor LG 27""",Electronica,Genérica,4,"$1,987.84",2024-11-15,Borrar esta columna
+TRX-0321,35,Silla Ergonomica,Perifericos,Genérica,3,"$1,150.93",2024-11-16,Borrar esta columna
+TRX-0322,1,"Monitor LG 27""",Electronica,Genérica,13,$290.48,2024-11-17,Borrar esta columna
+TRX-0323,6,Laptop Dell XPS,Perifericos,Genérica,10,"$2,264.29",2024-11-18,Borrar esta columna
+TRX-0324,49,Mouse Inalámbrico,Perifericos,Genérica,4,"$1,497.90",2024-11-19,Borrar esta columna
+TRX-0325,16,Mouse Inalámbrico,Perifericos,Genérica,2,$55.84,2024-11-20,Borrar esta columna
+TRX-0326,11,Teclado Mecánico,Electronica,Genérica,14,"$1,295.71",2024-11-21,Borrar esta columna
+TRX-0327,27,Auriculares Sony,Perifericos,Genérica,13,$616.22,2024-11-22,Borrar esta columna
+TRX-0328,32,Mouse Inalámbrico,Mobiliario,Genérica,9,$371.79,2024-11-23,Borrar esta columna
+TRX-0329,31,Mouse Inalámbrico,Electronica,Genérica,4,"$1,081.66",2024-11-24,Borrar esta columna
+TRX-0330,14,Laptop Dell XPS,Mobiliario,Genérica,10,"$1,542.80",2024-11-25,Borrar esta columna
+TRX-0331,26,"Monitor LG 27""",Mobiliario,Genérica,4,$612.80,2024-11-26,Borrar esta columna
+TRX-0332,4,Escritorio Standing,Perifericos,Genérica,14,"$1,050.17",2024-11-27,Borrar esta columna
+TRX-0333,11,Mouse Inalámbrico,Perifericos,Genérica,14,"$1,665.96",2024-11-28,Borrar esta columna
+TRX-0334,25,Mouse Inalámbrico,Electronica,Genérica,4,$227.75,2024-11-29,Borrar esta columna
+TRX-0335,1,Escritorio Standing,Electronica,Genérica,6,"$2,437.02",2024-11-30,Borrar esta columna
+TRX-0336,25,Auriculares Sony,Mobiliario,Genérica,13,$183.18,2024-12-01,Borrar esta columna
+TRX-0337,17,Silla Ergonomica,Perifericos,Genérica,3,"$1,322.26",2024-12-02,Borrar esta columna
+TRX-0338,30,Laptop Dell XPS,Mobiliario,Genérica,13,"$1,275.71",2024-12-03,Borrar esta columna
+TRX-0339,19,Escritorio Standing,Perifericos,Genérica,15,"$2,471.00",2024-12-04,Borrar esta columna
+TRX-0340,28,Escritorio Standing,Mobiliario,Genérica,10,"$1,392.07",2024-12-05,Borrar esta columna
+TRX-0341,45,Auriculares Sony,Perifericos,Genérica,1,$985.28,2024-12-06,Borrar esta columna
+TRX-0342,47,Mouse Inalámbrico,Electronica,Genérica,5,"$1,183.29",2024-12-07,Borrar esta columna
+TRX-0343,36,Mouse Inalámbrico,Electronica,Genérica,14,"$1,594.64",2024-12-08,Borrar esta columna
+TRX-0344,43,Laptop Dell XPS,Perifericos,Genérica,3,"$2,452.88",2024-12-09,Borrar esta columna
+TRX-0345,46,Teclado Mecánico,Mobiliario,Genérica,3,$645.32,2024-12-10,Borrar esta columna
+TRX-0346,32,Teclado Mecánico,Electronica,Genérica,9,$55.36,2024-12-11,Borrar esta columna
+TRX-0347,10,Escritorio Standing,Perifericos,Genérica,5,"$1,974.47",2024-12-12,Borrar esta columna
+TRX-0348,13,Mouse Inalámbrico,Perifericos,Genérica,13,$871.83,2024-12-13,Borrar esta columna
+TRX-0349,19,Escritorio Standing,Mobiliario,Genérica,3,"$1,836.36",2024-12-14,Borrar esta columna
+TRX-0350,14,Escritorio Standing,Perifericos,Genérica,2,"$1,576.22",2024-12-15,Borrar esta columna
+TRX-0351,4,Mouse Inalámbrico,Electronica,Genérica,11,"$1,932.18",2024-12-16,Borrar esta columna
+TRX-0352,38,Auriculares Sony,Electronica,Genérica,14,"$1,841.94",2024-12-17,Borrar esta columna
+TRX-0353,48,Silla Ergonomica,Mobiliario,Genérica,1,$841.31,2024-12-18,Borrar esta columna
+TRX-0354,35,Silla Ergonomica,Mobiliario,Genérica,3,$125.17,2024-12-19,Borrar esta columna
+TRX-0355,4,Auriculares Sony,Electronica,Genérica,1,"$1,371.84",2024-12-20,Borrar esta columna
+TRX-0356,48,Escritorio Standing,Mobiliario,Genérica,6,"$2,036.57",2024-12-21,Borrar esta columna
+TRX-0357,21,Auriculares Sony,Electronica,Genérica,13,$450.10,2024-12-22,Borrar esta columna
+TRX-0358,4,"Monitor LG 27""",Perifericos,Genérica,13,"$1,951.17",2024-12-23,Borrar esta columna
+TRX-0359,4,Mouse Inalámbrico,Mobiliario,Genérica,4,"$1,169.59",2024-12-24,Borrar esta columna
+TRX-0360,38,"Monitor LG 27""",Electronica,Genérica,10,"$1,743.04",2024-12-25,Borrar esta columna
+TRX-0361,31,Teclado Mecánico,Mobiliario,Genérica,6,"$1,584.86",2024-12-26,Borrar esta columna
+TRX-0362,33,Mouse Inalámbrico,Perifericos,Genérica,1,"$2,031.57",2024-12-27,Borrar esta columna
+TRX-0363,34,Mouse Inalámbrico,Electronica,Genérica,3,$171.80,2024-12-28,Borrar esta columna
+TRX-0364,11,Laptop Dell XPS,Electronica,Genérica,5,"$1,943.83",2024-12-29,Borrar esta columna
+TRX-0365,4,Mouse Inalámbrico,Electronica,Genérica,1,"$1,152.33",2024-12-30,Borrar esta columna
+TRX-0366,33,Teclado Mecánico,Perifericos,Genérica,3,$744.20,2024-12-31,Borrar esta columna
+TRX-0367,6,Silla Ergonomica,Electronica,Genérica,12,$123.86,2025-01-01,Borrar esta columna
+TRX-0368,12,Silla Ergonomica,Mobiliario,Genérica,7,$510.68,2025-01-02,Borrar esta columna
+TRX-0369,5,Escritorio Standing,Electronica,Genérica,9,$119.14,2025-01-03,Borrar esta columna
+TRX-0370,39,Mouse Inalámbrico,Perifericos,Genérica,2,"$2,334.43",2025-01-04,Borrar esta columna
+TRX-0371,5,Silla Ergonomica,Mobiliario,Genérica,12,"$1,295.73",2025-01-05,Borrar esta columna
+TRX-0372,44,"Monitor LG 27""",Perifericos,Genérica,2,"$2,472.97",2025-01-06,Borrar esta columna
+TRX-0373,16,Escritorio Standing,Mobiliario,Genérica,8,"$1,364.43",2025-01-07,Borrar esta columna
+TRX-0374,26,Mouse Inalámbrico,Mobiliario,Genérica,8,$644.48,2025-01-08,Borrar esta columna
+TRX-0375,8,"Monitor LG 27""",Perifericos,Genérica,13,"$1,886.93",2025-01-09,Borrar esta columna
+TRX-0376,37,Auriculares Sony,Perifericos,Genérica,6,$489.89,2025-01-10,Borrar esta columna
+TRX-0377,16,Auriculares Sony,Perifericos,Genérica,9,$902.08,2025-01-11,Borrar esta columna
+TRX-0378,38,Laptop Dell XPS,Perifericos,Genérica,10,"$1,955.39",2025-01-12,Borrar esta columna
+TRX-0379,39,Mouse Inalámbrico,Electronica,Genérica,2,"$2,166.51",2025-01-13,Borrar esta columna
+TRX-0380,3,Auriculares Sony,Perifericos,Genérica,8,$839.83,2025-01-14,Borrar esta columna
+TRX-0381,40,Auriculares Sony,Mobiliario,Genérica,9,$324.32,2025-01-15,Borrar esta columna
+TRX-0382,6,Silla Ergonomica,Electronica,Genérica,4,$929.53,2025-01-16,Borrar esta columna
+TRX-0383,27,Laptop Dell XPS,Perifericos,Genérica,10,"$2,225.37",2025-01-17,Borrar esta columna
+TRX-0384,43,Laptop Dell XPS,Electronica,Genérica,1,"$1,862.12",2025-01-18,Borrar esta columna
+TRX-0385,38,Silla Ergonomica,Mobiliario,Genérica,12,"$2,238.17",2025-01-19,Borrar esta columna
+TRX-0386,37,Mouse Inalámbrico,Mobiliario,Genérica,13,$975.81,2025-01-20,Borrar esta columna
+TRX-0387,34,"Monitor LG 27""",Mobiliario,Genérica,15,"$2,434.70",2025-01-21,Borrar esta columna
+TRX-0388,21,Escritorio Standing,Electronica,Genérica,14,"$1,248.07",2025-01-22,Borrar esta columna
+TRX-0389,17,Mouse Inalámbrico,Electronica,Genérica,11,"$1,251.35",2025-01-23,Borrar esta columna
+TRX-0390,14,"Monitor LG 27""",Perifericos,Genérica,9,"$2,311.91",2025-01-24,Borrar esta columna
+TRX-0391,43,Laptop Dell XPS,Perifericos,Genérica,5,"$1,305.40",2025-01-25,Borrar esta columna
+TRX-0392,46,Teclado Mecánico,Perifericos,Genérica,8,"$2,005.85",2025-01-26,Borrar esta columna
+TRX-0393,21,Mouse Inalámbrico,Mobiliario,Genérica,11,"$1,821.80",2025-01-27,Borrar esta columna
+TRX-0394,16,Teclado Mecánico,Perifericos,Genérica,1,$211.13,2025-01-28,Borrar esta columna
+TRX-0395,17,"Monitor LG 27""",Electronica,Genérica,1,"$1,512.10",2025-01-29,Borrar esta columna
+TRX-0396,26,Mouse Inalámbrico,Perifericos,Genérica,8,"$2,058.52",2025-01-30,Borrar esta columna
+TRX-0397,9,Teclado Mecánico,Mobiliario,Genérica,14,"$1,370.50",2025-01-31,Borrar esta columna
+TRX-0398,43,Teclado Mecánico,Perifericos,Genérica,7,$813.21,2025-02-01,Borrar esta columna
+TRX-0399,42,Escritorio Standing,Mobiliario,Genérica,7,$213.97,2025-02-02,Borrar esta columna
+TRX-0400,20,Mouse Inalámbrico,Mobiliario,Genérica,11,"$1,657.38",2025-02-03,Borrar esta columna
+TRX-0401,30,Teclado Mecánico,Mobiliario,Genérica,2,$776.64,2025-02-04,Borrar esta columna
+TRX-0402,21,Escritorio Standing,Perifericos,Genérica,8,"$1,512.51",2025-02-05,Borrar esta columna
+TRX-0403,49,Escritorio Standing,Electronica,Genérica,12,"$1,073.90",2025-02-06,Borrar esta columna
+TRX-0404,5,Mouse Inalámbrico,Perifericos,Genérica,15,"$1,729.07",2025-02-07,Borrar esta columna
+TRX-0405,1,Teclado Mecánico,Mobiliario,Genérica,8,$888.59,2025-02-08,Borrar esta columna
+TRX-0406,30,Escritorio Standing,Perifericos,Genérica,2,$120.25,2025-02-09,Borrar esta columna
+TRX-0407,40,Laptop Dell XPS,Perifericos,Genérica,15,"$2,177.04",2025-02-10,Borrar esta columna
+TRX-0408,37,Mouse Inalámbrico,Perifericos,Genérica,2,$891.11,2025-02-11,Borrar esta columna
+TRX-0409,7,Laptop Dell XPS,Mobiliario,Genérica,6,"$2,495.40",2025-02-12,Borrar esta columna
+TRX-0410,5,Silla Ergonomica,Mobiliario,Genérica,10,$697.27,2025-02-13,Borrar esta columna
+TRX-0411,35,Auriculares Sony,Perifericos,Genérica,3,"$2,450.37",2025-02-14,Borrar esta columna
+TRX-0412,14,Laptop Dell XPS,Perifericos,Genérica,2,"$2,370.54",2025-02-15,Borrar esta columna
+TRX-0413,33,Teclado Mecánico,Perifericos,Genérica,3,$201.48,2025-02-16,Borrar esta columna
+TRX-0414,17,"Monitor LG 27""",Electronica,Genérica,5,"$1,599.22",2025-02-17,Borrar esta columna
+TRX-0415,9,Silla Ergonomica,Mobiliario,Genérica,10,$917.83,2025-02-18,Borrar esta columna
+TRX-0416,23,Laptop Dell XPS,Electronica,Genérica,11,"$2,005.72",2025-02-19,Borrar esta columna
+TRX-0417,5,Escritorio Standing,Mobiliario,Genérica,10,"$1,703.34",2025-02-20,Borrar esta columna
+TRX-0418,16,Silla Ergonomica,Perifericos,Genérica,9,"$2,382.68",2025-02-21,Borrar esta columna
+TRX-0419,24,Laptop Dell XPS,Electronica,Genérica,12,$369.81,2025-02-22,Borrar esta columna
+TRX-0420,19,Escritorio Standing,Perifericos,Genérica,6,"$1,524.82",2025-02-23,Borrar esta columna
+TRX-0421,11,Laptop Dell XPS,Electronica,Genérica,7,"$1,956.56",2025-02-24,Borrar esta columna
+TRX-0422,29,"Monitor LG 27""",Perifericos,Genérica,10,$101.48,2025-02-25,Borrar esta columna
+TRX-0423,35,"Monitor LG 27""",Mobiliario,Genérica,9,$182.07,2025-02-26,Borrar esta columna
+TRX-0424,46,Escritorio Standing,Perifericos,Genérica,5,"$1,949.61",2025-02-27,Borrar esta columna
+TRX-0425,20,Laptop Dell XPS,Mobiliario,Genérica,8,$925.33,2025-02-28,Borrar esta columna
+TRX-0426,40,Auriculares Sony,Perifericos,Genérica,9,$966.39,2025-03-01,Borrar esta columna
+TRX-0427,42,"Monitor LG 27""",Perifericos,Genérica,10,"$1,424.60",2025-03-02,Borrar esta columna
+TRX-0428,34,"Monitor LG 27""",Mobiliario,Genérica,7,"$1,518.66",2025-03-03,Borrar esta columna
+TRX-0429,1,"Monitor LG 27""",Mobiliario,Genérica,2,"$1,702.47",2025-03-04,Borrar esta columna
+TRX-0430,43,Mouse Inalámbrico,Electronica,Genérica,13,"$2,372.83",2025-03-05,Borrar esta columna
+TRX-0431,36,Silla Ergonomica,Perifericos,Genérica,12,$939.45,2025-03-06,Borrar esta columna
+TRX-0432,20,Laptop Dell XPS,Electronica,Genérica,2,"$1,911.26",2025-03-07,Borrar esta columna
+TRX-0433,43,Auriculares Sony,Electronica,Genérica,14,"$1,441.20",2025-03-08,Borrar esta columna
+TRX-0434,7,"Monitor LG 27""",Mobiliario,Genérica,11,"$1,330.71",2025-03-09,Borrar esta columna
+TRX-0435,9,Mouse Inalámbrico,Mobiliario,Genérica,11,"$1,004.11",2025-03-10,Borrar esta columna
+TRX-0436,17,Silla Ergonomica,Perifericos,Genérica,15,"$1,629.16",2025-03-11,Borrar esta columna
+TRX-0437,8,Teclado Mecánico,Electronica,Genérica,13,$635.28,2025-03-12,Borrar esta columna
+TRX-0438,7,Escritorio Standing,Perifericos,Genérica,9,$296.92,2025-03-13,Borrar esta columna
+TRX-0439,48,Teclado Mecánico,Electronica,Genérica,12,"$1,843.15",2025-03-14,Borrar esta columna
+TRX-0440,36,"Monitor LG 27""",Mobiliario,Genérica,14,"$1,255.12",2025-03-15,Borrar esta columna
+TRX-0441,10,Auriculares Sony,Perifericos,Genérica,4,$976.66,2025-03-16,Borrar esta columna
+TRX-0442,18,Auriculares Sony,Electronica,Genérica,7,"$1,410.76",2025-03-17,Borrar esta columna
+TRX-0443,19,Silla Ergonomica,Mobiliario,Genérica,8,$665.52,2025-03-18,Borrar esta columna
+TRX-0444,39,Silla Ergonomica,Electronica,Genérica,15,$661.82,2025-03-19,Borrar esta columna
+TRX-0445,14,Laptop Dell XPS,Perifericos,Genérica,4,"$1,123.99",2025-03-20,Borrar esta columna
+TRX-0446,46,Escritorio Standing,Mobiliario,Genérica,7,"$2,490.97",2025-03-21,Borrar esta columna
+TRX-0447,22,Escritorio Standing,Electronica,Genérica,6,$724.66,2025-03-22,Borrar esta columna
+TRX-0448,14,"Monitor LG 27""",Electronica,Genérica,14,"$2,292.45",2025-03-23,Borrar esta columna
+TRX-0449,44,Teclado Mecánico,Perifericos,Genérica,8,"$1,235.63",2025-03-24,Borrar esta columna
+TRX-0450,41,Laptop Dell XPS,Perifericos,Genérica,7,$319.75,2025-03-25,Borrar esta columna

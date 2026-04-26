@@ -72,6 +72,8 @@ class ModalesUI:
         frame_grafico = ctk.CTkFrame(dialog)
         frame_grafico.grid(row=1, column=1, padx=(10, 20), pady=(0, 20), sticky="nsew")
 
+        figura_actual = plt.gcf()
+        
         def actualizar_vista(choice):
             # 1. Actualizar Texto (Usando el motor)
             reporte = tab.motor.obtener_radiografia(choice)
@@ -80,8 +82,6 @@ class ModalesUI:
             # 2. Limpiar el gráfico anterior
             for widget in frame_grafico.winfo_children():
                 widget.destroy()
-            
-            plt.close('all') # <--- NUEVO: Cierra las figuras previas en la memoria de Matplotlib
 
             # 3. Generar el nuevo Gráfico
             try:
@@ -126,6 +126,13 @@ class ModalesUI:
         # Disparar la vista con la primera columna por defecto
         if len(tab.motor.df.columns) > 0:
             actualizar_vista(tab.motor.df.columns[0])
+            
+        def al_cerrar_radiografia():
+            # Cerramos SOLO la figura de esta ventana para no borrar otros gráficos
+            plt.close(figura_actual)
+            dialog.destroy()
+
+        dialog.protocol("WM_DELETE_WINDOW", al_cerrar_radiografia)
             
     @staticmethod
     def cambiar_tipo_dato(app_root, tab):

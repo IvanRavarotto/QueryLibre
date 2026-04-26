@@ -86,17 +86,30 @@ df_clientes = pd.DataFrame(datos_clientes)
 
 
 # --- 3. GUARDAR LOS ARCHIVOS ---
-# Guarda los archivos en una subcarpeta 'data' dentro de 'tests'
-carpeta_destino = os.path.join(os.path.dirname(__file__), 'data')
+# Obtenemos la ruta absoluta de la carpeta donde está este script
+directorio_actual = os.path.dirname(os.path.abspath(__file__))
+
+# Verificamos si estamos dentro de la carpeta 'tests' o en la raíz
+if os.path.basename(directorio_actual) == 'tests':
+    # Si el script ya está en 'tests', solo agregamos 'data'
+    carpeta_destino = os.path.join(directorio_actual, 'data')
+else:
+    # Si el script está en la raíz, agregamos 'tests' y 'data'
+    carpeta_destino = os.path.join(directorio_actual, 'tests', 'data')
+
+# Creamos la carpeta
 os.makedirs(carpeta_destino, exist_ok=True)
 
-ruta_ventas = os.path.join(carpeta_destino, 'ventas_caoticas.csv')
-ruta_ventas_exigente = os.path.join(carpeta_destino, 'ventas_caoticas_exigente.csv')
+# Armamos las rutas completas
+ruta_ventas = os.path.join(carpeta_destino, 'ventas_caoticas_exigente.csv')
 ruta_clientes = os.path.join(carpeta_destino, 'clientes_dim.csv')
 
-print("-" * 50)
-print(f"Archivos de prueba generados con éxito en la carpeta '{carpeta_destino}'")
-print(f"Dataset Original (Ventas): {len(df_ventas)} filas")
-print(f"Dataset Exigente (Ventas_exigente): {len(df_ventas)} filas")
-print(f"Dataset Secundario (Clientes): {len(df_clientes)} filas")
-print("-" * 50)
+# IMPORTANTE: Usamos to_csv para guardar los dataframes en las rutas creadas
+# (Asegúrate de que tus DataFrames se llamen así, o cambia los nombres si los llamaste distinto)
+df_ventas = pd.DataFrame(datos_ventas) # Aseguramos que el DF esté creado
+df_ventas.to_csv(ruta_ventas, index=False)
+df_clientes.to_csv(ruta_clientes, index=False)
+
+print("\n" + "="*50)
+print(f"✅ ¡ÉXITO! Los archivos se guardaron exactamente en:\n{carpeta_destino}")
+print("="*50 + "\n")

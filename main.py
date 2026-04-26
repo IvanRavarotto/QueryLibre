@@ -515,9 +515,9 @@ class QueryLibreApp(ctk.CTk):
                     else:
                         self.ejecutar_tarea_pesada(tab.motor.exportar_archivo, fmt, file_path)
                     dialog.destroy()
-                except Exception as e: 
-                    err.configure(text=f"⚠️ Error al guardar.")
-                    print(e)
+                except Exception as e:
+                    LOGGER.error(f"Error crítico al exportar datos: {e}")
+                    messagebox.showerror("❌ Error", f"No se pudo exportar el archivo:\n{e}")
         
     def mostrar_acerca_de(self):
         ModalesUI.mostrar_acerca_de(self)

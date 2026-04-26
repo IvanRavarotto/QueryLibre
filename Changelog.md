@@ -3,6 +3,25 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [1.8.0] - 2026-04-26
+### English
+#### Added
+* **Conditional Columns (IF-THEN-ELSE):** Users can now create dynamic columns based on mathematical or text rules, powered by high-speed vectorized Numpy operations.
+* **Smart Data Extraction:** The engine now intelligently forces column types during logic evaluation, preventing crashes when dealing with mixed or corrupted data.
+#### Fixed
+* **Safe Undo Recovery:** Overhauled the Time Travel architecture. Reverting a failed action now safely rebuilds the DataFrame directly from the `.parquet` disk cache, eliminating memory corruption.
+* **UI Deadlock Resolution:** Fixed an internal race condition in CustomTkinter by implementing delayed window destruction and forcing error message boxes to anchor to the main application root.
+
+### Español
+#### Añadido
+* **Columnas Condicionales (IF-THEN-ELSE):** Los usuarios ahora pueden crear columnas dinámicas basadas en reglas matemáticas o de texto, impulsadas por operaciones vectorizadas de alta velocidad de Numpy.
+* **Extracción Inteligente de Datos:** El motor ahora fuerza inteligentemente los tipos de columnas durante la evaluación lógica, previniendo cuelgues al tratar con datos mixtos o corruptos.
+#### Corregido
+* **Recuperación Segura (Deshacer):** Arquitectura de Viaje en el Tiempo rediseñada. Revertir una acción fallida ahora reconstruye el DataFrame directamente desde el caché `.parquet` del disco de forma segura, eliminando la corrupción de memoria.
+* **Resolución de Deadlocks en UI:** Corregida una condición de carrera interna en CustomTkinter mediante la destrucción retrasada de ventanas y el anclaje de los mensajes de error a la raíz principal de la aplicación.
+
+---
+
 ## [1.7.0] - 2026-04-18
 ### English
 #### Added
