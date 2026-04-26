@@ -22,16 +22,26 @@ class ModalesUI:
         if hasattr(app_root, 'fijar_icono'):
             app_root.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.7.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v1.8.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
         legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite")
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 10))
         
-        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próximas funciones):", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
-        roadmap_text = ("• v1.6.0: Panel de Salud Global (RAM y Nulos).\n• v1.6.0: Pestañas Avanzadas (Indicador '*' de cambios).\n• v1.7.0: Conexión directa a BD SQL.")
-        ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 15))
+        # Título de la sección
+        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión 2.0.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+
+        # Texto del Roadmap estructurado por fases
+        roadmap_text = (
+            "• Interfaz del Analista IA (Panel lateral y Configuración).\n"
+            "• Motor de Metadatos (Resumen del contexto para la IA).\n"
+            "• Integración de API (Conexión con Gemini/OpenAI).\n"
+            "• Perfiles SQL (Historial de conexiones guardadas).\n"
+            "• Refactorización estructural y Deuda Técnica."
+        )
+
+        ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 20))
 
         ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)
         ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 5))

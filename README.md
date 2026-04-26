@@ -21,26 +21,25 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🚀 Características Principales (v1.6.0)
+## 🚀 Características Principales (v1.8.0)
 
-* **🧠 Smart Data Profiling:** Genera gráficos automáticos y estadísticas descriptivas según el tipo de columna.
-* **✨ Asistente IA:** Escaneo proactivo que sugiere limpieza de duplicados y optimización de columnas.
-* **🐘 Big Data Ready:** Motor optimizado para procesar millones de filas (v1.6.0 validada con 5.8M de registros).
-* **🛡️ Integridad de Datos:** Sistema de previsualización de errores de conversión y guardado basado en `.parquet`.
+* **🧠 Smart Data Profiling (Radiografía de Datos):** Genera análisis estadísticos y gráficos de distribución automáticos para cualquier columna con un solo clic.
+* **🔀 Columnas Condicionales (IF-THEN-ELSE):** Crea nuevas columnas dinámicas basadas en reglas matemáticas o de texto utilizando el procesamiento vectorizado de alto rendimiento de Numpy.
+* **🔄 Unpivot Horizontal a Vertical:** Transforma datos de formato ancho (como meses en columnas) a formato largo, ideal para su ingesta en motores de bases de datos o herramientas de BI.
+* **⏳ Viaje en el Tiempo (Caché Parquet):** Sistema robusto de Deshacer/Rehacer (`Ctrl+Z` / `Ctrl+Y`) respaldado por un caché en disco de formato `.parquet`, garantizando la recuperación ante errores sin saturar la memoria RAM.
+* **📊 Correlación Interactiva:** Herramienta de Gráfico de Dispersión (Scatter Plot) bidireccional. Haz clic en un punto del gráfico y la cuadrícula principal navegará automáticamente hacia esa fila exacta.
+* **🗃️ Conector SQL Integrado:** Importa datos directamente desde bases de datos relacionales sin configuraciones complejas.
+* **🧹 Limpieza Automatizada:** Herramientas de un solo clic para eliminación de duplicados, gestión inteligente de nulos, búsqueda y reemplazo masivo, y auto-casteo de tipos de datos.
+* **💾 Exportación Universal:** Guarda tus proyectos limpiados en formatos `.csv`, `.xlsx`, o bases de datos `.sqlite` listas para producción.
 
 ---
 
-## Próximas Actualizaciones (v1.6.1 - Rendimiento y UX):**
+## Próximas Actualizaciones v1.9.0: Inteligencia Artificial y Optimización**
 
-* 🧭 **Navegación Avanzada:** Implementación de "Salto de Página" (Go-To-Page) para recorrer rápidamente datasets masivos.
-* ⏳ **Feedback Visual de Carga:** Barra de progreso real para operaciones pesadas y resumen de dimensiones (filas/columnas) al finalizar la carga.
-* 🛡️ **Macros con Tolerancia a Fallos:** Sistema "Try-Continue" para que la ejecución de funciones en cadena (o el Asistente IA) ignore errores menores y continúe procesando.
-* ✅ **Protección de Cierre:** Diálogo inteligente (Guardar / No Guardar / Cancelar) al intentar salir de la app con cambios pendientes. (Completado en Fase 1)
-
-**A Mediano Plazo (v1.7.0+):**
-* 🔌 **Conectores a Bases de Datos:** Importación directa de tablas desde servidores SQL Server, MySQL y PostgreSQL.
-* 📊 **Exportación de Insights:** Capacidad de descargar los gráficos interactivos de Matplotlib en formato `.png` o `.pdf`.
-* 🧲 **Inferencia de Tipos:** Botón "Auto-Detectar" para analizar y castear los tipos de datos de todo el dataset con un solo clic.
+* ✨ **Panel lateral IA:**Creación del panel lateral para el "Analista IA" y la pestaña de configuración para la API Key.
+* 🛡️ **Motor de Contexto**: Desarrollo de generar_resumen_ia() en el motor para extraer metadatos sin comprometer la privacidad ni la RAM.
+* 📊 **Integración de la API:** de Gemini/OpenAI con la interfaz del chat.
+* 🔌 **Conexiones SQL:** Implementación de perfiles de conexión guardados en conexiones.json.
 
 ---
 
@@ -60,7 +59,10 @@ No es necesario instalar Python ni librerías.
 
 1. Ve a la sección de **Releases** en este repositorio.
 2. Descarga el archivo `QueryLibre.exe`.
-3. Ejecútalo haciendo doble clic. *(Si Windows Defender muestra una advertencia de SmartScreen, haz clic en "Más información" -> "Ejecutar de todas formas").*
+3. Ejecútalo haciendo doble clic. 
+
+> ⚠️ **Nota de Seguridad (Windows SmartScreen):** > Al ser un proyecto de código abierto independiente sin un certificado digital de pago, es muy probable que Windows Defender muestre una pantalla azul indicando "Windows protegió su PC". 
+> Para abrir la aplicación de forma segura, haz clic en **"Más información"** y luego en el botón **"Ejecutar de todas formas"**.
 
 ---
 
