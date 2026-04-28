@@ -41,9 +41,9 @@ class QueryLibreApp(ctk.CTk):
         self.pestanas = {} 
 
         self.title("QueryLibre - Motor de Transformación de Datos")
-        self.geometry("1100x650")
-        self.bind("<Control-w>", lambda e: self.cerrar_pestana_actual())
-        self.minsize(900, 500)
+        self.geometry("1280x720") # Más grande por defecto
+        # Hacemos que inicie maximizada en Windows
+        self.after(0, lambda: self.state('zoomed'))
     
         
         # Interceptar la X de la ventana para limpiar la basura
@@ -125,16 +125,6 @@ class QueryLibreApp(ctk.CTk):
         )
         self.menu_analisis.set("🔬 Análisis")
         self.menu_analisis.pack(side="left", padx=5)
-        
-        self.btn_sql = ctk.CTkButton(
-            self.toolbar_frame, 
-            text="🔌 Importar SQL", 
-            command=self.abrir_conector_sql,
-            width=140, 
-            fg_color="#1e3799", 
-            hover_color="#4a69bd"
-        )
-        self.btn_sql.pack(side="left", padx=5)
         
         self.btn_unpivot = ctk.CTkButton(
             self.toolbar_frame, 

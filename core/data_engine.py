@@ -949,3 +949,34 @@ class MotorDatos:
                 else:
                     self.df = archivo_cache # Respaldo por si es un DataFrame en RAM
             raise RuntimeError(f"Error al evaluar la lógica:\n{e}")
+        
+    def generar_resumen_ia(self):
+        """
+        Extrae la metadata del DataFrame actual para enviarla como contexto a la IA,
+        sin exponer todo el volumen de datos.
+        """
+        if self.df is None or self.df.empty:
+            return "El usuario no tiene ningún dataset cargado actualmente."
+
+        resumen = []
+        resumen.append(f"El dataset actual tiene {self.df.shape[0]} filas y {self.df.shape[1]} columnas.")
+        resumen.append("--- ESTRUCTURA DE LAS COLUMNAS ---")
+        
+        for col in self.df.columns:
+            tipo = str(self.df[col].dtype)
+            nulos = self.df[col].isna().sum()
+            
+            # Buscamos valores únicos si es una columna de texto pequeña (para darle más contexto a la IA)
+            unicos_str = ""
+            if self.df[col].dtype == 'object' and self.df[col].nunique() < 10:
+                unicos = self.df[col].dropna().unique().tolist()
+                unicos_str = f" | Valores únicos: {unicos}"
+                
+            resumen.append(f"- Columna: '{col}' | Tipo: {tipo} | Nulos: {nulos}{unicos_str}")
+            
+        resumen.append("\n--- MUESTRA DE DATOS (Primeras 3 filas) ---")
+        # Convertimos las primeras 3 filas a formato diccionario/JSON string para que la IA lo lea fácil
+        muestra = self.df.head(3).to_dict(orient="records")
+        resumen.append(str(muestra))
+        
+        return "\n".join(resumen)

@@ -1,6 +1,7 @@
 import os
 import math
 import tkinter as tk
+from ui.modals import ModalesUI
 from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 import logging
@@ -42,31 +43,60 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.pagina_actual = 1
         self.filas_por_pagina = 200
 
-        # --- Panel Derecho: Historial y Macros ---
-        self.history_frame = ctk.CTkFrame(self, width=220)
-        self.history_frame.pack_propagate(False)
-        self.history_frame.pack(side="right", fill="y", padx=(10, 0))
+        # --- Panel Derecho: Tabview (Historial / IA) ---
+        self.right_panel = ctk.CTkTabview(self, width=280)
+        self.right_panel.pack(side="right", fill="y", padx=(10, 0), pady=0)
+        
+        # Creamos las dos pestañas
+        self.right_panel.add("Historial")
+        self.right_panel.add("✨ Analista IA")
+        
+        # ==========================================
+        # PESTAÑA 1: HISTORIAL Y MACROS
+        # ==========================================
+        self.history_text = ctk.CTkTextbox(self.right_panel.tab("Historial"), font=("Arial", 11), state="disabled", wrap="word")
+        self.history_text.pack(expand=True, fill="both", padx=5, pady=5)
 
-        self.history_label = ctk.CTkLabel(self.history_frame, text="📋 Pasos Aplicados", font=ctk.CTkFont(weight="bold"))
-        self.history_label.pack(pady=(10, 5))
-
-        self.history_text = ctk.CTkTextbox(self.history_frame, font=("Arial", 11), state="disabled", width=200)
-        self.history_text.pack(expand=True, fill="both", padx=10, pady=5)
-
-        self.btn_deshacer = ctk.CTkButton(self.history_frame, text="↩️ Deshacer", command=self.deshacer_paso, state="disabled", fg_color="#e74c3c", hover_color="#c0392b")
-        self.btn_deshacer.pack(pady=(5, 5), padx=10, fill="x")
-
-        # --- BOTÓN DESPLEGABLE DE MACRO ---
-        self.macro_frame = ctk.CTkFrame(self.history_frame, fg_color="transparent")
-        self.macro_frame.pack(side="bottom", fill="x", pady=(0, 10), padx=10)
+        self.btn_deshacer = ctk.CTkButton(self.right_panel.tab("Historial"), text="↩️ Deshacer", command=self.deshacer_paso, state="disabled", fg_color="#e74c3c", hover_color="#c0392b")
+        self.btn_deshacer.pack(pady=(5, 5), padx=5, fill="x")
 
         self.btn_macro = ctk.CTkOptionMenu(
-            self.macro_frame, fg_color="#27ae60", button_color="#2ecc71", dynamic_resizing=False,
-            values=["💾 Guardar Macro actual", "▶️ Ejecutar Macro en Dataset"], # Quitamos el título de las opciones
+            self.right_panel.tab("Historial"), fg_color="#27ae60", button_color="#2ecc71", dynamic_resizing=False,
+            values=["💾 Guardar Macro actual", "▶️ Ejecutar Macro en Dataset"],
             command=self.dispatch_macro
         )
-        self.btn_macro.set("🤖 Macros") # Título forzado
-        self.btn_macro.pack(pady=2, fill="x")
+        self.btn_macro.set("🤖 Macros")
+        self.btn_macro.pack(pady=(2, 10), padx=5, fill="x")
+
+        # ==========================================
+        # PESTAÑA 2: ANALISTA IA (UI/UX)
+        # ==========================================
+        # Aquí irá el chat. Por ahora armamos el diseño visual.
+        self.chat_history = ctk.CTkTextbox(self.right_panel.tab("✨ Analista IA"), font=("Arial", 12), state="disabled", wrap="word", fg_color="#2b2b2b")
+        self.chat_history.pack(expand=True, fill="both", padx=5, pady=5)
+        
+        # Mensaje de bienvenida de la IA
+        self.chat_history.configure(state="normal")
+        self.chat_history.insert("end", "🤖 IA: ¡Hola! Soy tu Analista de Datos. Configura tu API Key para empezar.\n\n")
+        self.chat_history.configure(state="disabled")
+
+        frame_input_ia = ctk.CTkFrame(self.right_panel.tab("✨ Analista IA"), fg_color="transparent")
+        frame_input_ia.pack(fill="x", padx=5, pady=(5, 10))
+
+        self.entry_ia = ctk.CTkEntry(frame_input_ia, placeholder_text="Pregúntale algo a tus datos...")
+        self.entry_ia.pack(side="left", fill="x", expand=True, padx=(0, 5))
+
+        self.btn_enviar_ia = ctk.CTkButton(frame_input_ia, text="➤", width=40, fg_color="#8e44ad", hover_color="#9b59b6")
+        self.btn_enviar_ia.pack(side="right")
+        
+        self.btn_config_ia = ctk.CTkButton(
+            self.right_panel.tab("✨ Analista IA"), 
+            text="⚙️ Configurar API Key", 
+            fg_color="#34495e", 
+            hover_color="#2c3e50",
+            command=lambda: ModalesUI.mostrar_config_ia(self.app_root)
+        )
+        self.btn_config_ia.pack(fill="x", padx=5, pady=(0, 10))
 
         # --- Panel Izquierdo: Tabla de Datos ---
         self.tree_frame = ctk.CTkFrame(self)
