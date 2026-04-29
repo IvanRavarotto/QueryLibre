@@ -227,7 +227,6 @@ class ModalesUI:
             ctk.CTkButton(frame_btns, text="Forzar Conversión (Perder datos)", command=forzar_conversion, fg_color="#c0392b", hover_color="#922b21").pack(side="right", expand=True, padx=5)
         
     @staticmethod
-    @staticmethod
     def limpiar_nulos(app_root, tab):
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("Limpieza")
@@ -975,23 +974,22 @@ class ModalesUI:
         
     @staticmethod
     def mostrar_config_ia(app_root):
-        """Muestra la ventana para configurar y guardar la API Key de la IA."""
+        """Muestra la ventana para configurar la API Key con opciones de persistencia temporal o permanente"""
         import os
         import json
 
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("⚙️ Configuración del Analista IA")
-        dialog.geometry("450x280")
+        dialog.geometry("500x280") # Un poco más ancho para los 3 botones
         dialog.transient(app_root)
         dialog.grab_set()
         if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
 
-        # 1. Definir la "Carpeta Madre" en Documentos
         carpeta_madre = os.path.join(os.path.expanduser('~'), 'Documents', 'QueryLibre')
         os.makedirs(carpeta_madre, exist_ok=True)
         ruta_config = os.path.join(carpeta_madre, 'config.json')
 
-        # 2. Leer configuración existente
+        # 1. Leer configuración existente
         config_actual = {"api_key": "", "proveedor": "Gemini"}
         if os.path.exists(ruta_config):
             try:
@@ -1001,41 +999,55 @@ class ModalesUI:
                 pass
 
         ctk.CTkLabel(dialog, text="Conexión con el Cerebro IA", font=ctk.CTkFont(weight="bold", size=16), text_color=("#1a1a1a", "#f5f6fa")).pack(pady=(20, 5))
-        ctk.CTkLabel(dialog, text="Ingresa tu clave de API para habilitar el asistente.\nSe guardará localmente en tu equipo.", text_color="gray").pack(pady=(0, 15))
+        ctk.CTkLabel(dialog, text="Ingresa tu clave de API. Puedes guardarla en tu equipo\\no conectarla solo por esta sesión.", text_color="gray").pack(pady=(0, 15))
 
-        # --- Formulario ---
         frame_form = ctk.CTkFrame(dialog, fg_color="transparent")
         frame_form.pack(fill="x", padx=40)
 
-        ctk.CTkLabel(frame_form, text="Proveedor de IA:").grid(row=0, column=0, sticky="w", pady=5)
-        combo_proveedor = ctk.CTkComboBox(frame_form, values=["Gemini", "OpenAI"])
-        combo_proveedor.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=5)
-        combo_proveedor.set(config_actual["proveedor"])
-
-        ctk.CTkLabel(frame_form, text="API Key:").grid(row=1, column=0, sticky="w", pady=5)
-        entry_key = ctk.CTkEntry(frame_form, placeholder_text="Pega tu API Key aquí...", show="*") # show="*" oculta la clave
-        entry_key.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=5)
-        if config_actual["api_key"]:
+        ctk.CTkLabel(frame_form, text="API Key:").grid(row=0, column=0, sticky="w", pady=5)
+        entry_key = ctk.CTkEntry(frame_form, placeholder_text="Pega tu API Key aquí...", show="*")
+        entry_key.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=5)
+        
+        # Si hay una en sesión, la mostramos. Si no, la del archivo.
+        if hasattr(app_root, 'api_key_session') and app_root.api_key_session:
+            entry_key.insert(0, app_root.api_key_session)
+        elif config_actual["api_key"]:
             entry_key.insert(0, config_actual["api_key"])
 
         frame_form.grid_columnconfigure(1, weight=1)
 
-        def guardar_config():
-            nueva_config = {
-                "proveedor": combo_proveedor.get(),
-                "api_key": entry_key.get().strip()
-            }
+        # --- LÓGICA DE LOS BOTONES ---
+        def conectar_temporal():
+            clave = entry_key.get().strip()
+            if not clave:
+                messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
+                return
+            app_root.api_key_session = clave # Guardamos solo en RAM
+            messagebox.showinfo("✅ Conectado", "API Key conectada solo por esta sesión. No se guardará en tu equipo.")
+            dialog.destroy()
+
+        def guardar_permanente():
+            clave = entry_key.get().strip()
+            if not clave:
+                messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
+                return
+            
+            app_root.api_key_session = clave # Guardamos en RAM
+            
+            # Y guardamos en disco
+            nueva_config = {"proveedor": "Gemini", "api_key": clave}
             try:
                 with open(ruta_config, 'w', encoding='utf-8') as f:
                     json.dump(nueva_config, f, indent=4)
-                messagebox.showinfo("✅ Éxito", "Configuración de IA guardada correctamente.")
+                messagebox.showinfo("💾 Guardado", "API Key guardada de forma segura en tu equipo.")
                 dialog.destroy()
             except Exception as e:
-                messagebox.showerror("Error", f"No se pudo guardar la configuración:\n{e}")
+                messagebox.showerror("Error", f"No se pudo guardar:\\n{e}")
 
-        # --- Botones ---
+        # --- BOTONES (Cancelar | Conectar | Guardar) ---
         frame_btns = ctk.CTkFrame(dialog, fg_color="transparent")
-        frame_btns.pack(pady=20, fill="x", padx=40)
+        frame_btns.pack(pady=20, fill="x", padx=20)
         
-        ctk.CTkButton(frame_btns, text="Cancelar", command=dialog.destroy, fg_color="#7f8c8d", hover_color="#95a5a6").pack(side="left", expand=True, padx=5)
-        ctk.CTkButton(frame_btns, text="💾 Guardar", command=guardar_config, fg_color="#8e44ad", hover_color="#9b59b6").pack(side="right", expand=True, padx=5)
+        ctk.CTkButton(frame_btns, text="Cancelar", command=dialog.destroy, fg_color="#7f8c8d", hover_color="#95a5a6", width=100).pack(side="left", padx=5)
+        ctk.CTkButton(frame_btns, text="💾 Guardar", command=guardar_permanente, fg_color="#8e44ad", hover_color="#9b59b6", width=120).pack(side="right", padx=5)
+        ctk.CTkButton(frame_btns, text="🔌 Conectar (Temporal)", command=conectar_temporal, fg_color="#2980b9", hover_color="#3498db", width=150).pack(side="right", padx=5)

@@ -33,7 +33,7 @@ def obtener_ruta(ruta_relativa):
 class QueryLibreApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        
+        self.api_key_session = None  # Memoria temporal para la API Key
         self.master_cache = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
         if os.path.exists(self.master_cache):
             shutil.rmtree(self.master_cache, ignore_errors=True)
@@ -148,17 +148,30 @@ class QueryLibreApp(ctk.CTk):
         
         # --- NUEVO BOTÓN ASISTENTE v1.6.0 ---
         self.btn_asistente = ctk.CTkButton(
-            self.toolbar_frame, text="✨ Asistente IA", width=120,
+            self.toolbar_frame, text="🧹 Smart Clean", width=120,
             fg_color="#d35400", hover_color="#e67e22",
             command=lambda: ModalesUI.mostrar_asistente_limpieza(self, self.obtener_pestana_activa())
         )
+        
         self.btn_asistente.pack(side="right", padx=10) # Lo ponemos a la derecha de todo
         
         # ---- 4. GESTOR DE PESTANAS ----
         self.tabview = ctk.CTkTabview(self.main_frame, command=self.actualizar_lbl_dimensiones)
         
-        self.lbl_dimensiones = ctk.CTkLabel(self.main_frame, text="", text_color="gray", font=ctk.CTkFont(size=12, weight="bold"))
-        self.lbl_dimensiones.pack(side="bottom", anchor="e", padx=20, pady=5)
+        # ---- BARRA INFERIOR (Botón Cerrar y Dimensiones) ----
+        self.bottom_bar = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+
+        self.btn_cerrar_tab = ctk.CTkButton(
+            self.bottom_bar, 
+            text="❌ Cerrar Pestaña", 
+            command=self.cerrar_pestana_activa,
+            width=120, height=28,
+            fg_color="#c0392b", hover_color="#e74c3c"
+        )
+        self.btn_cerrar_tab.pack(side="left")
+
+        self.lbl_dimensiones = ctk.CTkLabel(self.bottom_bar, text="", text_color="gray", font=ctk.CTkFont(size=12, weight="bold"))
+        self.lbl_dimensiones.pack(side="right")
 
         style = ttk.Style()
         style.theme_use("default")
@@ -171,12 +184,15 @@ class QueryLibreApp(ctk.CTk):
         self.btn_acerca_de.grid(row=10, column=0, pady=(50, 20), sticky="s")
         
         # --- Atajos de Teclado Globales ---
+        self.bind("<Control-w>", lambda event: self.cerrar_pestana_activa())
         self.bind("<Control-s>", lambda event: self.accion_guardar_proyecto() if hasattr(self, 'accion_guardar_proyecto') else None)
         # Atajos en minúsculas y mayúsculas para asegurar captura
         self.bind("<Control-z>", lambda e: self._atajo_deshacer())
         self.bind("<Control-Z>", lambda e: self._atajo_deshacer())
         self.bind("<Control-y>", lambda e: self._atajo_rehacer())
         self.bind("<Control-Y>", lambda e: self._atajo_rehacer())
+        # Capturamos el clic del botón central (rueda) en todo el Tabview
+
 
     # =========================================================================
     # ENRUTADORES DE MENÚS (Dispatchers)
@@ -244,6 +260,10 @@ class QueryLibreApp(ctk.CTk):
                     self.welcome_label.pack_forget()
                     self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
                     self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
+                    
+                    # NUEVO: Mostramos la barra inferior
+                    self.bottom_bar.pack(side="bottom", fill="x", padx=20, pady=5) 
+                    
                     self.btn_transformar.configure(state="normal")
                     self.btn_exportar.configure(state="normal")
 
@@ -616,53 +636,6 @@ class QueryLibreApp(ctk.CTk):
         self.menu_estructura.configure(state=estado)
         self.menu_analisis.configure(state=estado)
     
-    def cerrar_pestana_actual(self):
-        """Cierra la pestaña activa validando si hay cambios sin guardar."""
-        try:
-            # Obtenemos el nombre de la pestaña que el usuario está mirando
-            nombre_tab = self.tabview.get()
-            tab = self.pestanas.get(nombre_tab)
-        except Exception:
-            return # Falla silenciosa si no hay tabview activo
-
-        if not tab: return
-
-        # VALIDACIÓN DE SEGURIDAD v1.5.4
-        if getattr(tab.motor, 'hay_cambios', False):
-            res = messagebox.askyesnocancel(
-                "Cambios sin guardar", 
-                f"La pestaña '{nombre_tab}' tiene cambios pendientes.\n\n¿Deseas exportar los datos antes de cerrar?"
-            )
-            
-            if res is True: 
-                # El usuario quiere guardar: disparamos la ventana de exportación
-                self.exportar_datos()
-                # Detenemos el cierre. Una vez que exporte exitosamente, 
-                # el asterisco desaparecerá y podrá cerrar la pestaña con seguridad.
-                return 
-            elif res is None: 
-                # El usuario apretó "Cancelar" o la 'X' del mensaje
-                return 
-        
-        # Si llega acá (no hay cambios, o eligió 'No' guardar), borramos la pestaña
-        self.tabview.delete(nombre_tab)
-        tab.destroy()
-        del self.pestanas[nombre_tab]
-        
-        # Limpieza de caché temporal delegada al motor
-        tab.motor.limpiar_cache()
-
-        # Si cerramos la última pestaña abierta, volvemos a la pantalla de bienvenida
-        if not self.pestanas:
-            self.welcome_label.pack(expand=True)
-            self.tabview.pack_forget()
-            # Ocultamos la barra de herramientas si existe
-            if hasattr(self, 'toolbar_frame'):
-                self.toolbar_frame.pack_forget()
-                
-            # APAGAMOS LOS BOTONES LATERALES
-            self.btn_transformar.configure(state="disabled")
-            self.btn_exportar.configure(state="disabled")
     
     def actualizar_titulo_pestana(self, objeto_pestana, nuevo_titulo):
         """Busca la pestaña por objeto y actualiza su texto visible."""
@@ -704,6 +677,7 @@ class QueryLibreApp(ctk.CTk):
             if hasattr(self, 'toolbar_frame'):
                 self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
             self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
+            self.bottom_bar.pack(side="bottom", fill="x", padx=20, pady=5)
             
             # Encender botones
             self.btn_transformar.configure(state="normal")
@@ -809,6 +783,56 @@ class QueryLibreApp(ctk.CTk):
             self.after(0, mostrar_decision)
             
         self.ejecutar_tarea_pesada(tarea_deteccion)
+        
+    def cerrar_pestana_activa(self, nombre_pestana=None):
+        """Cierra la pestaña indicada o la que esté activa actualmente, verificando cambios sin guardar."""
+        if not nombre_pestana:
+            nombre_pestana = self.tabview.get()
+        
+        if not nombre_pestana: return
+
+        try:
+            tab_obj = self.pestanas.get(nombre_pestana)
+            
+            # --- PROTECCIÓN DE DATOS INTELIGENTE ---
+            if tab_obj and hasattr(tab_obj, 'motor'):
+                # Solo preguntamos si la variable hay_cambios es True
+                if tab_obj.motor.hay_cambios:
+                    respuesta = messagebox.askyesno(
+                        "⚠️ Cambios sin guardar", 
+                        f"La pestaña '{nombre_pestana}' tiene modificaciones que no has exportado.\n\n¿Estás seguro de que quieres cerrarla y perder el progreso?"
+                    )
+                    if not respuesta:
+                        return # El usuario canceló el cierre, abortamos.
+                
+                # Limpiar carpeta de caché de esta pestaña
+                import shutil
+                if os.path.exists(tab_obj.motor.cache_dir):
+                    shutil.rmtree(tab_obj.motor.cache_dir, ignore_errors=True)
+            
+            # 2. Eliminar del diccionario y del Tabview
+            self.tabview.delete(nombre_pestana)
+            if nombre_pestana in self.pestanas:
+                del self.pestanas[nombre_pestana]
+            
+            # --- 3. LÓGICA SI NOS QUEDAMOS SIN PESTAÑAS ---
+            if not self.pestanas:
+                self.welcome_label.pack(expand=True)
+                self.tabview.pack_forget()
+                if hasattr(self, 'toolbar_frame'):
+                    self.toolbar_frame.pack_forget()
+                if hasattr(self, 'bottom_bar'):
+                    self.bottom_bar.pack_forget() # Ocultamos el botón rojo
+                    
+                self.btn_transformar.configure(state="disabled")
+                self.btn_exportar.configure(state="disabled")
+
+            LOGGER.info(f"Pestaña cerrada: {nombre_pestana}")
+            
+        except Exception as e:
+            LOGGER.error(f"Error al cerrar pestaña: {e}")
+            
+   
     
 if __name__ == "__main__":
     app = QueryLibreApp()

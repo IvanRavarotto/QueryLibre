@@ -472,7 +472,7 @@ class MotorDatos:
             # Tomamos hasta 100 errores para mostrar en la tabla sin congelar la pantalla
             errores = [{"fila": i+1, "valor": v} for i, v in zip(idx_malos[:100], val_malos[:100])]
         
-        return errores                # 2. Lanzamos el error EXACTO sin envolverlo
+        return errores 
 
 
     # =========================================================

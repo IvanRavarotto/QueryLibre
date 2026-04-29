@@ -86,8 +86,12 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.entry_ia = ctk.CTkEntry(frame_input_ia, placeholder_text="Pregúntale algo a tus datos...")
         self.entry_ia.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
-        self.btn_enviar_ia = ctk.CTkButton(frame_input_ia, text="➤", width=40, fg_color="#8e44ad", hover_color="#9b59b6")
+        # Agrega command=self.enviar_mensaje_ia al botón existente
+        self.btn_enviar_ia = ctk.CTkButton(frame_input_ia, text="➤", width=40, fg_color="#8e44ad", hover_color="#9b59b6", command=self.enviar_mensaje_ia)
         self.btn_enviar_ia.pack(side="right")
+        
+        # Haz que al presionar "Enter" en el teclado también se envíe
+        self.entry_ia.bind("<Return>", self.enviar_mensaje_ia)
         
         self.btn_config_ia = ctk.CTkButton(
             self.right_panel.tab("✨ Analista IA"), 
@@ -409,3 +413,77 @@ class PestanaTrabajo(ctk.CTkFrame):
                 self.entry_pagina.insert(0, str(self.pagina_actual))
         except ValueError:
             pass # Si escribe letras, lo ignoramos
+    
+    def enviar_mensaje_ia(self, event=None):
+        """Envía la pregunta del usuario junto con el contexto del dataset a la API de Gemini."""
+        pregunta = self.entry_ia.get().strip()
+        if not pregunta: return
+        
+        # 1. Buscar la API Key en memoria o en disco
+        api_key = getattr(self.app_root, 'api_key_session', None)
+        if not api_key:
+            carpeta_madre = os.path.join(os.path.expanduser('~'), 'Documents', 'QueryLibre')
+            ruta_config = os.path.join(carpeta_madre, 'config.json')
+            if os.path.exists(ruta_config):
+                import json
+                try:
+                    with open(ruta_config, 'r', encoding='utf-8') as f:
+                        api_key = json.load(f).get("api_key")
+                except: pass
+        
+        if not api_key:
+            messagebox.showwarning("Sin Conexión", "Por favor, configura tu API Key primero usando el botón ⚙️.")
+            return
+
+        # 2. Mostrar la pregunta en la interfaz
+        self.chat_history.configure(state="normal")
+        self.chat_history.insert("end", f"👤 Tú: {pregunta}\n\n")
+        self.chat_history.yview("end")
+        
+        # Mensaje de espera
+        index_espera = self.chat_history.index("end-1c")
+        self.chat_history.insert("end", "🤖 IA: Analizando los datos...\n\n")
+        self.chat_history.configure(state="disabled")
+        
+        self.entry_ia.delete(0, "end")
+        self.btn_enviar_ia.configure(state="disabled")
+
+        # 3. Hilo en segundo plano para consultar a la nube sin congelar la app
+        import threading
+        def tarea_ia():
+            try:
+                import google.generativeai as genai
+                genai.configure(api_key=api_key)
+                # Usamos el modelo más rápido y eficiente de Google
+                model = genai.GenerativeModel('gemini-pro')
+                
+                # Obtenemos la radiografía de los datos
+                contexto = self.motor.generar_resumen_ia()
+                
+                # Construimos el Prompt maestro
+                prompt_completo = f"""Eres el 'Analista IA', un experto en ciencia de datos integrado en la aplicación QueryLibre.
+Responde de forma concisa, amigable y técnica. Usa formato Markdown si es necesario.
+Aquí tienes el resumen exacto del dataset actual del usuario:
+{contexto}
+
+Pregunta del usuario: {pregunta}"""
+                
+                respuesta = model.generate_content(prompt_completo)
+                texto_ia = respuesta.text
+            except Exception as e:
+                texto_ia = f"❌ Error de conexión: {str(e)}"
+
+            # 4. Actualizar la UI con la respuesta real
+            def actualizar_ui():
+                self.chat_history.configure(state="normal")
+                # Borramos el mensaje temporal de "Analizando..."
+                self.chat_history.delete(index_espera, "end")
+                # Insertamos la respuesta final
+                self.chat_history.insert("end", f"🤖 IA: {texto_ia}\n\n")
+                self.chat_history.yview("end")
+                self.chat_history.configure(state="disabled")
+                self.btn_enviar_ia.configure(state="normal")
+
+            self.app_root.after(0, actualizar_ui)
+
+        threading.Thread(target=tarea_ia, daemon=True).start()
