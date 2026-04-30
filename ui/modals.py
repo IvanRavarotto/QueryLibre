@@ -974,32 +974,16 @@ class ModalesUI:
         
     @staticmethod
     def mostrar_config_ia(app_root):
-        """Muestra la ventana para configurar la API Key con opciones de persistencia temporal o permanente"""
-        import os
-        import json
-
+        """Muestra la ventana para configurar la API Key integrándose a la Bóveda Segura."""
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("⚙️ Configuración del Analista IA")
-        dialog.geometry("500x280") # Un poco más ancho para los 3 botones
+        dialog.geometry("500x280") 
         dialog.transient(app_root)
         dialog.grab_set()
         if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
 
-        carpeta_madre = os.path.join(os.path.expanduser('~'), 'Documents', 'QueryLibre')
-        os.makedirs(carpeta_madre, exist_ok=True)
-        ruta_config = os.path.join(carpeta_madre, 'config.json')
-
-        # 1. Leer configuración existente
-        config_actual = {"api_key": "", "proveedor": "Gemini"}
-        if os.path.exists(ruta_config):
-            try:
-                with open(ruta_config, 'r', encoding='utf-8') as f:
-                    config_actual.update(json.load(f))
-            except Exception:
-                pass
-
         ctk.CTkLabel(dialog, text="Conexión con el Cerebro IA", font=ctk.CTkFont(weight="bold", size=16), text_color=("#1a1a1a", "#f5f6fa")).pack(pady=(20, 5))
-        ctk.CTkLabel(dialog, text="Ingresa tu clave de API. Puedes guardarla en tu equipo\\no conectarla solo por esta sesión.", text_color="gray").pack(pady=(0, 15))
+        ctk.CTkLabel(dialog, text="Ingresa tu clave de API. Puedes guardarla en tu equipo\no conectarla solo por esta sesión.", text_color="gray").pack(pady=(0, 15))
 
         frame_form = ctk.CTkFrame(dialog, fg_color="transparent")
         frame_form.pack(fill="x", padx=40)
@@ -1008,46 +992,112 @@ class ModalesUI:
         entry_key = ctk.CTkEntry(frame_form, placeholder_text="Pega tu API Key aquí...", show="*")
         entry_key.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=5)
         
-        # Si hay una en sesión, la mostramos. Si no, la del archivo.
+        # Leer desde la sesión o las credenciales cargadas
         if hasattr(app_root, 'api_key_session') and app_root.api_key_session:
             entry_key.insert(0, app_root.api_key_session)
-        elif config_actual["api_key"]:
-            entry_key.insert(0, config_actual["api_key"])
+        elif "api_key_ia" in app_root.credenciales:
+            entry_key.insert(0, app_root.credenciales["api_key_ia"])
 
         frame_form.grid_columnconfigure(1, weight=1)
 
-        # --- LÓGICA DE LOS BOTONES ---
         def conectar_temporal():
             clave = entry_key.get().strip()
-            if not clave:
-                messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
-                return
-            app_root.api_key_session = clave # Guardamos solo en RAM
+            if not clave: return messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
+            app_root.api_key_session = clave 
             messagebox.showinfo("✅ Conectado", "API Key conectada solo por esta sesión. No se guardará en tu equipo.")
             dialog.destroy()
 
         def guardar_permanente():
             clave = entry_key.get().strip()
-            if not clave:
-                messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
-                return
+            if not clave: return messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
             
-            app_root.api_key_session = clave # Guardamos en RAM
+            app_root.api_key_session = clave 
             
-            # Y guardamos en disco
-            nueva_config = {"proveedor": "Gemini", "api_key": clave}
-            try:
-                with open(ruta_config, 'w', encoding='utf-8') as f:
-                    json.dump(nueva_config, f, indent=4)
-                messagebox.showinfo("💾 Guardado", "API Key guardada de forma segura en tu equipo.")
-                dialog.destroy()
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo guardar:\\n{e}")
+            # Sub-función que ejecuta el cifrado
+            def ejecutar_guardado_seguro(pwd):
+                app_root.password_maestra = pwd
+                app_root.credenciales["api_key_ia"] = clave
+                try:
+                    app_root.boveda.guardar_datos(pwd, app_root.credenciales)
+                    messagebox.showinfo("💾 Guardado Seguro", "API Key encriptada con grado militar (AES-256) y guardada exitosamente.")
+                except Exception as e:
+                    messagebox.showerror("Error", f"No se pudo encriptar:\n{e}")
 
-        # --- BOTONES (Cancelar | Conectar | Guardar) ---
+            if app_root.password_maestra:
+                # Si ya desbloqueó la bóveda en esta sesión, guardamos directo
+                ejecutar_guardado_seguro(app_root.password_maestra)
+                dialog.destroy()
+            else:
+                # Si no tiene bóveda, lo mandamos a crear una Contraseña Maestra
+                dialog.destroy()
+                ModalesUI.crear_password_maestra(app_root, callback=ejecutar_guardado_seguro)
+
         frame_btns = ctk.CTkFrame(dialog, fg_color="transparent")
         frame_btns.pack(pady=20, fill="x", padx=20)
         
         ctk.CTkButton(frame_btns, text="Cancelar", command=dialog.destroy, fg_color="#7f8c8d", hover_color="#95a5a6", width=100).pack(side="left", padx=5)
         ctk.CTkButton(frame_btns, text="💾 Guardar", command=guardar_permanente, fg_color="#8e44ad", hover_color="#9b59b6", width=120).pack(side="right", padx=5)
         ctk.CTkButton(frame_btns, text="🔌 Conectar (Temporal)", command=conectar_temporal, fg_color="#2980b9", hover_color="#3498db", width=150).pack(side="right", padx=5)
+        
+    @staticmethod
+    def pedir_password_maestra(app_root):
+        """Muestra un modal para desbloquear la bóveda al iniciar la app."""
+        dialog = ctk.CTkToplevel(app_root)
+        dialog.title("🔒 Bóveda Bloqueada")
+        dialog.geometry("350x200")
+        dialog.transient(app_root)
+        dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+        
+        ctk.CTkLabel(dialog, text="Desbloquear Bóveda", font=ctk.CTkFont(weight="bold", size=16), text_color=("#1a1a1a", "#f5f6fa")).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="Ingresa tu Contraseña Maestra:", text_color="gray").pack()
+        
+        entry_pass = ctk.CTkEntry(dialog, show="*", width=250)
+        entry_pass.pack(pady=15)
+        entry_pass.focus()
+        
+        def intentar_desbloqueo(event=None):
+            pwd = entry_pass.get()
+            try:
+                datos = app_root.boveda.leer_datos(pwd)
+                app_root.credenciales = datos
+                app_root.password_maestra = pwd
+                # Restauramos la API Key a la sesión activa automáticamente
+                app_root.api_key_session = datos.get("api_key_ia")
+                dialog.destroy()
+            except ValueError:
+                messagebox.showerror("Error", "Contraseña incorrecta o bóveda corrupta.", parent=dialog)
+                entry_pass.delete(0, 'end')
+                
+        entry_pass.bind("<Return>", intentar_desbloqueo)
+        ctk.CTkButton(dialog, text="🔓 Desbloquear", command=intentar_desbloqueo, fg_color="#2980b9", hover_color="#3498db").pack(pady=5)
+
+    @staticmethod
+    def crear_password_maestra(app_root, callback):
+        """Muestra un modal para crear la Contraseña Maestra por primera vez."""
+        dialog = ctk.CTkToplevel(app_root)
+        dialog.title("🛡️ Crear Bóveda")
+        dialog.geometry("350x250")
+        dialog.transient(app_root)
+        dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+        
+        ctk.CTkLabel(dialog, text="Crear Contraseña Maestra", font=ctk.CTkFont(weight="bold", size=16), text_color=("#1a1a1a", "#f5f6fa")).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="Esta contraseña encriptará tus datos.\n¡Si la olvidas, perderás lo guardado!", text_color="#e74c3c").pack()
+        
+        entry_pass = ctk.CTkEntry(dialog, show="*", width=250, placeholder_text="Nueva contraseña...")
+        entry_pass.pack(pady=(15, 5))
+        
+        entry_confirm = ctk.CTkEntry(dialog, show="*", width=250, placeholder_text="Confirmar contraseña...")
+        entry_confirm.pack(pady=5)
+        
+        def guardar():
+            p1 = entry_pass.get()
+            p2 = entry_confirm.get()
+            if not p1 or p1 != p2:
+                messagebox.showwarning("Error", "Las contraseñas no coinciden o están vacías.", parent=dialog)
+                return
+            dialog.destroy()
+            callback(p1) # Llamamos a la función de guardado con la nueva contraseña
+            
+        ctk.CTkButton(dialog, text="💾 Crear Bóveda", command=guardar, fg_color="#27ae60", hover_color="#2ecc71").pack(pady=15)

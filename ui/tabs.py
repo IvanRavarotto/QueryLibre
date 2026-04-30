@@ -75,6 +75,9 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.chat_history = ctk.CTkTextbox(self.right_panel.tab("✨ Analista IA"), font=("Arial", 12), state="disabled", wrap="word", fg_color="#2b2b2b")
         self.chat_history.pack(expand=True, fill="both", padx=5, pady=5)
         
+        self.frame_acciones_ia = ctk.CTkFrame(self.right_panel.tab("✨ Analista IA"), fg_color="transparent")
+        self.frame_acciones_ia.pack(fill="x", padx=5, pady=(0, 5))
+        
         # Mensaje de bienvenida de la IA
         self.chat_history.configure(state="normal")
         self.chat_history.insert("end", "🤖 IA: ¡Hola! Soy tu Analista de Datos. Configura tu API Key para empezar.\n\n")
@@ -415,74 +418,110 @@ class PestanaTrabajo(ctk.CTkFrame):
             pass # Si escribe letras, lo ignoramos
     
     def enviar_mensaje_ia(self, event=None):
-        """Envía la pregunta del usuario junto con el contexto del dataset a la API de Gemini."""
+        """Envía la pregunta del usuario y procesa si la IA sugiere una Macro ejecutable."""
         pregunta = self.entry_ia.get().strip()
         if not pregunta: return
         
-        # 1. Buscar la API Key en memoria o en disco
+        # 1. Leemos estrictamente desde la memoria RAM de sesión
         api_key = getattr(self.app_root, 'api_key_session', None)
-        if not api_key:
-            carpeta_madre = os.path.join(os.path.expanduser('~'), 'Documents', 'QueryLibre')
-            ruta_config = os.path.join(carpeta_madre, 'config.json')
-            if os.path.exists(ruta_config):
-                import json
-                try:
-                    with open(ruta_config, 'r', encoding='utf-8') as f:
-                        api_key = json.load(f).get("api_key")
-                except: pass
         
         if not api_key:
             messagebox.showwarning("Sin Conexión", "Por favor, configura tu API Key primero usando el botón ⚙️.")
             return
 
-        # 2. Mostrar la pregunta en la interfaz
+        # 2. Actualizar Interfaz (Pregunta)
         self.chat_history.configure(state="normal")
         self.chat_history.insert("end", f"👤 Tú: {pregunta}\n\n")
         self.chat_history.yview("end")
         
-        # Mensaje de espera
         index_espera = self.chat_history.index("end-1c")
-        self.chat_history.insert("end", "🤖 IA: Analizando los datos...\n\n")
+        self.chat_history.insert("end", "🤖 IA: Analizando...\n\n")
         self.chat_history.configure(state="disabled")
         
         self.entry_ia.delete(0, "end")
         self.btn_enviar_ia.configure(state="disabled")
 
-        # 3. Hilo en segundo plano para consultar a la nube sin congelar la app
+        # Limpiar botones de acciones anteriores
+        for widget in self.frame_acciones_ia.winfo_children():
+            widget.destroy()
+
         import threading
+        import re
+        import json
+
         def tarea_ia():
             try:
                 import google.generativeai as genai
                 genai.configure(api_key=api_key)
-                # Usamos el modelo más rápido y eficiente de Google
                 model = genai.GenerativeModel('gemini-pro')
-                
-                # Obtenemos la radiografía de los datos
                 contexto = self.motor.generar_resumen_ia()
                 
-                # Construimos el Prompt maestro
-                prompt_completo = f"""Eres el 'Analista IA', un experto en ciencia de datos integrado en la aplicación QueryLibre.
-Responde de forma concisa, amigable y técnica. Usa formato Markdown si es necesario.
-Aquí tienes el resumen exacto del dataset actual del usuario:
+                # Truco para no romper el formato Markdown del chat
+                marcador = "`" * 3
+                
+                # --- EL PROMPT MAESTRO (INGENIERÍA DE PROMPTS) ---
+                prompt_completo = f"""Eres el 'Analista IA', un experto en ciencia de datos en la app QueryLibre.
+Responde de forma concisa y técnica. 
+Aquí tienes el resumen del dataset actual del usuario:
 {contexto}
+
+REGLA CRÍTICA DE AUTOMATIZACIÓN:
+Si el usuario te pide realizar una acción directa sobre los datos (limpiar, renombrar, eliminar), DEBES responder incluyendo un bloque de código JSON con este formato exacto:
+{marcador}json
+[
+    {{"action": "nombre_de_la_accion", "params": {{"param1": "valor"}}}}
+]
+{marcador}
+Acciones permitidas y sus parámetros exactos: 
+- eliminar_duplicados (sin params)
+- limpiar_nulos (params: "modo": "all" o "any")
+- eliminar_columna (params: "col_name": "nombre")
+- renombrar_columna (params: "old_name": "viejo", "new_name": "nuevo")
 
 Pregunta del usuario: {pregunta}"""
                 
                 respuesta = model.generate_content(prompt_completo)
                 texto_ia = respuesta.text
+                
+                # Interceptamos si la IA nos mandó un bloque JSON
+                macro_sugerida = None
+                patron_regex = rf'{marcador}json\s*(.*?)\s*{marcador}'
+                match_json = re.search(patron_regex, texto_ia, re.DOTALL)
+                
+                if match_json:
+                    try:
+                        macro_sugerida = json.loads(match_json.group(1))
+                        # Limpiamos el texto para no mostrar el JSON feo al usuario
+                        texto_ia = re.sub(patron_regex, '\n*(✨ He generado una acción automatizada para ti)*', texto_ia, flags=re.DOTALL)
+                    except: pass
+                    
             except Exception as e:
-                texto_ia = f"❌ Error de conexión: {str(e)}"
+                texto_ia = f"❌ Error: {str(e)}"
+                macro_sugerida = None
 
-            # 4. Actualizar la UI con la respuesta real
             def actualizar_ui():
                 self.chat_history.configure(state="normal")
-                # Borramos el mensaje temporal de "Analizando..."
                 self.chat_history.delete(index_espera, "end")
-                # Insertamos la respuesta final
                 self.chat_history.insert("end", f"🤖 IA: {texto_ia}\n\n")
                 self.chat_history.yview("end")
                 self.chat_history.configure(state="disabled")
                 self.btn_enviar_ia.configure(state="normal")
+
+                # Si hay una macro, creamos el botón mágico
+                if macro_sugerida:
+                    def aplicar_magia():
+                        self._apply_macro_steps(macro_sugerida)
+                        self.refrescar_interfaz()
+                        for widget in self.frame_acciones_ia.winfo_children(): widget.destroy() # Borra el botón
+                        messagebox.showinfo("IA", "¡Acción ejecutada con éxito!")
+
+                    btn_accion = ctk.CTkButton(
+                        self.frame_acciones_ia, 
+                        text="✨ Aplicar sugerencia de la IA", 
+                        fg_color="#2980b9", hover_color="#3498db",
+                        command=aplicar_magia
+                    )
+                    btn_accion.pack(fill="x", pady=5)
 
             self.app_root.after(0, actualizar_ui)
 
