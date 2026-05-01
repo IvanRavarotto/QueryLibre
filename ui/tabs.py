@@ -201,7 +201,8 @@ class PestanaTrabajo(ctk.CTkFrame):
             self.tree.column("#", width=40, anchor="center", stretch=False)
 
             for col in df_preview.columns:
-                self.tree.heading(col, text=col)
+                # Al hacer clic en la cabecera, llama a la función de ordenar
+                self.tree.heading(col, text=col, command=lambda c=col: self._ordenar_columna(c))
                 self.tree.column(col, width=120, anchor="center")
 
             df_preview_filled = df_preview.fillna("")
@@ -451,15 +452,13 @@ class PestanaTrabajo(ctk.CTkFrame):
 
         def tarea_ia():
             try:
-                import google.generativeai as genai
-                genai.configure(api_key=api_key)
-                model = genai.GenerativeModel('gemini-pro')
-                contexto = self.motor.generar_resumen_ia()
+                # 1. Importamos el NUEVO SDK oficial
+                from google import genai
+                client = genai.Client(api_key=api_key)
                 
-                # Truco para no romper el formato Markdown del chat
+                contexto = self.motor.generar_resumen_ia()
                 marcador = "`" * 3
                 
-                # --- EL PROMPT MAESTRO (INGENIERÍA DE PROMPTS) ---
                 prompt_completo = f"""Eres el 'Analista IA', un experto en ciencia de datos en la app QueryLibre.
 Responde de forma concisa y técnica. 
 Aquí tienes el resumen del dataset actual del usuario:
@@ -480,10 +479,13 @@ Acciones permitidas y sus parámetros exactos:
 
 Pregunta del usuario: {pregunta}"""
                 
-                respuesta = model.generate_content(prompt_completo)
+                # 2. Llamada actualizada con el modelo 1.5 Flash (Más rápido e inteligente)
+                respuesta = client.models.generate_content(
+                    model='gemini-1.5-flash',
+                    contents=prompt_completo
+                )
                 texto_ia = respuesta.text
                 
-                # Interceptamos si la IA nos mandó un bloque JSON
                 macro_sugerida = None
                 patron_regex = rf'{marcador}json\s*(.*?)\s*{marcador}'
                 match_json = re.search(patron_regex, texto_ia, re.DOTALL)
@@ -491,12 +493,11 @@ Pregunta del usuario: {pregunta}"""
                 if match_json:
                     try:
                         macro_sugerida = json.loads(match_json.group(1))
-                        # Limpiamos el texto para no mostrar el JSON feo al usuario
                         texto_ia = re.sub(patron_regex, '\n*(✨ He generado una acción automatizada para ti)*', texto_ia, flags=re.DOTALL)
                     except: pass
                     
             except Exception as e:
-                texto_ia = f"❌ Error: {str(e)}"
+                texto_ia = f"❌ Error de IA: {str(e)}"
                 macro_sugerida = None
 
             def actualizar_ui():
@@ -507,12 +508,11 @@ Pregunta del usuario: {pregunta}"""
                 self.chat_history.configure(state="disabled")
                 self.btn_enviar_ia.configure(state="normal")
 
-                # Si hay una macro, creamos el botón mágico
                 if macro_sugerida:
                     def aplicar_magia():
                         self._apply_macro_steps(macro_sugerida)
                         self.refrescar_interfaz()
-                        for widget in self.frame_acciones_ia.winfo_children(): widget.destroy() # Borra el botón
+                        for widget in self.frame_acciones_ia.winfo_children(): widget.destroy()
                         messagebox.showinfo("IA", "¡Acción ejecutada con éxito!")
 
                     btn_accion = ctk.CTkButton(
@@ -524,5 +524,30 @@ Pregunta del usuario: {pregunta}"""
                     btn_accion.pack(fill="x", pady=5)
 
             self.app_root.after(0, actualizar_ui)
+            
+    def _ordenar_columna(self, col_name):
+        """Ordena el DataFrame completo por la columna seleccionada, alternando entre A-Z y Z-A."""
+        if self.motor.df is None or col_name not in self.motor.df.columns: return
 
-        threading.Thread(target=tarea_ia, daemon=True).start()
+        # Si ya estábamos ordenando por esta columna, invertimos el orden
+        ascendente = True
+        if hasattr(self, '_ultima_columna_ordenada') and self._ultima_columna_ordenada == col_name:
+            ascendente = not getattr(self, '_ultimo_orden_ascendente', True)
+
+        try:
+            self.app_root.configurar_estado_botones("disabled") # Congela la UI un segundito
+            
+            # Ordenamos el DataFrame de verdad
+            self.motor.df = self.motor.df.sort_values(by=col_name, ascending=ascendente, na_position='last')
+            
+            # Guardamos el estado para el próximo clic
+            self._ultima_columna_ordenada = col_name
+            self._ultimo_orden_ascendente = ascendente
+            
+            # Refrescamos la vista
+            self.pagina_actual = 1
+            self.refrescar_interfaz()
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo ordenar la columna:\n{e}")
+        finally:
+            self.app_root.configurar_estado_botones("normal")

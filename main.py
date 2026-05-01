@@ -33,7 +33,7 @@ def obtener_ruta(ruta_relativa):
 class QueryLibreApp(ctk.CTk):
     def __init__(self):
         super().__init__()
-        self.api_key_session = None
+        
         # --- SEGURIDAD: Bóveda Criptográfica ---
         self.api_key_session = None
         self.credenciales = {}
@@ -46,6 +46,7 @@ class QueryLibreApp(ctk.CTk):
         if self.boveda.boveda_existe():
             self.after(500, lambda: ModalesUI.pedir_password_maestra(self))
 
+        # --- CACHÉ Y TEMPORALES ---
         self.master_cache = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
         if os.path.exists(self.master_cache):
             shutil.rmtree(self.master_cache, ignore_errors=True)

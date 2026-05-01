@@ -10,3 +10,4 @@ matplotlib==3.10.7
 SQLAlchemy>=2.0.29
 pymysql>=1.1.0
 cryptography>=41.0.0
+google-genai>=0.1.0
