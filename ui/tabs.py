@@ -27,7 +27,8 @@ class PestanaTrabajo(ctk.CTkFrame):
         "buscar_reemplazar",
         "aplicar_autocasteo_confirmado",
         "anular_dinamizacion",
-        "agregar_columna_condicional" # <--- NUEVO
+        "agregar_columna_condicional",
+        "transformar_texto", # <--- NUEVO
     }
 
     DISALLOWED_MACRO_PARAM_KEYS = {
@@ -150,6 +151,15 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.tree_scroll_y.configure(command=self.tree.yview)
         self.tree_scroll_x.configure(command=self.tree.xview)
         self.tree.bind("<Double-1>", self.editar_celda)
+        
+        # --- MENÚ CONTEXTUAL (Clic Derecho) ---
+        self.tree.bind("<Button-3>", self._mostrar_menu_contextual) # Clic derecho en Windows/Linux
+        
+        self.menu_contextual = tk.Menu(self.tree_frame, tearoff=0, bg="#2b2b2b", fg="white", activebackground="#1f538d")
+        self.menu_contextual.add_command(label="🔠 Convertir a MAYÚSCULAS", command=lambda: self._aplicar_formato_texto("mayusculas"))
+        self.menu_contextual.add_command(label="🔡 Convertir a minúsculas", command=lambda: self._aplicar_formato_texto("minusculas"))
+        self.menu_contextual.add_command(label="Aa Formato Título", command=lambda: self._aplicar_formato_texto("titulo"))
+        self.columna_seleccionada_menu = None
 
     # --- Funciones Internas de la Pestana ---
     def dispatch_macro(self, eleccion):
@@ -183,7 +193,34 @@ class PestanaTrabajo(ctk.CTkFrame):
         # Llamamos a un método de la app principal para renombrar el tab
         self.app_root.actualizar_titulo_pestana(self, nuevo_titulo)
 
+    def _mostrar_menu_contextual(self, event):
+        """Detecta dónde hizo clic el usuario y despliega el menú contextual flotante."""
+        if self.motor.df is None or self.motor.df.empty: return
+        
+        region = self.tree.identify_region(event.x, event.y)
+        if region in ("cell", "heading"):
+            col_id = self.tree.identify_column(event.x)
+            if col_id == '#1': return # Protegemos la columna estática '#'
+            
+            # Validación de seguridad: Asegurarse de que hizo clic en una columna válida
+            if not col_id: return
+            
+            col_index_visual = int(col_id.replace('#', '')) - 1
+            if col_index_visual >= len(self.tree["column"]): return
+                
+            self.columna_seleccionada_menu = self.tree["column"][col_index_visual]
+            self.menu_contextual.tk_popup(event.x_root, event.y_root)
+
+    def _aplicar_formato_texto(self, operacion):
+        """Ejecuta la transformación de texto llamando al motor en un hilo secundario."""
+        if not self.columna_seleccionada_menu: return
+        try:
+            self.app_root.ejecutar_tarea_pesada(self.motor.transformar_texto, self.columna_seleccionada_menu, operacion)
+        except Exception as e:
+            messagebox.showerror("Error", f"No se pudo aplicar el formato:\n{e}")
+
     def actualizar_vista_previa(self):
+        self.tree.selection_remove(self.tree.selection())
         self.tree.delete(*self.tree.get_children())
         if self.motor.df is not None and not self.motor.df.empty:
             total_filas = len(self.motor.df)
@@ -551,3 +588,4 @@ Pregunta del usuario: {pregunta}"""
             messagebox.showerror("Error", f"No se pudo ordenar la columna:\n{e}")
         finally:
             self.app_root.configurar_estado_botones("normal")
+            

@@ -785,8 +785,11 @@ class MotorDatos:
         propuestas = {}
         
         for col in self.df.columns:
+            # NUEVO: Ignorar columnas que sean Identificadores (No se deben sumar ni promediar)
+            col_lower = str(col).lower()
+            if any(k in col_lower for k in ['id', 'dni', 'cod', 'tel', 'cuil', 'cuit']):
+                continue
             if self.df[col].dtype == 'object' or pd.api.types.is_string_dtype(self.df[col]):
-                # 1. Probar Números (Limpiando $ y comas temporalmente en la serie)
                 s = self.df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
                 s = s.replace(['', 'nan', 'None', '<NA>', 'NaN'], pd.NA)
                 
@@ -804,6 +807,8 @@ class MotorDatos:
                     propuestas[col] = "Fecha"
                     
         return propuestas
+    
+    
 
     def aplicar_autocasteo_confirmado(self, propuestas):
         """Aplica los casteos que el usuario aprobó en la interfaz."""
@@ -950,6 +955,34 @@ class MotorDatos:
                     self.df = archivo_cache # Respaldo por si es un DataFrame en RAM
             raise RuntimeError(f"Error al evaluar la lógica:\n{e}")
         
+    
+    def transformar_texto(self, columna, operacion):
+        """Convierte masivamente el texto de una columna a mayúsculas, minúsculas o formato título."""
+        self._check_df()
+        if columna not in self.df.columns: return
+        self._savepoint()
+
+        try:
+            # Trabajamos directamente con la serie como string
+            serie_str = self.df[columna].astype(str)
+            
+            if operacion == "mayusculas":
+                serie_str = serie_str.str.upper()
+            elif operacion == "minusculas":
+                serie_str = serie_str.str.lower()
+            elif operacion == "titulo":
+                serie_str = serie_str.str.title()
+                
+            # Restaurar los nulos reales que Pandas convierte en la palabra "nan"
+            self.df[columna] = serie_str.replace(["Nan", "nan", "None", "<Na>"], pd.NA)
+            
+            self._normalize_columns() # Limpiamos por las dudas
+            self.registrar_paso(f"Formato de texto ({operacion}): '{columna}'")
+            self.macro_steps.append({"action": "transformar_texto", "params": {"columna": columna, "operacion": operacion}})
+        except Exception as e:
+            self._rollback_error()
+            raise RuntimeError(f"Error al transformar el texto:\n{e}")    
+    
     def generar_resumen_ia(self):
         """
         Extrae la metadata del DataFrame actual para enviarla como contexto a la IA,

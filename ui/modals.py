@@ -799,8 +799,9 @@ class ModalesUI:
             if tab.motor.df is None:
                 for nombre, t in app_root.pestanas.items():
                     if t == tab:
+                        # Hacemos foco en esa pestaña y usamos el nuevo método seguro
                         app_root.tabview.set(nombre)
-                        app_root.cerrar_pestana_actual()
+                        app_root.cerrar_pestana_activa(nombre)
                         break
 
         dialog.protocol("WM_DELETE_WINDOW", al_cerrar_ventana)
