@@ -3,6 +3,35 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [2.0.0] - 2026-05-02
+### English
+#### Added
+* **AI Analyst:** Integrated Google Gemini (via `google-genai` SDK) to provide conversational data insights and actionable macro buttons directly within the app.
+* **Secure Vault:** Implemented a Master Password system using `cryptography` (AES-256) to safely store API keys locally.
+* **Contextual Tools:** Added right-click context menu on the grid for quick text formatting (Upper, Lower, Title).
+* **Interactive Sorting:** Clicking on a column header now sorts the entire dataset (A-Z, Z-A).
+#### Changed
+* **UI Lifecycle:** Optimized main thread I/O by deferring vault unlocking and UI element rendering.
+* **Smart Cast:** The auto-cast engine now explicitly ignores identifier columns (e.g., ID, DNI) to prevent unintended mathematical transformations.
+#### Fixed
+* **Phantom Tabs:** Fixed a crash caused by aborting the SQL connection modal which left an unclosable blank tab in the workspace.
+* **Visual Selection:** Forced Treeview focus cleanup during dataset pagination to prevent phantom visual selections.
+
+### Español
+#### Añadido
+* **Analista IA:** Integración de Google Gemini (vía SDK `google-genai`) para proporcionar análisis conversacional y botones de macros ejecutables directamente en la app.
+* **Bóveda Segura:** Sistema de Contraseña Maestra utilizando `cryptography` (AES-256) para almacenar credenciales localmente de forma segura.
+* **Herramientas Contextuales:** Menú de clic derecho en la grilla para formateo rápido de texto (Mayúsculas, Minúsculas, Título).
+* **Ordenamiento Interactivo:** Hacer clic en la cabecera de una columna ahora ordena todo el dataset (A-Z, Z-A).
+#### Cambios
+* **Ciclo de Vida UI:** Optimización del hilo principal posponiendo el desbloqueo de la bóveda y renderizado seguro de la barra inferior.
+* **Auto-Casteo Inteligente:** El motor ahora ignora explícitamente las columnas de identificadores (ej: ID, DNI) para evitar conversiones matemáticas indeseadas.
+#### Corregido
+* **Pestañas Fantasma:** Se corrigió un cuelgue al cancelar el conector SQL que dejaba una pestaña en blanco imposible de cerrar.
+* **Selección Visual:** Se forzó la limpieza del foco visual en el Treeview al cambiar de página para evitar selecciones fantasma.
+
+---
+
 ## [1.8.0] - 2026-04-26
 ### English
 #### Added

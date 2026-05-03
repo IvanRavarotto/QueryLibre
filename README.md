@@ -21,25 +21,24 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 
 ---
 
-## 🚀 Características Principales (v1.8.0)
+## 🚀 Características Principales (v2.0.0)
 
-* **🧠 Smart Data Profiling (Radiografía de Datos):** Genera análisis estadísticos y gráficos de distribución automáticos para cualquier columna con un solo clic.
-* **🔀 Columnas Condicionales (IF-THEN-ELSE):** Crea nuevas columnas dinámicas basadas en reglas matemáticas o de texto utilizando el procesamiento vectorizado de alto rendimiento de Numpy.
-* **🔄 Unpivot Horizontal a Vertical:** Transforma datos de formato ancho (como meses en columnas) a formato largo, ideal para su ingesta en motores de bases de datos o herramientas de BI.
-* **⏳ Viaje en el Tiempo (Caché Parquet):** Sistema robusto de Deshacer/Rehacer (`Ctrl+Z` / `Ctrl+Y`) respaldado por un caché en disco de formato `.parquet`, garantizando la recuperación ante errores sin saturar la memoria RAM.
-* **📊 Correlación Interactiva:** Herramienta de Gráfico de Dispersión (Scatter Plot) bidireccional. Haz clic en un punto del gráfico y la cuadrícula principal navegará automáticamente hacia esa fila exacta.
-* **🗃️ Conector SQL Integrado:** Importa datos directamente desde bases de datos relacionales sin configuraciones complejas.
-* **🧹 Limpieza Automatizada:** Herramientas de un solo clic para eliminación de duplicados, gestión inteligente de nulos, búsqueda y reemplazo masivo, y auto-casteo de tipos de datos.
-* **💾 Exportación Universal:** Guarda tus proyectos limpiados en formatos `.csv`, `.xlsx`, o bases de datos `.sqlite` listas para producción.
+* **✨ Analista IA Integrado:** Un chat interactivo potenciado por Google Gemini capaz de leer el contexto de tus datos y sugerir transformaciones automatizadas.
+* **🔒 Bóveda Segura (AES-256):** Almacenamiento encriptado con grado militar para proteger tus API Keys y credenciales locales usando una Contraseña Maestra.
+* **🖱️ Menú Contextual Rápido:** Clic derecho sobre cualquier columna para transformaciones de texto masivas (MAYÚSCULAS, minúsculas, Título).
+* **↕️ Ordenamiento Interactivo (Sort):** Ordena alfabética o numéricamente todo tu dataset con solo hacer clic en la cabecera de la columna.
+* **🧠 Smart Data Profiling:** Genera análisis estadísticos y gráficos de distribución automáticos para cualquier columna con un solo clic.
+* **🔀 Columnas Condicionales (IF-THEN-ELSE):** Crea nuevas columnas dinámicas basadas en reglas lógicas vectorizadas con Numpy.
+* **🔄 Unpivot Horizontal a Vertical:** Transforma datos anchos a formato largo para motores de bases de datos.
+* **⏳ Viaje en el Tiempo (Caché Parquet):** Sistema robusto de Deshacer/Rehacer (`Ctrl+Z` / `Ctrl+Y`) respaldado en disco para no saturar la memoria RAM.
+* **🗃️ Conector SQL Integrado:** Importa tablas directamente desde MySQL, PostgreSQL y SQL Server.
 
 ---
 
-## Próximas Actualizaciones v1.9.0: Inteligencia Artificial y Optimización**
-
-* ✨ **Panel lateral IA:**Creación del panel lateral para el "Analista IA" y la pestaña de configuración para la API Key.
-* 🛡️ **Motor de Contexto**: Desarrollo de generar_resumen_ia() en el motor para extraer metadatos sin comprometer la privacidad ni la RAM.
-* 📊 **Integración de la API:** de Gemini/OpenAI con la interfaz del chat.
-* 🔌 **Conexiones SQL:** Implementación de perfiles de conexión guardados en conexiones.json.
+## 🛠️ Próximas Actualizaciones (v2.1.0)
+* 💾 **Perfiles SQL:** Guardado de conexiones a bases de datos dentro de la Bóveda Segura.
+* 📦 **Nuevos Exportadores:** Soporte nativo para descargar datasets en `.parquet` y `.json`.
+* 🎨 **Refinamiento UI/UX:** Mejoras en espaciados, paginación dinámica y guías de usuario integradas.
 
 ---
 

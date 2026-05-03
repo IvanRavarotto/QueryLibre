@@ -220,8 +220,10 @@ class PestanaTrabajo(ctk.CTkFrame):
             messagebox.showerror("Error", f"No se pudo aplicar el formato:\n{e}")
 
     def actualizar_vista_previa(self):
+        # Limpiamos cualquier selección visual antes de recargar
         self.tree.selection_remove(self.tree.selection())
         self.tree.delete(*self.tree.get_children())
+        
         if self.motor.df is not None and not self.motor.df.empty:
             total_filas = len(self.motor.df)
             total_paginas = math.ceil(total_filas / self.filas_por_pagina)

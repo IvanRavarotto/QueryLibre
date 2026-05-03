@@ -22,7 +22,7 @@ class ModalesUI:
         if hasattr(app_root, 'fijar_icono'):
             app_root.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v1.8.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="QueryLibre v2.0.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
         ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
         
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
@@ -30,15 +30,15 @@ class ModalesUI:
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 10))
         
         # Título de la sección
-        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión 2.0.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión 2.1.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
 
         # Texto del Roadmap estructurado por fases
         roadmap_text = (
-            "• Interfaz del Analista IA (Panel lateral y Configuración).\n"
-            "• Motor de Metadatos (Resumen del contexto para la IA).\n"
-            "• Integración de API (Conexión con Gemini/OpenAI).\n"
-            "• Perfiles SQL (Historial de conexiones guardadas).\n"
-            "• Refactorización estructural y Deuda Técnica."
+            "• Perfiles SQL (Guardado de conexiones en Bóveda AES-256).\n"
+            "• Exportación Avanzada (Soporte nativo para .json y .parquet).\n"
+            "• Optimización Big Data (Lectura eficiente de Excel pesados).\n"
+            "• Auto-Casteo con RegEx (Exclusión inteligente de IDs).\n"
+            "• Mejoras de UX/UI (Guía de IA y pulido de dimensiones)."
         )
 
         ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 20))
