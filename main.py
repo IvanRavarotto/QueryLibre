@@ -275,7 +275,7 @@ class QueryLibreApp(ctk.CTk):
                     self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
                     
                     # NUEVO: Mostramos la barra inferior
-                    self.bottom_bar.pack(side="bottom", fill="x", padx=20, pady=5) 
+                    self.bottom_bar.pack(side="bottom", fill="x", padx=20, pady=(10, 15)) 
                     
                     self.btn_transformar.configure(state="normal")
                     self.btn_exportar.configure(state="normal")
@@ -690,7 +690,7 @@ class QueryLibreApp(ctk.CTk):
             if hasattr(self, 'toolbar_frame'):
                 self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
             self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
-            self.bottom_bar.pack(side="bottom", fill="x", padx=20, pady=5)
+            self.bottom_bar.pack(side="bottom", fill="x", padx=20, pady=(10, 15))
             
             # Encender botones
             self.btn_transformar.configure(state="normal")

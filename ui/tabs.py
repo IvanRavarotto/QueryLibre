@@ -111,7 +111,7 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.tree_frame.pack(side="left", expand=True, fill="both")
 
         self.pagination_frame = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
-        self.pagination_frame.pack(side="bottom", fill="x", pady=(5, 0))
+        self.pagination_frame.pack(side="bottom", fill="x", pady=(10, 15))
 
         self.btn_prev_page = ctk.CTkButton(self.pagination_frame, text="◀ Anterior", width=80, command=self.pagina_anterior, state="disabled")
         self.btn_prev_page.pack(side="left", padx=10)
@@ -137,7 +137,7 @@ class PestanaTrabajo(ctk.CTkFrame):
 
         # --- NUEVO: Buscador de Columnas (v1.6.2) ---
         self.frame_buscador_cols = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
-        self.frame_buscador_cols.pack(fill="x", padx=0, pady=(0, 5))
+        self.frame_buscador_cols.pack(fill="x", padx=10, pady=(10, 5))
         
         ctk.CTkLabel(self.frame_buscador_cols, text="🔍 Buscar Columna:").pack(side="left", padx=(0,5))
         self.entry_buscar_col = ctk.CTkEntry(self.frame_buscador_cols, width=200, placeholder_text="Ej: ID_Cliente...", height=28)
@@ -520,7 +520,7 @@ Pregunta del usuario: {pregunta}"""
                 
                 # 2. Llamada actualizada con el modelo 1.5 Flash (Más rápido e inteligente)
                 respuesta = client.models.generate_content(
-                    model='gemini-1.5-flash',
+                    model='gemini-1.5-flash', 
                     contents=prompt_completo
                 )
                 texto_ia = respuesta.text
@@ -536,7 +536,12 @@ Pregunta del usuario: {pregunta}"""
                     except: pass
                     
             except Exception as e:
-                texto_ia = f"❌ Error de IA: {str(e)}"
+                import traceback
+                error_real = traceback.format_exc()
+                LOGGER.error(f"Error CRÍTICO en el chat de IA:\n{error_real}")
+                
+                # Le pasamos un mensaje más amigable a la UI, pero guardamos el traceback en el log
+                texto_ia = f"❌ Ocurrió un error al procesar la solicitud. Revisa tu conexión o la API Key.\nDetalle técnico: {str(e)}"
                 macro_sugerida = None
 
             def actualizar_ui():
