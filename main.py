@@ -12,11 +12,16 @@ import customtkinter as ctk
 from ui.modals import ModalesUI
 from ui.tabs import PestanaTrabajo
 
+# --- CENTRALIZACIÓN DE CARPETAS ---
+CARPETA_MADRE = os.path.join(os.path.expanduser('~'), 'Documents', 'QueryLibre')
+os.makedirs(CARPETA_MADRE, exist_ok=True)
+
 # Logging global con rotación
 LOGGER = logging.getLogger("QueryLibre")
 if not LOGGER.handlers:
     LOGGER.setLevel(logging.INFO)
-    handler = RotatingFileHandler("querylibre.log", maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
+    ruta_log = os.path.join(CARPETA_MADRE, "querylibre.log")
+    handler = RotatingFileHandler(ruta_log, maxBytes=5*1024*1024, backupCount=3, encoding='utf-8')
     handler.setFormatter(logging.Formatter('%(asctime)s %(levelname)s %(message)s'))
     LOGGER.addHandler(handler)
 
@@ -576,8 +581,9 @@ class QueryLibreApp(ctk.CTk):
 
             # Esta sub-función se envía al hilo principal (GUI) para actualizar la pantalla sin trabarse
             def finalizar_ui():
-                # 1. Destruimos la pantalla de carga INMEDIATAMENTE
-                pantalla_carga.destroy() 
+                # 1. Ocultamos la pantalla de carga INMEDIATAMENTE y soltamos el foco
+                pantalla_carga.grab_release()
+                pantalla_carga.withdraw()
                 
                 # 2. Refrescamos la pestaña
                 tab = self.obtener_pestana_activa()
@@ -589,6 +595,9 @@ class QueryLibreApp(ctk.CTk):
                 elif funcion.__name__ in ['cargar_archivo', 'cargar_proyecto'] and tab and tab.motor.df is not None:
                     # En lugar del mensaje básico, abrimos el Dashboard de BI
                     ModalesUI.mostrar_health_check(self, tab)
+
+                # 4. Destruimos la ventana de la memoria un instante después para evitar el bug de CustomTkinter
+                self.after(250, pantalla_carga.destroy)
 
             # self.after(0) obliga a que finalizar_ui se ejecute en el hilo visual de Tkinter
             self.after(0, finalizar_ui)
@@ -667,7 +676,13 @@ class QueryLibreApp(ctk.CTk):
         tab = self.pestanas.get(nombre_tab)
         if not tab or getattr(tab.motor, 'df', None) is None: return
 
+        # --- NUEVO: Centralización de Proyectos ---
+        carpeta_proyectos = os.path.join(CARPETA_MADRE, 'Proyectos')
+        if not os.path.exists(carpeta_proyectos):
+            os.makedirs(carpeta_proyectos, exist_ok=True)
+
         filepath = filedialog.asksaveasfilename(
+            initialdir=carpeta_proyectos, # <--- Apuntamos el explorador aquí
             defaultextension=".qlp",
             filetypes=[("Proyecto QueryLibre", "*.qlp")],
             title="Guardar Proyecto"
@@ -740,7 +755,13 @@ class QueryLibreApp(ctk.CTk):
     
     def accion_abrir_proyecto(self):
         """Diálogo para restaurar una sesión previa."""
+        # --- NUEVO: Centralización de Proyectos ---
+        carpeta_proyectos = os.path.join(CARPETA_MADRE, 'Proyectos')
+        if not os.path.exists(carpeta_proyectos):
+            os.makedirs(carpeta_proyectos, exist_ok=True)
+            
         filepath = filedialog.askopenfilename(
+            initialdir=carpeta_proyectos, # <--- Apuntamos el explorador aquí
             filetypes=[("Proyecto QueryLibre", "*.qlp")],
             title="Abrir Proyecto"
         )
@@ -763,7 +784,7 @@ class QueryLibreApp(ctk.CTk):
                     self.actualizar_lbl_dimensiones()
             except Exception as e:
                 LOGGER.error(f"Error al abrir proyecto: {e}")
-                self.cerrar_pestana_actual() # Se auto-limpia si falla
+                self.cerrar_pestana_activa(nombre_tab) # Se auto-limpia si falla
                 messagebox.showerror("Error", f"Archivo corrupto o inválido:\n{e}")
     
     def _atajo_deshacer(self):

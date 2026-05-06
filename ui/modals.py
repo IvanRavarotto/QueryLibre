@@ -265,9 +265,14 @@ class ModalesUI:
         def ejecutar():
             col = col_combo.get()
             if messagebox.askyesno("Confirmar", f"¿Estás seguro de eliminar '{col}'?"):
-                # IMPORTANTE: app_root DEBE ser la instancia de QueryLibreApp
+                # IMPORTANTE: Ocultamos primero para evitar el cuelgue visual
+                dialog.grab_release()
+                dialog.withdraw()
+                
                 app_root.ejecutar_tarea_pesada(tab.motor.eliminar_columna, col)
-                dialog.destroy()
+                
+                # Destruimos la ventana un instante después
+                app_root.after(250, dialog.destroy)
 
         ctk.CTkButton(dialog, text="Eliminar", command=ejecutar, fg_color="#c0392b").pack(pady=20)
 
@@ -653,24 +658,35 @@ class ModalesUI:
         """Muestra la ventana para configurar la conexión a bases de datos SQL."""
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("🔌 Conectar a Base de Datos SQL")
-        dialog.geometry("450x580")
+        dialog.geometry("450x650") # <-- Aumentado un poco para el selector de perfiles
         dialog.resizable(False, False)
         dialog.transient(app_root)
         dialog.grab_set()
         if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
 
-        ctk.CTkLabel(dialog, text="Configuración del Servidor", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(20, 15))
+        ctk.CTkLabel(dialog, text="Configuración del Servidor", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(20, 10))
+
+        # --- CONTENEDOR DE PERFILES GUARDADOS (NUEVO) ---
+        frame_perfiles = ctk.CTkFrame(dialog, fg_color="#34495e", corner_radius=8)
+        frame_perfiles.pack(fill="x", padx=40, pady=(0, 15))
+        
+        ctk.CTkLabel(frame_perfiles, text="Perfil:", font=ctk.CTkFont(weight="bold", size=12)).pack(side="left", padx=10, pady=8)
+        
+        perfiles_guardados = app_root.credenciales.get("perfiles_sql", {})
+        nombres_perfiles = ["-- Nuevo / Manual --"] + list(perfiles_guardados.keys())
+        
+        combo_perfiles = ctk.CTkComboBox(frame_perfiles, values=nombres_perfiles, state="readonly", width=160)
+        combo_perfiles.pack(side="left", padx=5, pady=8)
+        combo_perfiles.set("-- Nuevo / Manual --")
 
         # --- Selección de Motor ---
         ctk.CTkLabel(dialog, text="Motor de Base de Datos:").pack(anchor="w", padx=40)
         combo_motor = ctk.CTkOptionMenu(dialog, values=["MySQL", "PostgreSQL", "SQL Server"], width=320)
-        combo_motor.pack(pady=(5, 15))
+        combo_motor.pack(pady=(5, 10))
 
         # --- Host y Puerto ---
         frame_red = ctk.CTkFrame(dialog, fg_color="transparent")
         frame_red.pack(fill="x", padx=40)
-
-        # Hacemos que las columnas sean elásticas (Host toma 2 partes, Puerto 1 parte)
         frame_red.grid_columnconfigure(0, weight=2)
         frame_red.grid_columnconfigure(1, weight=1)
 
@@ -693,7 +709,60 @@ class ModalesUI:
 
         ctk.CTkLabel(dialog, text="Nombre de la Base de Datos:").pack(anchor="w", padx=40)
         entry_db = ctk.CTkEntry(dialog, width=320, placeholder_text="schema_name")
-        entry_db.pack(pady=(5, 20))
+        entry_db.pack(pady=(5, 15))
+
+        # --- LÓGICA DE PERFILES ---
+        def cargar_perfil(choice):
+            if choice == "-- Nuevo / Manual --":
+                entry_host.delete(0, 'end')
+                entry_port.delete(0, 'end')
+                entry_user.delete(0, 'end')
+                entry_pass.delete(0, 'end')
+                entry_db.delete(0, 'end')
+            else:
+                data = perfiles_guardados.get(choice, {})
+                combo_motor.set(data.get("motor", "MySQL"))
+                entry_host.delete(0, 'end'); entry_host.insert(0, data.get("host", ""))
+                entry_port.delete(0, 'end'); entry_port.insert(0, data.get("port", ""))
+                entry_user.delete(0, 'end'); entry_user.insert(0, data.get("user", ""))
+                entry_pass.delete(0, 'end'); entry_pass.insert(0, data.get("password", ""))
+                entry_db.delete(0, 'end'); entry_db.insert(0, data.get("db", ""))
+
+        combo_perfiles.configure(command=cargar_perfil)
+        
+        def guardar_perfil_actual():
+            if not app_root.password_maestra:
+                messagebox.showwarning("Bóveda Bloqueada", "Debes configurar o desbloquear la Bóveda de Seguridad primero (desde la Configuración de IA).", parent=dialog)
+                return
+                
+            nombre = ctk.CTkInputDialog(text="Dale un nombre a este perfil (Ej: AWS-MySQL):", title="Guardar Perfil").get_input()
+            if not nombre: return
+            
+            perfil_data = {
+                "motor": combo_motor.get(),
+                "host": entry_host.get().strip(),
+                "port": entry_port.get().strip(),
+                "user": entry_user.get().strip(),
+                "password": entry_pass.get().strip(),
+                "db": entry_db.get().strip()
+            }
+            
+            if "perfiles_sql" not in app_root.credenciales:
+                app_root.credenciales["perfiles_sql"] = {}
+                
+            app_root.credenciales["perfiles_sql"][nombre] = perfil_data
+            
+            try:
+                app_root.boveda.guardar_datos(app_root.password_maestra, app_root.credenciales)
+                perfiles_guardados[nombre] = perfil_data
+                combo_perfiles.configure(values=["-- Nuevo / Manual --"] + list(perfiles_guardados.keys()))
+                combo_perfiles.set(nombre)
+                messagebox.showinfo("Éxito", f"Perfil '{nombre}' encriptado en AES-256 y guardado.", parent=dialog)
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo guardar el perfil:\n{e}", parent=dialog)
+                
+        btn_guardar_perfil = ctk.CTkButton(frame_perfiles, text="💾 Guardar", width=70, fg_color="#8e44ad", hover_color="#9b59b6", command=guardar_perfil_actual)
+        btn_guardar_perfil.pack(side="right", padx=10, pady=8)
 
         # --- NUEVO: Selector de Tablas (Oculto inicialmente) ---
         frame_tablas = ctk.CTkFrame(dialog, fg_color="transparent")
@@ -719,7 +788,6 @@ class ModalesUI:
 
             def ejecutar_prueba():
                 try:
-                    # Si es exitoso, 'mensaje' ahora es la lista de tablas
                     exito, mensaje = tab.motor.probar_conexion_sql(motor_bd, host, puerto, usuario, password, base_datos)
                 except Exception as e:
                     print(f"\n--- ERROR SQL CRÍTICO ---\n{e}\n-------------------------\n")
@@ -728,7 +796,6 @@ class ModalesUI:
                 def restaurar_ui():
                     btn_test.configure(state="normal", text="⚡ Probar Conexión")
                     if exito:
-                        # Hacemos visible el selector ANTES del contenedor de botones
                         frame_tablas.pack(before=frame_botones, fill="x", pady=(5, 10))
                         combo_tablas.configure(values=mensaje)
                         combo_tablas.set(mensaje[0] if mensaje else "Sin tablas")
@@ -767,16 +834,13 @@ class ModalesUI:
                     error_msg = str(e)
 
                 def finalizar_ui():
-                    # 1. ¡DESTRUIR EL DIÁLOGO PRIMERO! Esto libera el bloqueo y evita el Deadlock
                     dialog.destroy()
-                    
                     if exito:
                         tab.pagina_actual = 1
                         if hasattr(tab, 'actualizar_vista_previa'): tab.actualizar_vista_previa()
                         if hasattr(tab, 'refrescar_interfaz'): tab.refrescar_interfaz()
                         if hasattr(app_root, 'actualizar_estado'): app_root.actualizar_estado()
                     else:
-                        # 2. Forzamos que el mensaje aparezca sobre la ventana principal
                         messagebox.showerror("❌ Error", f"No se pudo crear la columna:\n{error_msg}", parent=app_root)
 
                 app_root.after(0, finalizar_ui)
@@ -795,11 +859,9 @@ class ModalesUI:
         
         def al_cerrar_ventana():
             dialog.destroy()
-            # Si el usuario cierra con la 'X' y no llegó a importar nada, limpiamos la pestaña vacía
             if tab.motor.df is None:
                 for nombre, t in app_root.pestanas.items():
                     if t == tab:
-                        # Hacemos foco en esa pestaña y usamos el nuevo método seguro
                         app_root.tabview.set(nombre)
                         app_root.cerrar_pestana_activa(nombre)
                         break

@@ -164,8 +164,11 @@ class PestanaTrabajo(ctk.CTkFrame):
     # --- Funciones Internas de la Pestana ---
     def dispatch_macro(self, eleccion):
         self.btn_macro.set("🤖 Macros") 
-        if "Guardar" in eleccion: self.guardar_macro()
-        elif "Ejecutar" in eleccion: self.ejecutar_macro()
+        
+        if "Guardar" in eleccion: 
+            self.after(150, self.guardar_macro)
+        elif "Ejecutar" in eleccion: 
+            self.after(150, self.ejecutar_macro)
 
     def refrescar_interfaz(self):
         """Actualiza la tabla, el historial y los botones de la pestaña."""
@@ -312,9 +315,14 @@ class PestanaTrabajo(ctk.CTkFrame):
         entry.bind("<Escape>", lambda e: entry.destroy())
 
     def guardar_macro(self):
-        if not self.motor.macro_steps: return 
+        # NUEVO: Aviso visual si no hay nada que guardar
+        if not self.motor.macro_steps: 
+            messagebox.showinfo("Macros", "No hay acciones registradas para guardar.\nRealiza alguna transformación (ej. eliminar nulos) primero.")
+            return 
+            
         carpeta_docs = os.path.join(os.path.expanduser('~'), 'Documents')
-        carpeta_macros = os.path.join(carpeta_docs, 'Macros_QueryLibre')
+        # Guardamos dentro de la carpeta madre de QueryLibre
+        carpeta_macros = os.path.join(carpeta_docs, 'QueryLibre', 'Macros') 
         if not os.path.exists(carpeta_macros):
             try: os.makedirs(carpeta_macros)
             except: carpeta_macros = os.path.expanduser('~') 
@@ -402,11 +410,13 @@ class PestanaTrabajo(ctk.CTkFrame):
             messagebox.showwarning("Macro finalizada con omisiones", msg)
 
     def ejecutar_macro(self):
+        # NUEVO: Aviso visual si intentan ejecutar una macro en el aire
         if self.motor.df is None:
+            messagebox.showinfo("Macros", "Por favor, carga un dataset primero para poder aplicarle una macro.")
             return
 
         carpeta_docs = os.path.join(os.path.expanduser('~'), 'Documents')
-        carpeta_macros = os.path.join(carpeta_docs, 'Macros_QueryLibre')
+        carpeta_macros = os.path.join(carpeta_docs, 'QueryLibre', 'Macros') 
         if not os.path.exists(carpeta_macros):
             carpeta_macros = os.path.expanduser('~')
 
