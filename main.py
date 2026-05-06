@@ -520,32 +520,30 @@ class QueryLibreApp(ctk.CTk):
             ModalesUI.mostrar_scatter(self, tab)
 
     def exportar_datos(self):
+        """Abre el diálogo para exportar el dataset activo usando el motor unificado."""
         tab = self.obtener_pestana_activa()
-        if not tab or tab.motor.df is None: return
-        dialog = ctk.CTkToplevel(self)
-        dialog.title("Exportar"); dialog.geometry("400x300"); dialog.transient(self); dialog.grab_set() 
-        self.fijar_icono(dialog)
-             
-        ctk.CTkLabel(dialog, text="💾 Formato de exportación", font=ctk.CTkFont(weight="bold")).pack(pady=(20, 10))
-        formato = ctk.CTkComboBox(dialog, values=["Archivo CSV (.csv)", "Archivo Excel (.xlsx)", "Base de Datos SQLite (.db)"])
-        formato.pack(pady=10)
-        err = ctk.CTkLabel(dialog, text="", text_color="#e74c3c"); err.pack(pady=5)
-        
-        def guardar():
-            fmt = formato.get()
-            ext = ".csv" if "CSV" in fmt else ".xlsx" if "Excel" in fmt else ".db"
-            file_path = filedialog.asksaveasfilename(defaultextension=ext)
-            if file_path:
-                try: 
-                    # --- NUEVO: Exportación inteligente con Hilos ---
-                    if "CSV" in fmt:
-                        self.ejecutar_tarea_pesada(tab.motor.exportar_csv_seguro, file_path)
-                    else:
-                        self.ejecutar_tarea_pesada(tab.motor.exportar_archivo, fmt, file_path)
-                    dialog.destroy()
-                except Exception as e:
-                    LOGGER.error(f"Error crítico al exportar datos: {e}")
-                    messagebox.showerror("❌ Error", f"No se pudo exportar el archivo:\n{e}")
+        if not tab or getattr(tab.motor, 'df', None) is None: return
+
+        filepath = filedialog.asksaveasfilename(
+            title="Exportar Datos Limpios",
+            defaultextension=".csv",
+            filetypes=[
+                ("Archivo CSV", "*.csv"),
+                ("Excel (.xlsx)", "*.xlsx"),
+                ("JSON (.json)", "*.json"),
+                ("Parquet (Optimizado)", "*.parquet"),
+                ("Base de Datos SQLite", "*.sqlite")
+            ]
+        )
+        if filepath:
+            try:
+                # Usamos el hilo secundario para no congelar la UI si el archivo es gigante
+                # Llamamos a la nueva función 'exportar_dataset' que creamos en data_engine.py
+                self.ejecutar_tarea_pesada(tab.motor.exportar_dataset, filepath)
+                messagebox.showinfo("✅ Éxito", f"Dataset exportado correctamente a:\n{os.path.basename(filepath)}")
+            except Exception as e:
+                LOGGER.error(f"Error al exportar: {e}")
+                messagebox.showerror("❌ Error", f"No se pudo exportar el archivo:\n{e}")
         
     def mostrar_acerca_de(self):
         ModalesUI.mostrar_acerca_de(self)

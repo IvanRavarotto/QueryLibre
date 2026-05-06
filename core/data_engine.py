@@ -692,7 +692,35 @@ class MotorDatos:
         self.df_history = []
         self._savepoint() 
         self.hay_cambios = False
-        
+    
+    def exportar_dataset(self, filepath):
+        """Exporta el DataFrame actual al formato detectado por la extensión del archivo."""
+        self._check_df()
+
+        ext = os.path.splitext(filepath)[1].lower()
+        try:
+            if ext == '.csv':
+                self.df.to_csv(filepath, index=False, encoding='utf-8')
+            elif ext in ['.xlsx', '.xls']:
+                self.df.to_excel(filepath, index=False)
+            elif ext == '.json':
+                # orient='records' es el estándar ideal para APIs y bases NoSQL
+                self.df.to_json(filepath, orient='records', indent=4, force_ascii=False)
+            elif ext == '.parquet':
+                # Formato columnar ultrarrápido y comprimido
+                self.df.to_parquet(filepath, index=False)
+            elif ext in ['.sqlite', '.db']:
+                import sqlite3
+                conn = sqlite3.connect(filepath)
+                self.df.to_sql("dataset_limpio", conn, if_exists="replace", index=False)
+                conn.close()
+            else:
+                raise ValueError(f"Extensión no soportada: {ext}")
+                
+            self.registrar_paso(f"💾 Dataset exportado como {ext.upper()}")
+        except Exception as e:
+            raise RuntimeError(f"Fallo al escribir el archivo {ext}:\n{e}")
+    
     def generar_sugerencias_limpieza(self):
         """Escanea el dataset y devuelve una lista de sugerencias de limpieza inteligente."""
         if self.df is None or self.df.empty: return []
