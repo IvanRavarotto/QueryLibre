@@ -196,27 +196,67 @@ class MotorDatos:
         ext = self._validate_loader_path(filepath)
         self.nombre_archivo = os.path.basename(filepath)
 
+        # --- LECTURA ULTRARRÁPIDA CON PYARROW ---
         if ext == '.csv':
             try:
-                self.df = pd.read_csv(filepath, encoding='utf-8')
+                # Intento principal con motor hiper-rápido
+                self.df = pd.read_csv(filepath, engine='pyarrow')
             except Exception:
-                self.df = pd.read_csv(filepath, encoding='latin-1')
+                try:
+                    # Salvavidas clásico sin el error de memoria mixta
+                    self.df = pd.read_csv(filepath, encoding='utf-8', low_memory=False)
+                except Exception:
+                    self.df = pd.read_csv(filepath, encoding='latin-1', low_memory=False)
         elif ext in ['.xls', '.xlsx']:
             self.df = pd.read_excel(filepath, engine='openpyxl')
+        elif ext == '.parquet':
+            self.df = pd.read_parquet(filepath, engine='pyarrow')
+        elif ext == '.json':
+            self.df = pd.read_json(filepath, orient='records')
 
         self._normalize_columns()
+        
+        # --- OPTIMIZACIÓN DE MEMORIA RAM ---
+        self.df = self._optimizar_memoria(self.df)
+        self.df2 = self.df.copy() # Respaldo limpio
+        
         self.historial_pasos = []
         self.df_history = []
         self.macro_steps = []
-        
+        self.redo_history.clear()
+
         # 1. Guardamos el estado inicial en la memoria (Undo)
         self._savepoint()
-        
-        # 2. Registramos el paso (Esto pondrá hay_cambios en True temporalmente)
+
+        # 2. Registramos el paso
         self.registrar_paso(f"Origen: {self.nombre_archivo}")
-        
-        # 3. Restauramos la bandera para que no marque el asterisco (*) recién abierto
+
+        # 3. Restauramos la bandera para que no marque el asterisco (*)
         self.hay_cambios = False
+
+    def _optimizar_memoria(self, df):
+        """Reduce el consumo de RAM del DataFrame convirtiendo tipos de datos (Downcasting)."""
+        mem_antes = df.memory_usage(deep=True).sum() / 1024**2
+        
+        for col in df.columns:
+            tipo = df[col].dtype
+            
+            if tipo != object:
+                # Downcast de números (Ej: int64 a int16 si los números son pequeños)
+                if 'int' in str(tipo):
+                    df[col] = pd.to_numeric(df[col], downcast='integer')
+                elif 'float' in str(tipo):
+                    df[col] = pd.to_numeric(df[col], downcast='float')
+            else:
+                # Convertir a 'category' los textos repetitivos (Ej: "Masculino"/"Femenino" o "Aprobado")
+                num_unicos = len(df[col].unique())
+                num_total = len(df[col])
+                if num_total > 0 and (num_unicos / num_total) < 0.4:  # Si menos del 40% son valores únicos
+                    df[col] = df[col].astype('category')
+                    
+        mem_despues = df.memory_usage(deep=True).sum() / 1024**2
+        LOGGER.info(f"Memoria optimizada: de {mem_antes:.2f} MB a {mem_despues:.2f} MB")
+        return df
 
     def eliminar_duplicados(self):
         self._check_df()
@@ -700,9 +740,11 @@ class MotorDatos:
         ext = os.path.splitext(filepath)[1].lower()
         try:
             if ext == '.csv':
-                self.df.to_csv(filepath, index=False, encoding='utf-8')
+                df_sanitizado = self._sanitize_for_export(self.df)
+                df_sanitizado.to_csv(filepath, index=False, encoding='utf-8')
             elif ext in ['.xlsx', '.xls']:
-                self.df.to_excel(filepath, index=False)
+                df_sanitizado = self._sanitize_for_export(self.df)
+                df_sanitizado.to_excel(filepath, index=False)
             elif ext == '.json':
                 # orient='records' es el estándar ideal para APIs y bases NoSQL
                 self.df.to_json(filepath, orient='records', indent=4, force_ascii=False)
@@ -718,6 +760,7 @@ class MotorDatos:
                 raise ValueError(f"Extensión no soportada: {ext}")
                 
             self.registrar_paso(f"💾 Dataset exportado como {ext.upper()}")
+            self.hay_cambios = False
         except Exception as e:
             raise RuntimeError(f"Fallo al escribir el archivo {ext}:\n{e}")
     
