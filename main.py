@@ -47,9 +47,13 @@ class QueryLibreApp(ctk.CTk):
         from core.security import BovedaSegura
         self.boveda = BovedaSegura()
         
-        # Si la bóveda existe, pedimos la contraseña maestra 0.5 segundos después de iniciar la UI
-        if self.boveda.boveda_existe():
-            self.after(500, lambda: ModalesUI.pedir_password_maestra(self))
+        # --- SEGURIDAD: Bóveda Criptográfica ---
+        self.api_key_session = None
+        self.credenciales = {}
+        self.password_maestra = None
+        from core.security import BovedaSegura
+        self.boveda = BovedaSegura()
+        # ¡Nada de pedir contraseñas aquí! La app debe abrir instantáneamente.
 
         # --- CACHÉ Y TEMPORALES ---
         self.master_cache = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")

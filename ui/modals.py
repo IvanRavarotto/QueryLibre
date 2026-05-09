@@ -731,12 +731,22 @@ class ModalesUI:
         combo_perfiles.configure(command=cargar_perfil)
         
         def guardar_perfil_actual():
-            if not app_root.password_maestra:
-                messagebox.showwarning("Bóveda Bloqueada", "Debes configurar o desbloquear la Bóveda de Seguridad primero (desde la Configuración de IA).", parent=dialog)
-                return
-                
             nombre = ctk.CTkInputDialog(text="Dale un nombre a este perfil (Ej: AWS-MySQL):", title="Guardar Perfil").get_input()
             if not nombre: return
+
+            # --- NUEVO: Desbloqueo a demanda ---
+            pwd_temporal = app_root.password_maestra
+            if not pwd_temporal:
+                pwd_temporal = ctk.CTkInputDialog(text="Introduce tu Contraseña Maestra para desbloquear la Bóveda:", title="Bóveda Bloqueada").get_input()
+                if not pwd_temporal: return # Canceló el ingreso de clave
+                
+                # Intentamos abrir la bóveda para validar que la clave sea correcta
+                try:
+                    app_root.credenciales = app_root.boveda.leer_datos(pwd_temporal)
+                    app_root.password_maestra = pwd_temporal # Si funcionó, la guardamos en la sesión
+                except Exception:
+                    messagebox.showerror("Error", "Contraseña incorrecta. No se pudo desbloquear la Bóveda.", parent=dialog)
+                    return
             
             perfil_data = {
                 "motor": combo_motor.get(),
@@ -757,7 +767,7 @@ class ModalesUI:
                 perfiles_guardados[nombre] = perfil_data
                 combo_perfiles.configure(values=["-- Nuevo / Manual --"] + list(perfiles_guardados.keys()))
                 combo_perfiles.set(nombre)
-                messagebox.showinfo("Éxito", f"Perfil '{nombre}' encriptado en AES-256 y guardado.", parent=dialog)
+                messagebox.showinfo("Éxito", f"Perfil '{nombre}' guardado en la Bóveda.", parent=dialog)
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo guardar el perfil:\n{e}", parent=dialog)
                 

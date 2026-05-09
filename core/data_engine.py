@@ -858,7 +858,7 @@ class MotorDatos:
         for col in self.df.columns:
             # NUEVO: Ignorar columnas que sean Identificadores (No se deben sumar ni promediar)
             col_lower = str(col).lower()
-            if any(k in col_lower for k in ['id', 'dni', 'cod', 'tel', 'cuil', 'cuit']):
+            if self._es_identificador(col):
                 continue
             if self.df[col].dtype == 'object' or pd.api.types.is_string_dtype(self.df[col]):
                 s = self.df[col].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
@@ -1084,3 +1084,10 @@ class MotorDatos:
         resumen.append(str(muestra))
         
         return "\n".join(resumen)
+    
+    def _es_identificador(self, col_name):
+        """Usa Expresiones Regulares para detectar si una columna es un ID, DNI, Teléfono, etc."""
+        col_lower = str(col_name).lower()
+        # Busca palabras exactas (\b) o prefijos/sufijos específicos
+        patron = r'\b(id|dni|cuil|cuit|tel|teléfono|telefono|cod|código|codigo|cp|zip)\b|^id_|_id$|^cod_|_cod$'
+        return bool(re.search(patron, col_lower))
