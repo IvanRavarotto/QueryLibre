@@ -32,13 +32,16 @@ QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada
 * **🔄 Unpivot Horizontal a Vertical:** Transforma datos anchos a formato largo para motores de bases de datos.
 * **⏳ Viaje en el Tiempo (Caché Parquet):** Sistema robusto de Deshacer/Rehacer (`Ctrl+Z` / `Ctrl+Y`) respaldado en disco para no saturar la memoria RAM.
 * **🗃️ Conector SQL Integrado:** Importa tablas directamente desde MySQL, PostgreSQL y SQL Server.
+* **🚀 Novedad v2.1.0:** ¡Ahora con soporte para Big Data! Procesamiento ultrarrápido con PyArrow y exportación profesional a formatos Parquet y JSON.
 
 ---
 
-## 🛠️ Próximas Actualizaciones (v2.1.0)
-* 💾 **Perfiles SQL:** Guardado de conexiones a bases de datos dentro de la Bóveda Segura.
-* 📦 **Nuevos Exportadores:** Soporte nativo para descargar datasets en `.parquet` y `.json`.
-* 🎨 **Refinamiento UI/UX:** Mejoras en espaciados, paginación dinámica y guías de usuario integradas.
+## PRÓXIMAMENTE (v2.2.0):
+* **Workspaces Totales:** Puntos de guardado que incluyen el historial de chat de la IA.
+* **Autoguardado Inteligente:** Respaldo automático de tu progreso en segundo plano.
+* **Bóveda Transparente:** Opción de encriptación vinculada al Hardware ID (sin contraseña).
+* **Patrón de Relocalización:** Recuperación automática de rutas de archivos movidos.
+* **Gráficos Avanzados:** Visualización estadística integrada en el Health Check.
 
 ---
 

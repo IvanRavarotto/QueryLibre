@@ -3,6 +3,33 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [2.1.0] - 2026-05-09
+### English
+#### Added
+* **Big Data Optimization:** Integrated PyArrow engine and automatic memory downcasting (up to 50% RAM reduction).
+* **Advanced Export:** Added native support for `.json` (API-ready) and `.parquet` (columnar storage).
+* **SQL Connection Profiles:** Store multiple database credentials securely in the AES-256 vault.
+* **Smart Health Check:** Redesigned data profiling dashboard with visual cards and "traffic light" indicators for data quality.
+
+#### Changed
+* **UX Refinement:** Modals and progress bars are now dynamically centered relative to the main window.
+* **On-Demand Security:** The vault now requests the Master Password only when accessing sensitive data (Lazy Unlocking).
+* **Centralized Storage:** All logs, macros, and projects are now unified in `Documents/QueryLibre`.
+
+### Español
+#### Añadido
+* **Optimización Big Data:** Integración de motor PyArrow y reducción automática de memoria RAM (hasta 50% de ahorro).
+* **Exportación Avanzada:** Soporte nativo para `.json` (listo para APIs) y `.parquet` (almacenamiento columnar).
+* **Perfiles SQL:** Guardado de múltiples credenciales de bases de datos en la bóveda AES-256.
+* **Health Check Inteligente:** Dashboard de diagnóstico rediseñado con tarjetas visuales y semáforos de calidad de datos.
+
+#### Cambios
+* **Refinamiento de UX:** Las ventanas y barras de progreso ahora se centran automáticamente respecto a la app.
+* **Seguridad a Demanda:** La bóveda ahora pide la clave solo al acceder a datos sensibles (Desbloqueo diferido).
+* **Almacenamiento Centralizado:** Logs, macros y proyectos unificados en `Documentos/QueryLibre`.
+
+---
+
 ## [2.0.0] - 2026-05-02
 ### English
 #### Added

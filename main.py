@@ -43,14 +43,6 @@ class QueryLibreApp(ctk.CTk):
         self.api_key_session = None
         self.credenciales = {}
         self.password_maestra = None
-        
-        from core.security import BovedaSegura
-        self.boveda = BovedaSegura()
-        
-        # --- SEGURIDAD: Bóveda Criptográfica ---
-        self.api_key_session = None
-        self.credenciales = {}
-        self.password_maestra = None
         from core.security import BovedaSegura
         self.boveda = BovedaSegura()
         # ¡Nada de pedir contraseñas aquí! La app debe abrir instantáneamente.
@@ -111,7 +103,7 @@ class QueryLibreApp(ctk.CTk):
         self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
         self.btn_exportar.grid(row=6, column=0, padx=20, pady=10)
         
-        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v2.0.0", font=ctk.CTkFont(size=11), text_color="gray")
+        self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v2.1.0", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=7, column=0, padx=20, pady=20, sticky="s")
 
         # ---- 2. ÁREA DE TRABAJO PRINCIPAL ----
@@ -559,17 +551,30 @@ class QueryLibreApp(ctk.CTk):
     def ejecutar_tarea_pesada(self, funcion, *args, **kwargs):
         """Ejecuta una tarea en un hilo separado mostrando un modal con barra de progreso."""
         pantalla_carga = ctk.CTkToplevel(self)
-        pantalla_carga.title("Procesando...")
-        pantalla_carga.geometry("300x150")
+        pantalla_carga.title("⏳ Procesando...")
+        pantalla_carga.geometry("300x120")
         pantalla_carga.resizable(False, False)
         pantalla_carga.transient(self)
         pantalla_carga.grab_set()
         
         if hasattr(self, 'fijar_icono'): self.fijar_icono(pantalla_carga)
-
-        ctk.CTkLabel(pantalla_carga, text="Procesando Datos", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(25, 10))
         
-        barra = ctk.CTkProgressBar(pantalla_carga, width=200, mode="indeterminate", fg_color="#34495e", progress_color="#3498db")
+        # --- NUEVO: Matemática para centrar el modal ---
+        pantalla_carga.update_idletasks() # Obliga a Tkinter a calcular los tamaños reales
+        px = self.winfo_rootx()
+        py = self.winfo_rooty()
+        pw = self.winfo_width()
+        ph = self.winfo_height()
+        dw = pantalla_carga.winfo_width()
+        dh = pantalla_carga.winfo_height()
+        x = px + (pw // 2) - (dw // 2)
+        y = py + (ph // 2) - (dh // 2)
+        pantalla_carga.geometry(f"+{x}+{y}")
+        # -----------------------------------------------
+
+        ctk.CTkLabel(pantalla_carga, text="Ejecutando operación en memoria...", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(20, 10))
+        
+        barra = ctk.CTkProgressBar(pantalla_carga, width=200, mode="indeterminate", fg_color="#34495e", progress_color="#2ecc71")
         barra.pack(pady=10)
         barra.start() 
 
@@ -580,7 +585,6 @@ class QueryLibreApp(ctk.CTk):
             except Exception as e:
                 error_msg = str(e)
                 LOGGER.error(f"Error en tarea: {e}")
-
             # Esta sub-función se envía al hilo principal (GUI) para actualizar la pantalla sin trabarse
             def finalizar_ui():
                 # 1. Ocultamos la pantalla de carga INMEDIATAMENTE y soltamos el foco

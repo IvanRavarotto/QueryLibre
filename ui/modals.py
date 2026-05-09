@@ -10,41 +10,61 @@ class ModalesUI:
 
     @staticmethod
     def mostrar_acerca_de(app_root):
-        """Muestra la ventana de información del proyecto."""
+        """Muestra la ventana de información del proyecto con ancho adaptativo y centrado."""
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("Acerca de QueryLibre")
-        dialog.geometry("400x520") 
+        
+        # IMPORTANTE: Eliminamos dialog.geometry("400x520") para que no sea fijo
         dialog.resizable(False, False)
         dialog.transient(app_root)
         dialog.grab_set()
         
-        # Intentamos usar el método del icono si existe en app_root
         if hasattr(app_root, 'fijar_icono'):
             app_root.fijar_icono(dialog)
         
-        ctk.CTkLabel(dialog, text="QueryLibre v2.0.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
-        ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15))
+        # Agregamos padx=40 a los labels para que el texto no toque los bordes
+        ctk.CTkLabel(dialog, text="QueryLibre v2.1.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5), padx=40)
+        ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15), padx=40)
         
-        ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5))
+        ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5), padx=40)
         legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite")
-        ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 10))
+        ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 10), padx=40)
         
-        # Título de la sección
-        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión 2.1.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5))
+        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión 2.2.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5), padx=40)
 
-        # Texto del Roadmap estructurado por fases
         roadmap_text = (
-            "• Perfiles SQL (Guardado de conexiones en Bóveda AES-256).\n"
-            "• Exportación Avanzada (Soporte nativo para .json y .parquet).\n"
-            "• Optimización Big Data (Lectura eficiente de Excel pesados).\n"
-            "• Auto-Casteo con RegEx (Exclusión inteligente de IDs).\n"
-            "• Mejoras de UX/UI (Guía de IA y pulido de dimensiones)."
+            "• Workspaces Totales: Puntos de guardado que incluyen el historial de chat de la IA.\n"
+            "• Autoguardado Inteligente: Respaldo automático de tu progreso en segundo plano.\n"
+            "• Bóveda Transparente: Opción de encriptación vinculada al Hardware ID (sin contraseña).\n"
+            "• Patrón de Relocalización: Recuperación automática de rutas de archivos movidos.\n"
+            "• Gráficos Avanzados: Visualización estadística integrada en el Health Check."
         )
 
-        ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 20))
+        ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 20), padx=40)
 
-        ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=15)
-        ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 5))
+        # Botones y créditos en la parte inferior
+        ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
+        ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=10)
+
+        # --- LÓGICA DE AUTO-ADAPTACIÓN Y CENTRADO ---
+        dialog.update_idletasks() # Forzamos el cálculo de dimensiones internas
+        
+        # Obtenemos el ancho y alto que la ventana "pide" según su contenido
+        dw = dialog.winfo_reqwidth()
+        dh = dialog.winfo_reqheight()
+        
+        # Obtenemos coordenadas y tamaño de la ventana principal
+        px = app_root.winfo_rootx()
+        py = app_root.winfo_rooty()
+        pw = app_root.winfo_width()
+        ph = app_root.winfo_height()
+        
+        # Calculamos el centro
+        x = px + (pw // 2) - (dw // 2)
+        y = py + (ph // 2) - (dh // 2)
+        
+        # Aplicamos la geometría final (Ancho x Alto + PosiciónX + PosiciónY)
+        dialog.geometry(f"{dw}x{dh}+{x}+{y}")
 
     @staticmethod
     def mostrar_radiografia(app_root, tab):
@@ -364,78 +384,107 @@ class ModalesUI:
     
     @staticmethod
     def mostrar_health_check(app_root, tab):
-        """Muestra el dashboard inicial de salud del dataset."""
-        if not tab or tab.motor.df is None: return
-
-        reporte = tab.motor.generar_reporte_salud()
-        if not reporte: return
-
         dialog = ctk.CTkToplevel(app_root)
-        
-        # CORRECCIÓN 1: Quitamos el emoji del título para evitar el "doble icono" en Windows
-        dialog.title("Health Check del Dataset")
-        dialog.geometry("450x350")
+        dialog.title("🩺 Data Health Check")
+        dialog.geometry("600x500") # Aumentamos un poquito el alto
         dialog.transient(app_root)
         dialog.grab_set()
         if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
 
-        # CORRECCIÓN 2: Función y botón flotante de Ayuda (?)
-        def mostrar_ayuda():
-            texto_ayuda = (
-                "📌 Diccionario de Métricas:\n\n"
-                "• Datos Completos: Porcentaje de celdas con información real. "
-                "Si está en rojo (menor a 80%), tu dataset tiene demasiados nulos y necesita limpieza.\n\n"
-                "• Peso en RAM: Memoria física que ocupa el dataset en tu computadora. Útil para "
-                "prevenir cuelgues si te acercas a tu límite.\n\n"
-                "• Dimensiones: Cantidad total de filas (registros) y columnas (variables).\n\n"
-                "• Tipos Detectados: Diferencia entre columnas numéricas (para cálculos estadísticos) y "
-                "columnas de texto (para agrupaciones o categorías)."
-            )
-            messagebox.showinfo("¿Qué significan estos datos?", texto_ayuda)
-
-        # Ubicamos el botón de forma absoluta (place) arriba a la derecha
-        btn_ayuda = ctk.CTkButton(dialog, text="❓", width=30, height=30, 
-                                  fg_color="transparent", hover_color="#34495e", text_color="#3498db",
-                                  font=ctk.CTkFont(size=16), command=mostrar_ayuda)
-        btn_ayuda.place(x=400, y=10)
-
-        ctk.CTkLabel(dialog, text="📊 Resumen de Salud del Dataset", font=ctk.CTkFont(weight="bold", size=18)).pack(pady=(20, 10))
+        # --- Matemática para centrar el modal ---
+        dialog.update_idletasks()
+        px = app_root.winfo_rootx()
+        py = app_root.winfo_rooty()
+        pw = app_root.winfo_width()
+        ph = app_root.winfo_height()
+        dw = dialog.winfo_width()
+        dh = dialog.winfo_height()
+        x = px + (pw // 2) - (dw // 2)
+        y = py + (ph // 2) - (dh // 2)
+        dialog.geometry(f"+{x}+{y}")
+        # -----------------------------------------------
         
-        # Crear un frame tipo "Grid" para las tarjetas
-        frame_cards = ctk.CTkFrame(dialog, fg_color="transparent")
-        frame_cards.pack(fill="both", expand=True, padx=20, pady=10)
-        
-        # Fila 1: Salud y Memoria
-        salud_float = float(reporte["Salud"].replace('%', ''))
-        color_salud = "#27ae60" if salud_float >= 80.0 else "#c0392b"
-        
-        card_salud = ctk.CTkFrame(frame_cards, fg_color=color_salud, corner_radius=10)
-        card_salud.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
-        ctk.CTkLabel(card_salud, text="Datos Completos", font=ctk.CTkFont(size=12)).pack(pady=(10,0))
-        ctk.CTkLabel(card_salud, text=reporte["Salud"], font=ctk.CTkFont(weight="bold", size=24)).pack(pady=(0,10))
-        
-        card_memoria = ctk.CTkFrame(frame_cards, fg_color="#2c3e50", corner_radius=10)
-        card_memoria.grid(row=0, column=1, padx=5, pady=5, sticky="nsew")
-        ctk.CTkLabel(card_memoria, text="Peso en RAM", font=ctk.CTkFont(size=12)).pack(pady=(10,0))
-        ctk.CTkLabel(card_memoria, text=reporte["Memoria"], font=ctk.CTkFont(weight="bold", size=24)).pack(pady=(0,10))
+        ctk.CTkLabel(dialog, text="Reporte de Salud", font=ctk.CTkFont(weight="bold", size=22)).pack(pady=(15, 0))
+        ctk.CTkLabel(dialog, text="Análisis del dataset cargado en memoria", text_color="gray", font=ctk.CTkFont(size=12)).pack(pady=(0, 10))
 
-        # Fila 2: Dimensiones
-        card_dim = ctk.CTkFrame(frame_cards, fg_color="#34495e", corner_radius=10)
-        card_dim.grid(row=1, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
-        texto_dim = f"Dimensiones: {reporte['Filas']} filas × {reporte['Columnas']} columnas"
-        ctk.CTkLabel(card_dim, text=texto_dim, font=ctk.CTkFont(weight="bold", size=14)).pack(pady=12)
+        # Contenedor escrolleable principal
+        scroll = ctk.CTkScrollableFrame(dialog, fg_color="transparent")
+        scroll.pack(padx=20, pady=5, fill="both", expand=True)
 
-        # Fila 3: Tipos de datos
-        card_tipos = ctk.CTkFrame(frame_cards, fg_color="#34495e", corner_radius=10)
-        card_tipos.grid(row=2, column=0, columnspan=2, padx=5, pady=5, sticky="nsew")
-        texto_tipos = f"Tipos detectados: {reporte['Numéricas']} Numéricas  |  {reporte['Texto']} Texto/Categorías"
-        ctk.CTkLabel(card_tipos, text=texto_tipos, font=ctk.CTkFont(size=13)).pack(pady=12)
+        df = getattr(tab.motor, 'df', None)
+        if df is not None:
+            filas, columnas = df.shape
+            nulos = df.isna().sum().sum()
+            duplicados = df.duplicated().sum()
+            memoria = df.memory_usage(deep=True).sum() / (1024 * 1024)
 
-        # Configurar las columnas para que tengan el mismo ancho
-        frame_cards.columnconfigure(0, weight=1)
-        frame_cards.columnconfigure(1, weight=1)
+            # --- SECCIÓN 1: Tarjetas de Dimensiones ---
+            frame_dim = ctk.CTkFrame(scroll, fg_color="transparent")
+            frame_dim.pack(fill="x", pady=(5, 10))
+            frame_dim.grid_columnconfigure((0, 1, 2), weight=1)
 
-        ctk.CTkButton(dialog, text="Comenzar a Trabajar", command=dialog.destroy, width=200).pack(pady=15)
+            def crear_tarjeta(parent, titulo, valor, col, color="#2ecc71"):
+                # Usamos colores dinámicos: Claro para modo Light, Oscuro para modo Dark
+                tarjeta = ctk.CTkFrame(parent, corner_radius=8, fg_color=("gray90", "gray16"))
+                tarjeta.grid(row=0, column=col, padx=5, sticky="ew")
+                ctk.CTkLabel(tarjeta, text=titulo, font=ctk.CTkFont(size=11, weight="bold"), text_color="gray").pack(pady=(10, 0))
+                ctk.CTkLabel(tarjeta, text=str(valor), font=ctk.CTkFont(size=20, weight="bold"), text_color=color).pack(pady=(0, 10))
+
+            crear_tarjeta(frame_dim, "FILAS", f"{filas:,}", 0, "#3498db") # Azul
+            crear_tarjeta(frame_dim, "COLUMNAS", f"{columnas:,}", 1, "#9b59b6") # Morado
+            crear_tarjeta(frame_dim, "MEMORIA RAM", f"{memoria:.2f} MB", 2, "#f1c40f") # Amarillo
+
+            # --- SECCIÓN 2: Tarjetas de Calidad (Dinámicas) ---
+            frame_salud = ctk.CTkFrame(scroll, fg_color="transparent")
+            frame_salud.pack(fill="x", pady=5)
+            frame_salud.grid_columnconfigure((0, 1), weight=1)
+
+            color_nulos = "#e74c3c" if nulos > 0 else "#2ecc71" # Rojo si hay problemas, Verde si está limpio
+            color_dups = "#e74c3c" if duplicados > 0 else "#2ecc71"
+
+            crear_tarjeta(frame_salud, "CELDAS VACÍAS (NULOS)", f"{nulos:,}", 0, color_nulos)
+            crear_tarjeta(frame_salud, "FILAS DUPLICADAS", f"{duplicados:,}", 1, color_dups)
+
+            # --- SECCIÓN 3: Estructura de Columnas (Amigable) ---
+            ctk.CTkLabel(scroll, text="Estructura de Columnas", font=ctk.CTkFont(weight="bold", size=14)).pack(anchor="w", pady=(20, 5), padx=5)
+            
+            frame_cols = ctk.CTkFrame(scroll, corner_radius=8, fg_color=("gray90", "gray16"))
+            frame_cols.pack(fill="x", padx=5, pady=5)
+
+            # Traductor de jerga técnica a español amigable
+            traduccion_tipos = {
+                'object': 'Texto (String)',
+                'int64': 'Nº Entero',
+                'int32': 'Nº Entero (Optimizado)',
+                'int16': 'Nº Entero (Pequeño)',
+                'float64': 'Nº Decimal',
+                'float32': 'Nº Decimal (Optimizado)',
+                'category': 'Categoría (Optimizado)',
+                'bool': 'Booleano (Verdadero/Falso)',
+                'datetime64[ns]': 'Fecha y Hora'
+            }
+
+            for i, col in enumerate(df.columns):
+                tipo_crudo = str(df[col].dtype)
+                tipo_limpio = traduccion_tipos.get(tipo_crudo, f"Técnico: {tipo_crudo}")
+
+                fila = ctk.CTkFrame(frame_cols, fg_color="transparent")
+                fila.pack(fill="x", padx=15, pady=4)
+
+                ctk.CTkLabel(fila, text=f"• {col}", font=ctk.CTkFont(weight="bold")).pack(side="left")
+                ctk.CTkLabel(fila, text=tipo_limpio, text_color="gray").pack(side="right")
+                
+                # Divisor sutil entre filas (excepto la última)
+                if i < len(df.columns) - 1:
+                    separador = ctk.CTkFrame(frame_cols, height=1, fg_color=("gray80", "gray25"))
+                    separador.pack(fill="x", padx=10)
+
+        else:
+            ctk.CTkLabel(scroll, text="❌ No hay datos cargados en la memoria.", text_color="#e74c3c", font=ctk.CTkFont(size=14)).pack(pady=40)
+
+        # Botón para cerrar
+        btn_cerrar = ctk.CTkButton(dialog, text="Continuar al Área de Trabajo", width=250, command=dialog.destroy, fg_color="#27ae60", hover_color="#2ecc71")
+        btn_cerrar.pack(pady=(15, 20))
     
     @staticmethod
     def mostrar_preview_autocasteo(app_root, tab, propuestas):
