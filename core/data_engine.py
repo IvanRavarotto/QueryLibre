@@ -27,6 +27,8 @@ class MotorDatos:
         self.macro_steps = []
         self.hay_cambios = False
         
+        self.chat_history = []
+        
         # Pilas de Deshacer (Undo)
         self.df_history = []
         
@@ -251,7 +253,7 @@ class MotorDatos:
                 # Convertir a 'category' los textos repetitivos (Ej: "Masculino"/"Femenino" o "Aprobado")
                 num_unicos = len(df[col].unique())
                 num_total = len(df[col])
-                if num_total > 0 and (num_unicos / num_total) < 0.4:  # Si menos del 40% son valores únicos
+                if num_total > 0 and (num_unicos / num_total) < 0.10:
                     df[col] = df[col].astype('category')
                     
         mem_despues = df.memory_usage(deep=True).sum() / 1024**2
@@ -672,67 +674,6 @@ class MotorDatos:
 
         return reporte
     
-    def guardar_proyecto(self, filepath):
-        """Empaqueta el DataFrame y el historial en un archivo .qlp (ZIP comprimido)."""
-        if self.df is None:
-            raise ValueError("No hay datos para guardar.")
-
-        if not filepath.endswith('.qlp'):
-            filepath += '.qlp'
-
-        # 1. Preparamos el "Cerebro" (Historial y metadatos)
-        metadata = {
-            "nombre_archivo": getattr(self, 'nombre_archivo', 'Proyecto_QueryLibre'),
-            "historial_pasos": self.historial_pasos,
-            "macro_steps": self.macro_steps,
-            "step_counter": getattr(self, 'step_counter', 0)
-        }
-
-        # 2. Preparamos el "Cuerpo" (La tabla de datos) en la memoria RAM
-        parquet_buffer = io.BytesIO()
-        self.df.to_parquet(parquet_buffer)
-
-        # 3. Metemos todo en la "Caja" (.qlp)
-        with zipfile.ZipFile(filepath, 'w', zipfile.ZIP_DEFLATED) as zf:
-            zf.writestr('data.parquet', parquet_buffer.getvalue())
-            zf.writestr('metadata.json', json.dumps(metadata, ensure_ascii=False, indent=4))
-        
-        # 4. Reseteamos la bandera de seguridad porque ya está guardado
-        self.registrar_paso(f"📦 Proyecto guardado: {os.path.basename(filepath)}")
-        self.hay_cambios = False 
-
-    def cargar_proyecto(self, filepath):
-        """Desempaqueta un archivo .qlp y restaura la sesión (Protección Zip Bomb)."""
-        if not zipfile.is_zipfile(filepath):
-            raise ValueError("El archivo está corrupto o no es un proyecto (.qlp)")
-
-        # Límite de seguridad: 500 MB máximo de descompresión en RAM
-        MAX_SIZE = 500 * 1024 * 1024 
-
-        with zipfile.ZipFile(filepath, 'r') as zf:
-            # 1. Validar y extraer el historial
-            info_meta = zf.getinfo('metadata.json')
-            if info_meta.file_size > MAX_SIZE: raise ValueError("Metadatos demasiado grandes.")
-            with zf.open(info_meta) as f:
-                metadata = json.load(f)
-            
-            # 2. Validar y extraer la tabla (Aquí está el riesgo de Zip Bomb)
-            info_data = zf.getinfo('data.parquet')
-            if info_data.file_size > MAX_SIZE: raise ValueError("Datos exceden el límite de seguridad.")
-            with zf.open(info_data) as f:
-                self.df = pd.read_parquet(io.BytesIO(f.read()))
-
-        # 3. Restauramos la memoria del motor
-        self.nombre_archivo = metadata.get("nombre_archivo", os.path.basename(filepath))
-        self.historial_pasos = metadata.get("historial_pasos", [])
-        self.macro_steps = metadata.get("macro_steps", [])
-        self.step_counter = metadata.get("step_counter", 0)
-        
-        # 4. Limpiamos y creamos el primer punto de guardado
-        self.df_history = []
-        self._savepoint() 
-        self.hay_cambios = False
-    
     def exportar_dataset(self, filepath):
         """Exporta el DataFrame actual al formato detectado por la extensión del archivo."""
         self._check_df()
@@ -1091,3 +1032,80 @@ class MotorDatos:
         # Busca palabras exactas (\b) o prefijos/sufijos específicos
         patron = r'\b(id|dni|cuil|cuit|tel|teléfono|telefono|cod|código|codigo|cp|zip)\b|^id_|_id$|^cod_|_cod$'
         return bool(re.search(patron, col_lower))
+    
+    # --- SISTEMA DE WORKSPACES (v2.2.0) ---
+
+    def registrar_mensaje_chat(self, rol, contenido):
+        """Guarda un mensaje en el historial del Workspace (rol: 'user' o 'assistant')."""
+        self.chat_history.append({"role": rol, "content": contenido})
+        self.hay_cambios = True 
+
+    def guardar_proyecto(self, filepath):
+        """Empaqueta el DataFrame y el historial en un archivo .qlp (ZIP comprimido)."""
+        if self.df is None:
+            raise ValueError("No hay datos para guardar.")
+
+        if not filepath.endswith('.qlp'):
+            filepath += '.qlp'
+
+        try:
+            # 1. Preparamos el "Cerebro" (Metadatos y Chat)
+            metadata = {
+                "nombre_archivo": getattr(self, 'nombre_archivo', 'Proyecto_QueryLibre'),
+                "historial_pasos": self.historial_pasos,
+                "macro_steps": self.macro_steps,
+                "chat_history": self.chat_history,
+                "step_counter": getattr(self, 'step_counter', 0)
+            }
+
+            # 2. Preparamos el "Cuerpo" (La tabla) en RAM usando Parquet
+            parquet_buffer = io.BytesIO()
+            self.df.to_parquet(parquet_buffer)
+
+            # 3. Empaquetado final
+            with zipfile.ZipFile(filepath, 'w', zipfile.ZIP_DEFLATED) as zf:
+                zf.writestr('data.parquet', parquet_buffer.getvalue())
+                zf.writestr('metadata.json', json.dumps(metadata, ensure_ascii=False, indent=4))
+            
+            self.registrar_paso(f"📦 Proyecto guardado: {os.path.basename(filepath)}")
+            self.hay_cambios = False 
+            LOGGER.info(f"Workspace guardado con éxito en {filepath}")
+            
+        except Exception as e:
+            raise RuntimeError(f"Error al guardar el Workspace:\n{e}")
+
+    def cargar_proyecto(self, filepath):
+        """Desempaqueta un archivo .qlp y restaura el estado total del trabajo."""
+        if not os.path.exists(filepath):
+            # Implementación del error que pediste
+            raise FileNotFoundError(f"No se pudo encontrar el archivo del proyecto en: {filepath}")
+
+        try:
+            with zipfile.ZipFile(filepath, 'r') as zf:
+                # 1. Validar integridad básica
+                nombres_archivos = zf.namelist()
+                if 'data.parquet' not in nombres_archivos or 'metadata.json' not in nombres_archivos:
+                    raise ValueError("El archivo .qlp está dañado o no es un proyecto válido de QueryLibre.")
+
+                # 2. Restaurar Metadatos y Chat
+                with zf.open('metadata.json') as f:
+                    metadata = json.load(f)
+                    self.nombre_archivo = metadata.get("nombre_archivo", "Cargado")
+                    self.historial_pasos = metadata.get("historial_pasos", [])
+                    self.macro_steps = metadata.get("macro_steps", [])
+                    self.chat_history = metadata.get("chat_history", [])
+                    self.step_counter = metadata.get("step_counter", 0)
+
+                # 3. Restaurar Dataset (Parquet)
+                with zf.open('data.parquet') as f:
+                    # Leemos directamente desde el ZIP a Pandas
+                    self.df = pd.read_parquet(io.BytesIO(f.read()))
+                    self.df2 = self.df.copy() # Respaldo para Undo
+                
+                self.hay_cambios = False
+                LOGGER.info(f"Workspace '{self.nombre_archivo}' restaurado correctamente.")
+                return True
+
+        except Exception as e:
+            # Lanzamos el error hacia arriba para que main.py muestre el cartel
+            raise RuntimeError(f"El Workspace está dañado o incompleto: {e}")

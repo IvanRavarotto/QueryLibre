@@ -4,6 +4,7 @@ import shutil
 import threading
 import tempfile
 import logging
+import atexit
 from logging.handlers import RotatingFileHandler
 import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
@@ -15,6 +16,15 @@ from ui.tabs import PestanaTrabajo
 # --- CENTRALIZACIÓN DE CARPETAS ---
 CARPETA_MADRE = os.path.join(os.path.expanduser('~'), 'Documents', 'QueryLibre')
 os.makedirs(CARPETA_MADRE, exist_ok=True)
+
+# --- NUEVO: RECOLECTOR DE BASURA (Evita archivos huérfanos) ---
+def limpiar_cache_global():
+    cache_dir = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
+    if os.path.exists(cache_dir):
+        shutil.rmtree(cache_dir, ignore_errors=True)
+
+atexit.register(limpiar_cache_global)
+# ---------------------------------------------------------------
 
 # Logging global con rotación
 LOGGER = logging.getLogger("QueryLibre")
@@ -206,7 +216,7 @@ class QueryLibreApp(ctk.CTk):
         self.bind("<Control-y>", lambda e: self._atajo_rehacer())
         self.bind("<Control-Y>", lambda e: self._atajo_rehacer())
         # Capturamos el clic del botón central (rueda) en todo el Tabview
-
+        self.iniciar_autoguardado()
 
     # =========================================================================
     # ENRUTADORES DE MENÚS (Dispatchers)
@@ -872,7 +882,28 @@ class QueryLibreApp(ctk.CTk):
         except Exception as e:
             LOGGER.error(f"Error al cerrar pestaña: {e}")
             
-   
+    def iniciar_autoguardado(self):
+        """Lanza un bucle infinito en segundo plano para salvar el progreso."""
+        def bucle_guardado():
+            import time
+            while True:
+                # Esperamos 5 minutos entre guardados
+                time.sleep(300) 
+                
+                # Solo guardamos si hay pestañas abiertas y cambios pendientes
+                for nombre, tab in self.pestanas.items():
+                    if tab.motor.hay_cambios:
+                        try:
+                            # Generamos una ruta temporal de respaldo
+                            backup_path = os.path.join(CARPETA_MADRE, f"backup_{nombre}.qlp")
+                            tab.motor.guardar_proyecto(backup_path)
+                            LOGGER.info(f"Autoguardado exitoso para: {nombre}")
+                        except Exception as e:
+                            LOGGER.error(f"Error en autoguardado: {e}")
+
+        # Lo lanzamos como un hilo 'daemon' para que muera cuando cierres la app
+        hilo_save = threading.Thread(target=bucle_guardado, daemon=True)
+        hilo_save.start()
     
 if __name__ == "__main__":
     app = QueryLibreApp()
