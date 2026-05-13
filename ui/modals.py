@@ -783,19 +783,26 @@ class ModalesUI:
             nombre = ctk.CTkInputDialog(text="Dale un nombre a este perfil (Ej: AWS-MySQL):", title="Guardar Perfil").get_input()
             if not nombre: return
 
-            # --- NUEVO: Desbloqueo a demanda ---
+            # --- NUEVO: Desbloqueo a demanda con Intento Silencioso ---
             pwd_temporal = app_root.password_maestra
             if not pwd_temporal:
-                pwd_temporal = ctk.CTkInputDialog(text="Introduce tu Contraseña Maestra para desbloquear la Bóveda:", title="Bóveda Bloqueada").get_input()
-                if not pwd_temporal: return # Canceló el ingreso de clave
-                
-                # Intentamos abrir la bóveda para validar que la clave sea correcta
+                # 1. INTENTO SILENCIOSO: Probamos con el Hardware ID
+                llave_hw = app_root.boveda.get_hardware_key()
                 try:
-                    app_root.credenciales = app_root.boveda.leer_datos(pwd_temporal)
-                    app_root.password_maestra = pwd_temporal # Si funcionó, la guardamos en la sesión
+                    app_root.credenciales = app_root.boveda.leer_datos(llave_hw)
+                    app_root.password_maestra = llave_hw # Guardamos en sesión
+                    pwd_temporal = llave_hw
                 except Exception:
-                    messagebox.showerror("Error", "Contraseña incorrecta. No se pudo desbloquear la Bóveda.", parent=dialog)
-                    return
+                    # 2. INTENTO MANUAL: Si falló, significa que el usuario sí le puso contraseña manual
+                    pwd_temporal = ctk.CTkInputDialog(text="Introduce tu Contraseña Maestra para desbloquear la Bóveda:", title="Bóveda Bloqueada").get_input()
+                    if not pwd_temporal: return # Canceló
+                    
+                    try:
+                        app_root.credenciales = app_root.boveda.leer_datos(pwd_temporal)
+                        app_root.password_maestra = pwd_temporal 
+                    except Exception:
+                        messagebox.showerror("Error", "Contraseña incorrecta.", parent=dialog)
+                        return
             
             perfil_data = {
                 "motor": combo_motor.get(),
@@ -1280,13 +1287,36 @@ class ModalesUI:
         entry_confirm = ctk.CTkEntry(dialog, show="*", width=250, placeholder_text="Confirmar contraseña...")
         entry_confirm.pack(pady=5)
         
+        usar_pass = ctk.CTkBooleanVar(value=True) # Por defecto, pide contraseña
+
+        def toggle_pass():
+            if usar_pass.get():
+                entry_pass.configure(state="normal", fg_color=("white", "gray16"))
+                entry_confirm.configure(state="normal", fg_color=("white", "gray16"))
+            else:
+                entry_pass.configure(state="disabled", fg_color="gray80")
+                entry_confirm.configure(state="disabled", fg_color="gray80")
+                # Limpiamos las cajas por si había escrito algo
+                entry_pass.delete(0, 'end')
+                entry_confirm.delete(0, 'end')
+
+        switch = ctk.CTkSwitch(dialog, text="Proteger con Contraseña Manual", variable=usar_pass, command=toggle_pass)
+        switch.pack(pady=10)
+
         def guardar():
-            p1 = entry_pass.get()
-            p2 = entry_confirm.get()
-            if not p1 or p1 != p2:
-                messagebox.showwarning("Error", "Las contraseñas no coinciden o están vacías.", parent=dialog)
-                return
+            # Evaluamos la decisión del usuario
+            if usar_pass.get():
+                pwd_final = entry_pass.get()
+                if not pwd_final or pwd_final != entry_confirm.get():
+                    messagebox.showerror("Error", "Las contraseñas no coinciden o están vacías.", parent=dialog)
+                    return
+            else:
+                # Usa la huella digital de la PC
+                pwd_final = app_root.boveda.get_hardware_key()
+            
+            # --- ESTO FALTABA ---
+            # Cerramos el modal y le pasamos la llave a la aplicación para que encripte
             dialog.destroy()
-            callback(p1) # Llamamos a la función de guardado con la nueva contraseña
+            callback(pwd_final)
             
         ctk.CTkButton(dialog, text="💾 Crear Bóveda", command=guardar, fg_color="#27ae60", hover_color="#2ecc71").pack(pady=15)

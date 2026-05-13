@@ -5,6 +5,10 @@ from cryptography.fernet import Fernet
 from cryptography.hazmat.primitives import hashes
 from cryptography.hazmat.primitives.kdf.pbkdf2 import PBKDF2HMAC
 
+import getpass
+import uuid
+import hashlib
+
 class BovedaSegura:
     """
     Gestiona el almacenamiento seguro (Encriptación AES) de credenciales y configuraciones.
@@ -73,3 +77,12 @@ class BovedaSegura:
         except Exception:
             # Si la contraseña está mal, Fernet lanza una excepción
             raise ValueError("Contraseña maestra incorrecta o bóveda corrupta.")
+        
+    def get_hardware_key(self) -> str:
+        """Genera una contraseña única e invisible basada en la PC física y el usuario de Windows."""
+        usuario = getpass.getuser()
+        mac = uuid.getnode()
+        # Combinamos la info para crear una semilla única de esta máquina
+        semilla = f"QueryLibre_{usuario}_{mac}_Vault"
+        # La convertimos en un hash SHA-256 seguro
+        return hashlib.sha256(semilla.encode('utf-8')).hexdigest()
