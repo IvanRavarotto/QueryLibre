@@ -109,9 +109,6 @@ class QueryLibreApp(ctk.CTk):
 
         self.btn_transformar = ctk.CTkButton(self.sidebar_frame, text="🔗 Unir Datasets", state="disabled", command=self.unir_datasets)
         self.btn_transformar.grid(row=5, column=0, padx=20, pady=10)
-
-        self.btn_exportar = ctk.CTkButton(self.sidebar_frame, text="💾 Exportar Datos", state="disabled", command=self.exportar_datos)
-        self.btn_exportar.grid(row=6, column=0, padx=20, pady=10)
         
         self.version_label = ctk.CTkLabel(self.sidebar_frame, text="QueryLibre v2.1.0", font=ctk.CTkFont(size=11), text_color="gray")
         self.version_label.grid(row=7, column=0, padx=20, pady=20, sticky="s")
@@ -122,6 +119,23 @@ class QueryLibreApp(ctk.CTk):
 
         self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
         self.welcome_label.pack(expand=True)
+
+        self.welcome_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
+        self.welcome_frame.pack(expand=True)
+
+        self.welcome_label = ctk.CTkLabel(self.welcome_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
+        self.welcome_label.pack(pady=10)
+        
+        self.btn_abrir_ws = ctk.CTkButton(
+            self.welcome_frame, # O el frame que uses al inicio
+            text="📂 Abrir Workspace (.qlp)", 
+            font=ctk.CTkFont(size=16, weight="bold"),
+            height=40,
+            fg_color="#27ae60", # Verde distintivo
+            hover_color="#2ecc71",
+            command=self.abrir_workspace_ui
+        )
+        self.btn_abrir_ws.pack(pady=15)
 
         # ---- 3. BARRA DE HERRAMIENTAS AGRUPADA (RIBBON) ----
         self.toolbar_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
@@ -196,6 +210,14 @@ class QueryLibreApp(ctk.CTk):
 
         self.lbl_dimensiones = ctk.CTkLabel(self.bottom_bar, text="", text_color="gray", font=ctk.CTkFont(size=12, weight="bold"))
         self.lbl_dimensiones.pack(side="right")
+
+        self.btn_exportar = ctk.CTkButton(self.bottom_bar, text="Exportar Datos", command=self.exportar_datos)
+        self.btn_exportar.pack(side="right", padx=10, pady=10)
+
+        self.btn_guardar_ws = ctk.CTkButton(
+            self.bottom_bar, text="💾 Guardar Workspace", fg_color="#2980b9", hover_color="#1f618d", command=self.guardar_workspace_ui
+        )
+        self.btn_guardar_ws.pack(side="right", padx=5, pady=10)
 
         style = ttk.Style()
         style.theme_use("default")
@@ -904,6 +926,87 @@ class QueryLibreApp(ctk.CTk):
         # Lo lanzamos como un hilo 'daemon' para que muera cuando cierres la app
         hilo_save = threading.Thread(target=bucle_guardado, daemon=True)
         hilo_save.start()
+        
+        # --- SISTEMA DE WORKSPACES (v2.2.0) ---
+
+    def guardar_workspace_ui(self):
+        """Interfaz para empaquetar el estado actual en un archivo .qlp"""
+        if not self.pestanas: return
+        tab_activa = self.pestanas.get(self.tabview.get())
+        
+        if not tab_activa or tab_activa.motor.df is None:
+            messagebox.showwarning("Aviso", "No hay datos cargados para guardar.")
+            return
+
+        ruta_qlp = filedialog.asksaveasfilename(
+            title="Guardar Workspace",
+            defaultextension=".qlp",
+            filetypes=[("QueryLibre Project", "*.qlp")],
+            initialfile=f"Workspace_{tab_activa.motor.nombre_archivo.split('.')[0]}"
+        )
+        
+        if not ruta_qlp: return
+
+        def tarea():
+            tab_activa.motor.guardar_proyecto(ruta_qlp)
+            nuevo_nombre = os.path.basename(ruta_qlp).replace('.qlp', '')
+            self.after(0, lambda: messagebox.showinfo("Éxito", f"Workspace '{nuevo_nombre}' guardado correctamente."))
+
+        self.ejecutar_tarea_pesada(tarea)
+
+
+    def abrir_workspace_ui(self, ruta_qlp=None):
+        """Abre un .qlp e implementa el Patrón de Relocalización si el archivo no se encuentra."""
+        if not ruta_qlp:
+            ruta_qlp = filedialog.askopenfilename(
+                title="Abrir Workspace",
+                filetypes=[("QueryLibre Project", "*.qlp")]
+            )
+        
+        if not ruta_qlp: return
+
+        # --- PATRÓN DE RELOCALIZACIÓN ---
+        if not os.path.exists(ruta_qlp):
+            respuesta = messagebox.askyesno(
+                "Archivo Extraviado",
+                f"No se pudo encontrar el Workspace en la ruta:\n{ruta_qlp}\n\nEs posible que haya sido movido o eliminado. ¿Deseas buscarlo manualmente?"
+            )
+            if respuesta:
+                ruta_qlp = filedialog.askopenfilename(
+                    title="Localizar Workspace perdido",
+                    filetypes=[("QueryLibre Project", "*.qlp")]
+                )
+                if not ruta_qlp or not os.path.exists(ruta_qlp): return
+            else:
+                return
+        # --------------------------------
+
+        def tarea_carga():
+            # Creamos una instancia de MotorDatos solo para validar que el archivo sirve
+            from core.data_engine import MotorDatos
+            motor_temporal = MotorDatos()
+            
+            exito = motor_temporal.cargar_proyecto(ruta_qlp)
+            
+            if exito:
+                nombre_workspace = motor_temporal.nombre_archivo.replace('.qlp', '')
+                
+                # Le pedimos a Tkinter que cree la pestaña en el hilo principal
+                def actualizar_interfaz():
+                    # 1. Creamos la UI de la pestaña usando la función existente
+                    nueva_pestana = self._crear_tab_ui(nombre_workspace)
+                    # 2. Le inyectamos el cerebro que acaba de leer el archivo
+                    nueva_pestana.motor = motor_temporal
+                    # 3. Refrescamos para que aparezcan los datos
+                    nueva_pestana.refrescar_interfaz()
+                    # 4. Actualizamos título y mostramos éxito
+                    self.tabview.set(nombre_workspace)
+                    self.actualizar_lbl_dimensiones()
+                    messagebox.showinfo("Carga Exitosa", f"Workspace '{nombre_workspace}' restaurado con todo su historial.")
+                
+                self.after(0, actualizar_interfaz)
+
+        self.ejecutar_tarea_pesada(tarea_carga)
     
 if __name__ == "__main__":
     app = QueryLibreApp()
