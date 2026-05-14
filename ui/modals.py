@@ -1320,3 +1320,49 @@ class ModalesUI:
             callback(pwd_final)
             
         ctk.CTkButton(dialog, text="💾 Crear Bóveda", command=guardar, fg_color="#27ae60", hover_color="#2ecc71").pack(pady=15)
+    
+    @staticmethod
+    def mostrar_selector_perfil_ia(app_root, callback):
+        """Modal para elegir el perfil de IA antes de iniciar un Workspace nuevo."""
+        dialog = ctk.CTkToplevel(app_root)
+        dialog.title("🤖 Seleccionar Perfil de IA")
+        dialog.geometry("400x350")
+        dialog.transient(app_root)
+        dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+
+        # Matemática para centrar el modal
+        dialog.update_idletasks()
+        px = app_root.winfo_rootx()
+        py = app_root.winfo_rooty()
+        pw = app_root.winfo_width()
+        ph = app_root.winfo_height()
+        dw = dialog.winfo_width()
+        dh = dialog.winfo_height()
+        x = px + (pw // 2) - (dw // 2)
+        y = py + (ph // 2) - (dh // 2)
+        dialog.geometry(f"+{x}+{y}")
+
+        ctk.CTkLabel(dialog, text="Elige tu Asistente", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5))
+        ctk.CTkLabel(dialog, text="¿Con qué perfil deseas trabajar hoy?", text_color="gray").pack(pady=(0, 20))
+
+        perfil_seleccionado = ctk.StringVar(value="Gemini Pro (Análisis Profundo)")
+
+        perfiles = [
+            "Gemini Pro (Análisis Profundo)",
+            "Gemini Flash (Procesamiento Rápido)",
+            "Modo Local (Sin IA - Privacidad Estricta)"
+        ]
+
+        # Generamos las opciones dinámicamente
+        for perfil in perfiles:
+            ctk.CTkRadioButton(
+                dialog, text=perfil, variable=perfil_seleccionado, value=perfil, font=ctk.CTkFont(size=14)
+            ).pack(pady=10, padx=40, anchor="w")
+
+        def confirmar():
+            seleccion = perfil_seleccionado.get()
+            dialog.destroy()
+            callback(seleccion)
+
+        ctk.CTkButton(dialog, text="Continuar", command=confirmar, fg_color="#2980b9", hover_color="#1f618d").pack(pady=30)

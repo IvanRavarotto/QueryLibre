@@ -234,21 +234,33 @@ class PestanaTrabajo(ctk.CTkFrame):
             
             inicio = (self.pagina_actual - 1) * self.filas_por_pagina
             fin = inicio + self.filas_por_pagina
-            df_preview = self.motor.df.iloc[inicio:fin]
+            # --- NUEVO CÓDIGO DE RENDERIZADO SEGURO ---
+            # 1. Extraemos la porción de datos que vamos a mostrar
+            df_pagina = self.motor.df.iloc[inicio:fin].copy()
+        
+            # 2. Convertimos temporalmente las columnas categóricas a texto normal
+            # para que Pandas nos permita inyectar espacios vacíos ("") en la UI
+            columnas_categoricas = df_pagina.select_dtypes(['category']).columns
+            for col in columnas_categoricas:
+                df_pagina[col] = df_pagina[col].astype('object')
+            
+            # 3. Ahora sí, reemplazamos los nulos por texto vacío para Tkinter
+            df_pagina = df_pagina.fillna("")
+            # ------------------------------------------
 
-            columnas_visuales = ["#"] + list(df_preview.columns)
+            columnas_visuales = ["#"] + list(df_pagina.columns)
             self.tree["column"] = columnas_visuales
             self.tree["show"] = "headings"
             self.tree.heading("#", text="#")
             self.tree.column("#", width=40, anchor="center", stretch=False)
 
-            for col in df_preview.columns:
+            for col in df_pagina.columns:
                 # Al hacer clic en la cabecera, llama a la función de ordenar
                 self.tree.heading(col, text=col, command=lambda c=col: self._ordenar_columna(c))
                 self.tree.column(col, width=120, anchor="center")
 
-            df_preview_filled = df_preview.fillna("")
-            for i, (index, row) in enumerate(df_preview_filled.iterrows(), start=inicio + 1):
+            df_pagina_filled = df_pagina.fillna("")
+            for i, (index, row) in enumerate(df_pagina_filled.iterrows(), start=inicio + 1):
                 self.tree.insert("", "end", values=[i] + list(row))
 
             self.entry_pagina.delete(0, 'end')

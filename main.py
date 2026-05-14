@@ -117,26 +117,25 @@ class QueryLibreApp(ctk.CTk):
         self.main_frame = ctk.CTkFrame(self, corner_radius=10)
         self.main_frame.grid(row=0, column=1, padx=20, pady=20, sticky="nsew")
 
-        self.welcome_label = ctk.CTkLabel(self.main_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
-        self.welcome_label.pack(expand=True)
-
         self.welcome_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         self.welcome_frame.pack(expand=True)
 
-        self.welcome_label = ctk.CTkLabel(self.welcome_frame, text="Bienvenido a QueryLibre\nCarga un dataset para comenzar.", font=ctk.CTkFont(size=16))
-        self.welcome_label.pack(pady=10)
-        
-        self.btn_abrir_ws = ctk.CTkButton(
-            self.welcome_frame, # O el frame que uses al inicio
-            text="📂 Abrir Workspace (.qlp)", 
-            font=ctk.CTkFont(size=16, weight="bold"),
-            height=40,
-            fg_color="#27ae60", # Verde distintivo
-            hover_color="#2ecc71",
-            command=self.abrir_workspace_ui
-        )
-        self.btn_abrir_ws.pack(pady=15)
+        self.welcome_label = ctk.CTkLabel(self.welcome_frame, text="Bienvenido a QueryLibre\nInicia un entorno de trabajo.", font=ctk.CTkFont(size=16))
+        self.welcome_label.pack(pady=(10, 20))
 
+        # --- NUEVO BOTÓN ---
+        self.btn_nuevo_ws = ctk.CTkButton(
+            self.welcome_frame, text="✨ Nuevo Workspace", font=ctk.CTkFont(size=16, weight="bold"), height=40,
+            fg_color="#2980b9", hover_color="#1f618d", command=self.crear_nuevo_workspace_ui
+        )
+        self.btn_nuevo_ws.pack(pady=10)
+
+        self.btn_abrir_ws = ctk.CTkButton(
+            self.welcome_frame, text="📂 Abrir Workspace (.qlp)", font=ctk.CTkFont(size=16, weight="bold"), height=40,
+            fg_color="#27ae60", hover_color="#2ecc71", command=self.abrir_workspace_ui
+        )
+        self.btn_abrir_ws.pack(pady=10)
+    
         # ---- 3. BARRA DE HERRAMIENTAS AGRUPADA (RIBBON) ----
         self.toolbar_frame = ctk.CTkFrame(self.main_frame, fg_color="transparent")
         
@@ -291,8 +290,10 @@ class QueryLibreApp(ctk.CTk):
         else:
             self.lbl_dimensiones.configure(text="")
 
-    def cargar_archivo(self):
-        file_path = filedialog.askopenfilename(title="Seleccionar Dataset", filetypes=[("Archivos", "*.csv *.xlsx *.xls")])
+    def cargar_archivo(self, file_path=None):
+        if not file_path:
+            file_path = filedialog.askopenfilename(title="Seleccionar Dataset", filetypes=[("Archivos", "*.csv *.xlsx *.xls")])
+        
         if file_path:
             try:
                 nombre_archivo = os.path.basename(file_path)
@@ -303,13 +304,10 @@ class QueryLibreApp(ctk.CTk):
                     contador += 1
 
                 if len(self.pestanas) == 0:
-                    self.welcome_label.pack_forget()
+                    self.welcome_frame.pack_forget() # <-- CORREGIDO
                     self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
                     self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
-                    
-                    # NUEVO: Mostramos la barra inferior
                     self.bottom_bar.pack(side="bottom", fill="x", padx=20, pady=(10, 15)) 
-                    
                     self.btn_transformar.configure(state="normal")
                     self.btn_exportar.configure(state="normal")
 
@@ -318,14 +316,14 @@ class QueryLibreApp(ctk.CTk):
                 nueva_pestana.pack(expand=True, fill="both")
                 
                 self.pestanas[nombre_tab] = nueva_pestana
-                self.tabview.set(nombre_tab) # Enfocamos la pestaña primero
+                self.tabview.set(nombre_tab) 
                 
-                # --- CORRECCIÓN: Enviar la carga pesada al hilo con barra de progreso ---
                 self.ejecutar_tarea_pesada(nueva_pestana.motor.cargar_archivo, file_path)
 
             except Exception as e:
                 LOGGER.error(f"Error al preparar carga: {e}")
 
+                
     # --- Funciones Delegadas (Modales) ---
     def eliminar_duplicados(self):
         tab = self.obtener_pestana_activa()
@@ -739,7 +737,7 @@ class QueryLibreApp(ctk.CTk):
     def _crear_tab_ui(self, nombre_tab):
         """Crea la UI de una nueva pestaña y oculta la pantalla de bienvenida."""
         if len(self.pestanas) == 0:
-            self.welcome_label.pack_forget()
+            self.welcome_frame.pack_forget()
             if hasattr(self, 'toolbar_frame'):
                 self.toolbar_frame.pack(fill="x", padx=10, pady=(10, 0))
             self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
@@ -858,8 +856,8 @@ class QueryLibreApp(ctk.CTk):
         
     def cerrar_pestana_activa(self, nombre_pestana=None):
         """Cierra la pestaña indicada o la que esté activa actualmente, verificando cambios sin guardar."""
-        if not nombre_pestana:
-            nombre_pestana = self.tabview.get()
+        if not self.pestanas:
+                self.welcome_frame.pack(expand=True)
         
         if not nombre_pestana: return
 
@@ -1007,6 +1005,19 @@ class QueryLibreApp(ctk.CTk):
                 self.after(0, actualizar_interfaz)
 
         self.ejecutar_tarea_pesada(tarea_carga)
+
+    def crear_nuevo_workspace_ui(self):
+        """Dispara el flujo de creación de un nuevo entorno de trabajo seleccionando la IA primero."""
+        def on_perfil_elegido(perfil):
+            ruta_archivo = filedialog.askopenfilename(
+                title=f"Cargar Dataset para {perfil}", 
+                filetypes=[("Archivos CSV/Excel", "*.csv *.xlsx *.xls")]
+            )
+            if ruta_archivo:
+                messagebox.showinfo("Workspace Inicializado", f"Perfil IA Activo: {perfil}")
+                self.cargar_archivo(ruta_archivo) # Usamos nuestra función mejorada
+
+        ModalesUI.mostrar_selector_perfil_ia(self, on_perfil_elegido)
     
 if __name__ == "__main__":
     app = QueryLibreApp()
