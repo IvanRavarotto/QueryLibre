@@ -1,116 +1,92 @@
-# 🔍 QueryLibre - Motor de Transformación de Datos (ETL)
+# 🔍 QueryLibre - Enterprise Data Transformation & Analytics Workspace
 
-![Python](https://img.shields.io/badge/Python-3.10+-blue.svg?logo=python&logoColor=white)
-![Pandas](https://img.shields.io/badge/Pandas-Data_Processing-150458.svg?logo=pandas&logoColor=white)
-![CustomTkinter](https://img.shields.io/badge/CustomTkinter-GUI-darkgreen.svg)
+![Python](https://img.shields.io/badge/Python-3.11+-blue.svg?logo=python&logoColor=white)
+![Pandas](https://img.shields.io/badge/Pandas-2.2.0-150458.svg?logo=pandas&logoColor=white)
+![PyArrow](https://img.shields.io/badge/PyArrow-Columnar_Engine-orange.svg)
+![Cryptography](https://img.shields.io/badge/Cryptography-AES--256-red.svg)
 ![License](https://img.shields.io/badge/License-MIT-green.svg)
 
-QueryLibre es una aplicación de escritorio ligera e independiente, desarrollada 100% en Python, diseñada para democratizar la limpieza y transformación de datos. Permite a los usuarios cargar, procesar, unir y exportar bases de datos sin necesidad de escribir código o depender de software pesado.
-
-> **💡 Motivación:** Llevar la potencia del procesamiento vectorizado de Pandas a una interfaz gráfica intuitiva, similar a Power Query, pero en un entorno de código abierto, escalable y de ejecución local.
+QueryLibre es un entorno de escritorio avanzado diseñado para la optimización, limpieza y transformación estructural de grandes volúmenes de datos (ETL). Construida bajo el patrón arquitectónico **Model-View-Controller (MVC)**, la plataforma abstrae la potencia analítica vectorizada de Pandas y el almacenamiento columnar de PyArrow en una interfaz gráfica nativa de alto rendimiento, eliminando la necesidad de redactar código sintáctico para el procesamiento de datos masivos.
 
 ---
 
-## 📸 Interfaz de Usuario
+## 🛠️ Arquitectura del Sistema y Core Tecnológico
 
-**Entorno de Trabajo Multitarea (Ribbon UI y Pestañas)**
-*(Inserta aquí tu captura más reciente de la v1.4.0)*
+La aplicación está diseñada bajo principios de desacoplamiento estricto, garantizando estabilidad en el hilo principal de la interfaz de usuario y eficiencia extrema en el uso de memoria RAM:
 
-**Radiografía de Datos (Data Profiling)**
-*(Inserta aquí la captura del panel oscuro de Radiografía)*
-
----
-
-## 🚀 Características Principales (v2.0.0)
-
-* **✨ Analista IA Integrado:** Un chat interactivo potenciado por Google Gemini capaz de leer el contexto de tus datos y sugerir transformaciones automatizadas.
-* **🔒 Bóveda Segura (AES-256):** Almacenamiento encriptado con grado militar para proteger tus API Keys y credenciales locales usando una Contraseña Maestra.
-* **🖱️ Menú Contextual Rápido:** Clic derecho sobre cualquier columna para transformaciones de texto masivas (MAYÚSCULAS, minúsculas, Título).
-* **↕️ Ordenamiento Interactivo (Sort):** Ordena alfabética o numéricamente todo tu dataset con solo hacer clic en la cabecera de la columna.
-* **🧠 Smart Data Profiling:** Genera análisis estadísticos y gráficos de distribución automáticos para cualquier columna con un solo clic.
-* **🔀 Columnas Condicionales (IF-THEN-ELSE):** Crea nuevas columnas dinámicas basadas en reglas lógicas vectorizadas con Numpy.
-* **🔄 Unpivot Horizontal a Vertical:** Transforma datos anchos a formato largo para motores de bases de datos.
-* **⏳ Viaje en el Tiempo (Caché Parquet):** Sistema robusto de Deshacer/Rehacer (`Ctrl+Z` / `Ctrl+Y`) respaldado en disco para no saturar la memoria RAM.
-* **🗃️ Conector SQL Integrado:** Importa tablas directamente desde MySQL, PostgreSQL y SQL Server.
-* **🚀 Novedad v2.1.0:** ¡Ahora con soporte para Big Data! Procesamiento ultrarrápido con PyArrow y exportación profesional a formatos Parquet y JSON.
+* **Engine de Carga y Downcasting Automático:** Utiliza un motor de tipado inteligente que analiza los esquemas entrantes y ejecuta un sub-casteo numérico (ej. `int64` a `int8`) y conversiones a categorías cerradas (`category`), reduciendo el consumo de memoria RAM hasta en un 50%.
+* **Persistencia Híbrida (.qlp Workspaces):** Los espacios de trabajo se consolidan en contenedores comprimidos de alta velocidad que empaquetan de forma nativa archivos estructurados en formato Apache Parquet (`data.parquet`) junto con esquemas relacionales y metadatos JSON (`metadata.json`).
+* **Seguridad Criptográfica (Zero-Knowledge Vault):** Almacenamiento seguro de credenciales de bases de datos relacionales y API Keys utilizando cifrado simétrico **AES-256** mediante primitivas de derivación de claves PBKDF2HMAC con vectores de inicialización dinámicos (Salt).
 
 ---
 
-## PRÓXIMAMENTE (v2.2.0):
-* **Workspaces Totales:** Puntos de guardado que incluyen el historial de chat de la IA.
-* **Autoguardado Inteligente:** Respaldo automático de tu progreso en segundo plano.
-* **Bóveda Transparente:** Opción de encriptación vinculada al Hardware ID (sin contraseña).
-* **Patrón de Relocalización:** Recuperación automática de rutas de archivos movidos.
-* **Gráficos Avanzados:** Visualización estadística integrada en el Health Check.
+## 📸 Demostración Visual del Entorno
+
+### Entorno Multitarea Unificado
+La interfaz implementa un diseño modular enfocado en la maximización del área visual de los conjuntos de datos, incorporando barras de herramientas compactas y sistemas de pestañas dinámicas.
+*(Inserta aquí el enlace a la captura: assets/DatasetCargado.JPG)*
+
+### Diagnóstico Estadístico (Health Check)
+Dashboard analítico integrado para la detección de nulos, correlaciones, duplicados y calidad general de las estructuras de datos en tiempo real.
+*(Inserta aquí el enlace a la captura: assets/V1.7.JPG)*
 
 ---
 
-## 🛠️ Tecnologías Utilizadas
+## 🚀 Características Destacadas de la Versión 2.2.0
 
-* **Motor Lógico:** `pandas` (Manipulación intensiva y vectorizada).
-* **Interfaz Gráfica (GUI):** `customtkinter` (Diseño moderno, modo oscuro puro) y `tkinter` (`Treeview`).
-* **Automatización:** `json` para serialización de macros.
-* **Sistema de I/O:** `os`, `sys`, `sqlite3`.
-* **Empaquetado:** `pyinstaller` (Compilación a binario ejecutable `.exe` standalone).
-
----
-
-## 📦 Instalación y Uso (Para usuarios finales)
-
-No es necesario instalar Python ni librerías.
-
-1. Ve a la sección de **Releases** en este repositorio.
-2. Descarga el archivo `QueryLibre.exe`.
-3. Ejecútalo haciendo doble clic. 
-
-> ⚠️ **Nota de Seguridad (Windows SmartScreen):** > Al ser un proyecto de código abierto independiente sin un certificado digital de pago, es muy probable que Windows Defender muestre una pantalla azul indicando "Windows protegió su PC". 
-> Para abrir la aplicación de forma segura, haz clic en **"Más información"** y luego en el botón **"Ejecutar de todas formas"**.
+* **🤖 Asistente de Contexto IA:** Integración nativa con modelos de lenguaje masivo (LLM) mediante perfiles de sesión asincrónicos para ejecutar auditorías lógicas sobre las estructuras tabulares.
+* **📊 UX de Tabla Avanzada:** Treeview interactivo optimizado con soporte para reordenamiento de columnas en tiempo real (Drag & Drop) y auto-ajuste de dimensiones adaptativas basado en la longitud de caracteres de las celdas (Estilo Excel).
+* **🔌 Conector SQL Integrado:** Capacidad para interactuar e importar vistas relacionales directamente desde motores SQLite y MySQL a través de abstracciones seguras en SQLAlchemy.
+* **💾 Pipelines de Automatización (Macros):** Motor secuencial capaz de registrar las transformaciones realizadas en una sesión y exportarlas a manifiestos JSON portables, permitiendo replicar el pipeline sobre nuevos datasets de forma homogénea.
 
 ---
 
-## 💻 Para Desarrolladores
+## 📦 Distribución y Despliegue de Producción
 
-Si deseas clonar el proyecto para auditar el código, explorar la separación de capas MVC o contribuir:
+Para entornos donde no se disponga de intérpretes de Python configurados, QueryLibre se distribuye como un binario nativo e independiente de 64 bits optimizado para arquitecturas Windows.
 
-1. Clona este repositorio: 
+### Instrucciones de Ejecución Binaria:
+1. Dirígete a la sección de **Releases** en este repositorio de GitHub.
+2. Descarga el paquete comprimido de la última versión estable.
+3. Ejecuta el archivo binario independiente `QueryLibre_v2.2.0.exe`.
+
+> **⚠️ Nota de Seguridad Operativa (Windows SmartScreen):** Al tratarse de un binario independiente de código abierto que no cuenta con una firma digital comercial paga, Windows Defender puede interrumpir preventivamente la primera ejecución. Para iniciar el software de forma segura, haga clic en *"Más información"* y seleccione el botón *"Ejecutar de todas formas"*.
+
+---
+
+## 💻 Entorno de Desarrollo y Auditoría de Código
+
+Para clonar la solución, auditar las capas criptográficas o ejecutar contribuciones al núcleo del motor ETL, configure las dependencias siguiendo esta secuencia técnica:
+
+1. **Clonación del Repositorio Institucional:**
    ```bash
-   git clone https://github.com/IvanRavarotto/QueryLibre.git
+   git clone [https://github.com/IvanRavarotto/QueryLibre.git](https://github.com/IvanRavarotto/QueryLibre.git)
    cd QueryLibre
    ```
-2. Crea y activa un entorno virtual:
-   (Windows)
+2. **Aislamiento de Entorno Virtual (Venv):**
+   En sistemas Windows (PowerShell):
    ```powershell
    python -m venv .venv
    .\.venv\Scripts\Activate.ps1
    ```
-   (macOS/Linux)
+   En sistemas Unix (macOS/Linux):
    ```bash
    python -m venv .venv
    source .venv/bin/activate
    ```
-3. Instala dependencias necesarias:
+3. **Instala dependencias necesarias:**
    ```bash
    pip install -r requirements.txt
    ```
-4. Ejecuta el archivo principal:
+4. **Lanzamiento del Hilo Principal:**
    ```bash
    python main.py
    ```
 
-## 🧪 Pruebas unitarias
+## 🧪 Suite de Pruebas Unitarias (QA)
+El core analítico cuenta con una cobertura de pruebas lógicas automatizadas mediante pytest para blindar la integridad del motor ante nuevas actualizaciones.
 
-Este proyecto incluye una suite `pytest` para validar las funciones clave de transformaciones.
-
-1. Genera el dataset de pruebas y el archivo `tests/test_data_engine.py`:
-   ```bash
-   python data_test/generador_datos.py
+**Para ejecutar los vectores de prueba de regresión:**
+   ```Bash
+   python -m pytest tests/
    ```
-2. Ejecuta los tests:
-   ```bash
-   python -m pytest -q
-   ```
-
-Resultado esperado:
-- 29 passed, 1 warning
-
-> Nota: se muestra un warning de pandas para `pd.to_datetime` que termina siendo no bloqueante, solo informativo.

@@ -14,7 +14,6 @@ class ModalesUI:
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("Acerca de QueryLibre")
         
-        # IMPORTANTE: Eliminamos dialog.geometry("400x520") para que no sea fijo
         dialog.resizable(False, False)
         dialog.transient(app_root)
         dialog.grab_set()
@@ -22,48 +21,47 @@ class ModalesUI:
         if hasattr(app_root, 'fijar_icono'):
             app_root.fijar_icono(dialog)
         
-        # Agregamos padx=40 a los labels para que el texto no toque los bordes
-        ctk.CTkLabel(dialog, text="QueryLibre v2.1.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5), padx=40)
-        ctk.CTkLabel(dialog, text="Motor de Transformación de Datos", text_color="gray").pack(pady=(0, 15), padx=40)
+        # Versión y Título Principal
+        ctk.CTkLabel(dialog, text="QueryLibre v2.2.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5), padx=40)
+        ctk.CTkLabel(dialog, text="Workspace de Analítica & Transformación de Datos", text_color="gray").pack(pady=(0, 15), padx=40)
         
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5), padx=40)
-        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python\n• Pandas\n• CustomTkinter\n• SQLite")
+        legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python & Pandas Engine\n• PyArrow Columnar Storage\n• CustomTkinter UI\n• Cryptography (AES-256)")
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 10), padx=40)
         
-        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión 2.2.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5), padx=40)
+        # NUEVO ROADMAP: Planificación Estratégica v2.3.0
+        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión v2.3.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5), padx=40)
 
         roadmap_text = (
-            "• Workspaces Totales: Puntos de guardado que incluyen el historial de chat de la IA.\n"
-            "• Autoguardado Inteligente: Respaldo automático de tu progreso en segundo plano.\n"
-            "• Bóveda Transparente: Opción de encriptación vinculada al Hardware ID (sin contraseña).\n"
-            "• Patrón de Relocalización: Recuperación automática de rutas de archivos movidos.\n"
-            "• Gráficos Avanzados: Visualización estadística integrada en el Health Check."
+            "• Single-Instance App: Bloqueo de instancias duplicadas para proteger la RAM y la Bóveda.\n"
+            "• Canvas de Informes Ejecutivos: Editor de reportes con inserción directa de gráficos generados.\n"
+            "• Menú Contextual Avanzado: Clic derecho dinámico en tablas para acelerar la edición de celdas.\n"
+            "• AI Payload Optimization: Rediseño del envío de tokens para máxima estabilidad y velocidad.\n"
+            "• Sistema de Ayuda Integrado: Módulo interactivo en pestaña para documentación de procesos."
         )
 
         ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 20), padx=40)
 
-        # Botones y créditos en la parte inferior
+        # Créditos y Cierre
         ctk.CTkLabel(dialog, text="Desarrollado por Iván Tomás Ravarotto", font=ctk.CTkFont(size=11), text_color="gray").pack(side="bottom", pady=(0, 10))
-        ctk.CTkButton(dialog, text="¡Entendido!", command=dialog.destroy, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=10)
-
-        # --- LÓGICA DE AUTO-ADAPTACIÓN Y CENTRADO ---
-        dialog.update_idletasks() # Forzamos el cálculo de dimensiones internas
         
-        # Obtenemos el ancho y alto que la ventana "pide" según su contenido
+        def salir_seguro():
+            app_root.focus_set()
+            dialog.withdraw()
+            dialog.after(200, dialog.destroy)
+
+        ctk.CTkButton(dialog, text="¡Entendido!", command=salir_seguro, fg_color="#2980b9", hover_color="#1f618d").pack(side="bottom", pady=10)
+
+        # Lógica de auto-adaptación y centrado geométrico
+        dialog.update_idletasks()
         dw = dialog.winfo_reqwidth()
         dh = dialog.winfo_reqheight()
-        
-        # Obtenemos coordenadas y tamaño de la ventana principal
         px = app_root.winfo_rootx()
         py = app_root.winfo_rooty()
         pw = app_root.winfo_width()
         ph = app_root.winfo_height()
-        
-        # Calculamos el centro
         x = px + (pw // 2) - (dw // 2)
         y = py + (ph // 2) - (dh // 2)
-        
-        # Aplicamos la geometría final (Ancho x Alto + PosiciónX + PosiciónY)
         dialog.geometry(f"{dw}x{dh}+{x}+{y}")
 
     @staticmethod
@@ -1204,8 +1202,10 @@ class ModalesUI:
             if not clave: return messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
             app_root.api_key_session = clave 
             messagebox.showinfo("✅ Conectado", "API Key conectada solo por esta sesión. No se guardará en tu equipo.")
-            dialog.withdraw() # 1. Oculta la ventana visualmente al instante
-            dialog.after(300, dialog.destroy) # 2. La destruye en memoria después
+            
+            app_root.focus_set() # <-- NUEVO: Le devolvemos el foco a la app principal
+            dialog.withdraw() 
+            dialog.after(500, dialog.destroy) # Le damos 500ms de respiro
 
         def guardar_permanente():
             clave = entry_key.get().strip()
@@ -1223,11 +1223,13 @@ class ModalesUI:
 
             if app_root.password_maestra:
                 ejecutar_guardado_seguro(app_root.password_maestra)
+                app_root.focus_set() # <-- NUEVO
                 dialog.withdraw()
-                dialog.after(300, dialog.destroy)
+                dialog.after(500, dialog.destroy)
             else:
+                app_root.focus_set() # <-- NUEVO
                 dialog.withdraw()
-                dialog.after(300, dialog.destroy)
+                dialog.after(500, dialog.destroy)
                 ModalesUI.crear_password_maestra(app_root, callback=ejecutar_guardado_seguro)
 
         # --- BOTONES INFERIORES ---

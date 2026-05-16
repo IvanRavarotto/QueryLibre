@@ -3,6 +3,29 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [2.2.0] - 2026-05-16
+### English
+#### Added
+* **Advanced Treeview Interactions:** Integrated drag-and-drop column reordering and Excel-style double-click column width auto-resizing.
+* **Unified Workspace Control:** Replaced scattered saving workflows with a centralized `CTkOptionMenu` dropdown for saving workspaces (.qlp) and exporting datasets.
+* **AI Profile Selector:** Implemented an asynchronous modal wizard to choose specific generative AI context constraints before workspace initialization.
+* **Stable UI Lifecycle:** Added window focus handshakes during modal destruction sequences to prevent `TclError` window path name crashes in Windows environments.
+
+#### Changed
+* **Endpoint Optimization:** Migrated generative engine configurations to native `gemini-2.0-flash` integrations for enhanced response speed.
+
+### Español
+#### Añadido
+* **Interacciones Avanzadas de Tabla:** Reordenamiento de columnas mediante arrastrar y soltar (Drag & Drop) y auto-ajuste de ancho de columnas con doble clic estilo Excel.
+* **Control Unificado de Entorno:** Consolidación de flujos de guardado dispersos en un único menú desplegable `CTkOptionMenu` para almacenar Workspaces (.qlp) y exportar datos.
+* **Selector de Perfiles de IA:** Implementación de un asistente modal asincrónico para determinar restricciones y perfiles analíticos antes de inicializar el espacio de trabajo.
+* **Ciclo de Vida Estable de UI:** Inyección de sincronización de foco en la destrucción de modales para erradicar fallas de nombre de ruta de ventana (`TclError`) en sistemas Windows.
+
+#### Cambios
+* **Optimización de Endpoints:** Migración de llamadas de modelos hacia `gemini-2.0-flash` nativo para aumentar la velocidad de procesamiento analítico.
+
+---
+
 ## [2.1.0] - 2026-05-09
 ### English
 #### Added
