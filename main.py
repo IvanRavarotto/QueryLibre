@@ -104,9 +104,6 @@ class QueryLibreApp(ctk.CTk):
         self.btn_abrir_proj = ctk.CTkButton(self.sidebar_frame, text="📂 Abrir Proyecto", command=self.accion_abrir_proyecto)
         self.btn_abrir_proj.grid(row=3, column=0, padx=20, pady=(0, 5))
 
-        self.btn_guardar_proj = ctk.CTkButton(self.sidebar_frame, text="📦 Guardar Proyecto", command=self.accion_guardar_proyecto)
-        self.btn_guardar_proj.grid(row=4, column=0, padx=20, pady=5)
-
         self.btn_transformar = ctk.CTkButton(self.sidebar_frame, text="🔗 Unir Datasets", state="disabled", command=self.unir_datasets)
         self.btn_transformar.grid(row=5, column=0, padx=20, pady=10)
         
@@ -210,14 +207,20 @@ class QueryLibreApp(ctk.CTk):
         self.lbl_dimensiones = ctk.CTkLabel(self.bottom_bar, text="", text_color="gray", font=ctk.CTkFont(size=12, weight="bold"))
         self.lbl_dimensiones.pack(side="right")
 
-        self.btn_exportar = ctk.CTkButton(self.bottom_bar, text="Exportar Datos", command=self.exportar_datos)
-        self.btn_exportar.pack(side="right", padx=10, pady=10)
-
-        self.btn_guardar_ws = ctk.CTkButton(
-            self.bottom_bar, text="💾 Guardar Workspace", fg_color="#2980b9", hover_color="#1f618d", command=self.guardar_workspace_ui
+        # --- NUEVO: BOTÓN DESPLEGABLE UNIFICADO ---
+        self.btn_guardar_unificado = ctk.CTkOptionMenu(
+            self.bottom_bar,
+            values=["💾 Guardar Workspace (.qlp)", "📊 Exportar Datos..."],
+            command=self.accion_guardar_unificada,
+            fg_color="#2980b9",
+            button_color="#1f618d",
+            button_hover_color="#154360",
+            font=ctk.CTkFont(weight="bold")
         )
-        self.btn_guardar_ws.pack(side="right", padx=5, pady=10)
-
+        self.btn_guardar_unificado.set("💾 Guardar / Exportar")
+        self.btn_guardar_unificado.pack(side="right", padx=10, pady=10)
+        # ------------------------------------------
+        
         style = ttk.Style()
         style.theme_use("default")
         style.configure("Treeview", background="#2b2b2b", foreground="white", rowheight=25, fieldbackground="#2b2b2b", borderwidth=0)
@@ -309,7 +312,7 @@ class QueryLibreApp(ctk.CTk):
                     self.tabview.pack(expand=True, fill="both", padx=20, pady=10)
                     self.bottom_bar.pack(side="bottom", fill="x", padx=20, pady=(10, 15)) 
                     self.btn_transformar.configure(state="normal")
-                    self.btn_exportar.configure(state="normal")
+                    self.btn_guardar_unificado.configure(state="normal")
 
                 self.tabview.add(nombre_tab)
                 nueva_pestana = PestanaTrabajo(self.tabview.tab(nombre_tab), self)
@@ -689,7 +692,7 @@ class QueryLibreApp(ctk.CTk):
         """Habilita o deshabilita los botones principales durante el procesamiento."""
         self.btn_cargar.configure(state=estado)
         self.btn_transformar.configure(state=estado)
-        self.btn_exportar.configure(state=estado)
+        self.btn_guardar_unificado.configure(state=estado)
         self.menu_limpieza.configure(state=estado)
         self.menu_estructura.configure(state=estado)
         self.menu_analisis.configure(state=estado)
@@ -753,6 +756,15 @@ class QueryLibreApp(ctk.CTk):
         
         self.pestanas[nombre_tab] = nueva_pestana
         return nueva_pestana
+    
+    def accion_guardar_unificada(self, seleccion):
+        """Enruta la acción dependiendo de lo que elija el usuario en el menú desplegable."""
+        self.btn_guardar_unificado.set("💾 Guardar / Exportar")
+        
+        if "Workspace" in seleccion:
+            self.guardar_workspace_ui()
+        elif "Exportar" in seleccion:
+            self.exportar_datos()
     
     def abrir_conector_sql(self):
         """Llama al modal de conexión SQL para la pestaña activa."""
@@ -895,7 +907,7 @@ class QueryLibreApp(ctk.CTk):
                     self.bottom_bar.pack_forget() # Ocultamos el botón rojo
                     
                 self.btn_transformar.configure(state="disabled")
-                self.btn_exportar.configure(state="disabled")
+                self.btn_guardar_unificado.configure(state="disabled")
 
             LOGGER.info(f"Pestaña cerrada: {nombre_pestana}")
             

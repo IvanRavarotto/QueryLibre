@@ -1171,7 +1171,7 @@ class ModalesUI:
                     client = genai.Client(api_key=clave)
                     
                     respuesta = client.models.generate_content(
-                        model='gemini-1.5-flash', 
+                        model='gemini-2.0-flash', 
                         contents='Responde únicamente con la palabra "OK" si me recibes.'
                     )
                     
@@ -1204,7 +1204,8 @@ class ModalesUI:
             if not clave: return messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
             app_root.api_key_session = clave 
             messagebox.showinfo("✅ Conectado", "API Key conectada solo por esta sesión. No se guardará en tu equipo.")
-            dialog.destroy()
+            dialog.withdraw() # 1. Oculta la ventana visualmente al instante
+            dialog.after(300, dialog.destroy) # 2. La destruye en memoria después
 
         def guardar_permanente():
             clave = entry_key.get().strip()
@@ -1222,9 +1223,11 @@ class ModalesUI:
 
             if app_root.password_maestra:
                 ejecutar_guardado_seguro(app_root.password_maestra)
-                dialog.destroy()
+                dialog.withdraw()
+                dialog.after(300, dialog.destroy)
             else:
-                dialog.destroy()
+                dialog.withdraw()
+                dialog.after(300, dialog.destroy)
                 ModalesUI.crear_password_maestra(app_root, callback=ejecutar_guardado_seguro)
 
         # --- BOTONES INFERIORES ---

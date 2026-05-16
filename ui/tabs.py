@@ -147,10 +147,12 @@ class PestanaTrabajo(ctk.CTkFrame):
 
         self.tree = ttk.Treeview(self.tree_frame, yscrollcommand=self.tree_scroll_y.set, xscrollcommand=self.tree_scroll_x.set, selectmode="extended")
         self.tree.pack(expand=True, fill="both")
-
+        # Conectamos los 3 eventos del mouse
+        self.tree.bind("<ButtonPress-1>", self._on_tree_press)
+        self.tree.bind("<ButtonRelease-1>", self._on_tree_release)
+        self.tree.bind("<Double-1>", self.on_tree_double_click)
         self.tree_scroll_y.configure(command=self.tree.yview)
         self.tree_scroll_x.configure(command=self.tree.xview)
-        self.tree.bind("<Double-1>", self.editar_celda)
         
         # --- MENÚ CONTEXTUAL (Clic Derecho) ---
         self.tree.bind("<Button-3>", self._mostrar_menu_contextual) # Clic derecho en Windows/Linux
@@ -542,7 +544,7 @@ Pregunta del usuario: {pregunta}"""
                 
                 # 2. Llamada actualizada con el modelo 1.5 Flash (Más rápido e inteligente)
                 respuesta = client.models.generate_content(
-                    model='gemini-1.5-flash', 
+                    model='gemini-2.0-flash', 
                     contents=prompt_completo
                 )
                 texto_ia = respuesta.text
@@ -617,4 +619,68 @@ Pregunta del usuario: {pregunta}"""
             messagebox.showerror("Error", f"No se pudo ordenar la columna:\n{e}")
         finally:
             self.app_root.configurar_estado_botones("normal")
+            
+    def _on_tree_press(self, event):
+        """Detecta si el usuario hizo clic en el título para empezar a arrastrar."""
+        region = self.tree.identify_region(event.x, event.y)
+        if region == "heading":
+            # Guardamos qué columna agarró
+            self._drag_col = self.tree.identify_column(event.x)
+        else:
+            self._drag_col = None
+
+    def _on_tree_release(self, event):
+        """Decide si fue un clic simple (Ordenar) o un arrastre (Mover Columna)."""
+        if getattr(self, '_drag_col', None) is None:
+            return
+            
+        region = self.tree.identify_region(event.x, event.y)
+        if region == "heading":
+            target_col = self.tree.identify_column(event.x)
+            
+            # 1. Si soltó en una columna diferente -> ARRASTRAR Y SOLTAR
+            if target_col and target_col != self._drag_col:
+                cols = list(self.tree["displaycolumns"])
+                if not cols or cols[0] == "#all":
+                    cols = list(self.tree["columns"])
+                
+                # Reordenamos visualmente las columnas
+                try:
+                    idx_src = cols.index(self._drag_col)
+                    idx_dst = cols.index(target_col)
+                    cols.insert(idx_dst, cols.pop(idx_src))
+                    self.tree["displaycolumns"] = cols
+                except ValueError:
+                    pass # Evita errores si hay desincronización
+                    
+            # 2. Si soltó en la misma columna -> CLIC SIMPLE (ORDENAR)
+            else:
+                col_name = self.tree.heading(self._drag_col)["text"]
+                self._ordenar_columna(col_name)
+        
+        self._drag_col = None
+
+    def on_tree_double_click(self, event):
+        """Enrutador de doble clic: Auto-ajusta (separador) o Edita (celda)."""
+        region = self.tree.identify_region(event.x, event.y)
+        
+        # 1. Si hace doble clic en la línea divisoria (Auto-Ajuste Estilo Excel)
+        if region == "separator":
+            col_id = self.tree.identify_column(event.x)
+            col_name = self.tree.heading(col_id)["text"]
+            
+            if self.motor.df is not None and col_name in self.motor.df.columns:
+                muestra = self.motor.df[col_name].head(200).astype(str)
+                max_len_datos = muestra.map(len).max() if not muestra.empty else 0
+                max_len = max(len(col_name), max_len_datos)
+                
+                nuevo_ancho = min((max_len * 9) + 20, 500) 
+                self.tree.column(col_id, width=int(nuevo_ancho))
+            
+            return "break" # Detiene el evento aquí para que no interfiera más
+            
+        # 2. Si hace doble clic adentro de una celda (Editar Celda)
+        elif region == "cell" or region == "tree":
+            # Redirigimos el tráfico a tu función original de edición
+            self.editar_celda(event)
             
