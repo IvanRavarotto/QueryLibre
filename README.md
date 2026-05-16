@@ -20,18 +20,6 @@ La aplicación está diseñada bajo principios de desacoplamiento estricto, gara
 
 ---
 
-## 📸 Demostración Visual del Entorno
-
-### Entorno Multitarea Unificado
-La interfaz implementa un diseño modular enfocado en la maximización del área visual de los conjuntos de datos, incorporando barras de herramientas compactas y sistemas de pestañas dinámicas.
-*(Inserta aquí el enlace a la captura: assets/DatasetCargado.JPG)*
-
-### Diagnóstico Estadístico (Health Check)
-Dashboard analítico integrado para la detección de nulos, correlaciones, duplicados y calidad general de las estructuras de datos en tiempo real.
-*(Inserta aquí el enlace a la captura: assets/V1.7.JPG)*
-
----
-
 ## 🚀 Características Destacadas de la Versión 2.2.0
 
 * **🤖 Asistente de Contexto IA:** Integración nativa con modelos de lenguaje masivo (LLM) mediante perfiles de sesión asincrónicos para ejecutar auditorías lógicas sobre las estructuras tabulares.
