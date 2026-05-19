@@ -514,18 +514,31 @@ class PestanaTrabajo(ctk.CTkFrame):
         import json
 
         def tarea_ia():
-            try:
-                # 1. Importamos el NUEVO SDK oficial
-                from google import genai
-                client = genai.Client(api_key=api_key)
-                
-                contexto = self.motor.generar_resumen_ia()
-                marcador = "`" * 3
-                
-                prompt_completo = f"""Eres el 'Analista IA', un experto en ciencia de datos en la app QueryLibre.
+                try:
+                    # 1. Importamos el NUEVO SDK oficial
+                    from google import genai
+                    client = genai.Client(api_key=api_key)
+                    
+                    # --- NUEVA OPTIMIZACIÓN DE PAYLOAD (Prevención Error 429) ---
+                    esquema_columnas = self.motor.df.dtypes.to_string()
+                    total_filas = len(self.motor.df)
+                    # Solo enviamos 5 filas en formato CSV para ahorrar miles de tokens
+                    muestra_ligera = self.motor.df.head(5).to_csv(index=False)
+                    
+                    contexto_reducido = (
+                        f"ESTRUCTURA TÉCNICA DEL DATASET:\n"
+                        f"- Total de registros: {total_filas}\n\n"
+                        f"- Esquema (Columnas y Tipos de Dato Pandas):\n{esquema_columnas}\n\n"
+                        f"MUESTRA EXACTA (Primeras 5 filas):\n{muestra_ligera}\n"
+                    )
+                    # -------------------------------------------------------------
+                    
+                    marcador = "`" * 3
+                    
+                    prompt_completo = f"""Eres el 'Analista IA', un experto en ciencia de datos en la app QueryLibre.
 Responde de forma concisa y técnica. 
 Aquí tienes el resumen del dataset actual del usuario:
-{contexto}
+{contexto_reducido}
 
 REGLA CRÍTICA DE AUTOMATIZACIÓN:
 Si el usuario te pide realizar una acción directa sobre los datos (limpiar, renombrar, eliminar), DEBES responder incluyendo un bloque de código JSON con este formato exacto:
@@ -541,57 +554,57 @@ Acciones permitidas y sus parámetros exactos:
 - renombrar_columna (params: "old_name": "viejo", "new_name": "nuevo")
 
 Pregunta del usuario: {pregunta}"""
-                
-                # 2. Llamada actualizada con el modelo 1.5 Flash (Más rápido e inteligente)
-                respuesta = client.models.generate_content(
-                    model='gemini-2.0-flash', 
-                    contents=prompt_completo
-                )
-                texto_ia = respuesta.text
-                
-                macro_sugerida = None
-                patron_regex = rf'{marcador}json\s*(.*?)\s*{marcador}'
-                match_json = re.search(patron_regex, texto_ia, re.DOTALL)
-                
-                if match_json:
-                    try:
-                        macro_sugerida = json.loads(match_json.group(1))
-                        texto_ia = re.sub(patron_regex, '\n*(✨ He generado una acción automatizada para ti)*', texto_ia, flags=re.DOTALL)
-                    except: pass
                     
-            except Exception as e:
-                import traceback
-                error_real = traceback.format_exc()
-                LOGGER.error(f"Error CRÍTICO en el chat de IA:\n{error_real}")
-                
-                # Le pasamos un mensaje más amigable a la UI, pero guardamos el traceback en el log
-                texto_ia = f"❌ Ocurrió un error al procesar la solicitud. Revisa tu conexión o la API Key.\nDetalle técnico: {str(e)}"
-                macro_sugerida = None
-
-            def actualizar_ui():
-                self.chat_history.configure(state="normal")
-                self.chat_history.delete(index_espera, "end")
-                self.chat_history.insert("end", f"🤖 IA: {texto_ia}\n\n")
-                self.chat_history.yview("end")
-                self.chat_history.configure(state="disabled")
-                self.btn_enviar_ia.configure(state="normal")
-
-                if macro_sugerida:
-                    def aplicar_magia():
-                        self._apply_macro_steps(macro_sugerida)
-                        self.refrescar_interfaz()
-                        for widget in self.frame_acciones_ia.winfo_children(): widget.destroy()
-                        messagebox.showinfo("IA", "¡Acción ejecutada con éxito!")
-
-                    btn_accion = ctk.CTkButton(
-                        self.frame_acciones_ia, 
-                        text="✨ Aplicar sugerencia de la IA", 
-                        fg_color="#2980b9", hover_color="#3498db",
-                        command=aplicar_magia
+                    # 2. Llamada actualizada con el modelo 1.5 Flash
+                    respuesta = client.models.generate_content(
+                        model='gemini-2.0-flash', 
+                        contents=prompt_completo
                     )
-                    btn_accion.pack(fill="x", pady=5)
+                    texto_ia = respuesta.text
+                    
+                    macro_sugerida = None
+                    patron_regex = rf'{marcador}json\s*(.*?)\s*{marcador}'
+                    match_json = re.search(patron_regex, texto_ia, re.DOTALL)
+                    
+                    if match_json:
+                        try:
+                            macro_sugerida = json.loads(match_json.group(1))
+                            texto_ia = re.sub(patron_regex, '\n*(✨ He generado una acción automatizada para ti)*', texto_ia, flags=re.DOTALL)
+                        except: pass
+                        
+                except Exception as e:
+                    import traceback
+                    error_real = traceback.format_exc()
+                    LOGGER.error(f"Error CRÍTICO en el chat de IA:\n{error_real}")
+                    
+                    # Le pasamos un mensaje más amigable a la UI, pero guardamos el traceback en el log
+                    texto_ia = f"❌ Ocurrió un error al procesar la solicitud. Revisa tu conexión o la API Key.\nDetalle técnico: {str(e)}"
+                    macro_sugerida = None
 
-            self.app_root.after(0, actualizar_ui)
+                def actualizar_ui():
+                    self.chat_history.configure(state="normal")
+                    self.chat_history.delete(index_espera, "end")
+                    self.chat_history.insert("end", f"🤖 IA: {texto_ia}\n\n")
+                    self.chat_history.yview("end")
+                    self.chat_history.configure(state="disabled")
+                    self.btn_enviar_ia.configure(state="normal")
+
+                    if macro_sugerida:
+                        def aplicar_magia():
+                            self._apply_macro_steps(macro_sugerida)
+                            self.refrescar_interfaz()
+                            for widget in self.frame_acciones_ia.winfo_children(): widget.destroy()
+                            messagebox.showinfo("IA", "¡Acción ejecutada con éxito!")
+
+                        btn_accion = ctk.CTkButton(
+                            self.frame_acciones_ia, 
+                            text="✨ Aplicar sugerencia de la IA", 
+                            fg_color="#2980b9", hover_color="#3498db",
+                            command=aplicar_magia
+                        )
+                        btn_accion.pack(fill="x", pady=5)
+
+                self.app_root.after(0, actualizar_ui)
             
     def _ordenar_columna(self, col_name):
         """Ordena el DataFrame completo por la columna seleccionada, alternando entre A-Z y Z-A."""

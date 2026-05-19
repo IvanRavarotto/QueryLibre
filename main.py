@@ -10,6 +10,9 @@ import tkinter as tk
 from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 
+import socket
+import sys
+
 from ui.modals import ModalesUI
 from ui.tabs import PestanaTrabajo
 
@@ -1030,7 +1033,38 @@ class QueryLibreApp(ctk.CTk):
                 self.cargar_archivo(ruta_archivo) # Usamos nuestra función mejorada
 
         ModalesUI.mostrar_selector_perfil_ia(self, on_perfil_elegido)
-    
+        
+def asegurar_instancia_unica():
+    """Crea un cerrojo de red local para evitar múltiples instancias de QueryLibre."""
+    global _lock_socket
+    _lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    try:
+        # Intentamos reservar el puerto 54321
+        _lock_socket.bind(('127.0.0.1', 54321))
+        _lock_socket.listen(1)
+    except socket.error:
+        # Si falla, hay otra instancia activa
+        import tkinter as tk
+        from tkinter import messagebox
+        root_oculto = tk.Tk()
+        root_oculto.withdraw()
+        messagebox.showwarning(
+            "Instancia Duplicada", 
+            "Ya hay una ventana de QueryLibre abierta.\nPor favor, revisa tu barra de tareas para proteger la integridad de la Bóveda y la memoria RAM."
+        )
+        root_oculto.destroy()
+        sys.exit(0)
+
 if __name__ == "__main__":
-    app = QueryLibreApp()
-    app.mainloop()
+    asegurar_instancia_unica() # <-- Se ejecuta antes de levantar cualquier log o UI
+    
+    # Configuración de logs y arranque normal de la app
+    LOGGER.info("Iniciando QueryLibre v2.2.0...")
+    
+    try:
+        app = QueryLibreApp()
+        app.mainloop()
+    except Exception as e:
+        LOGGER.critical(f"Error fatal al iniciar la aplicación: {e}", exc_info=True)
+        sys.exit(1)
+    
