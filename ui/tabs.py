@@ -556,11 +556,29 @@ Acciones permitidas y sus parámetros exactos:
 Pregunta del usuario: {pregunta}"""
                     
                     # 2. Llamada actualizada con el modelo 1.5 Flash
-                    respuesta = client.models.generate_content(
-                        model='gemini-2.0-flash', 
-                        contents=prompt_completo
-                    )
-                    texto_ia = respuesta.text
+                    proveedor = getattr(self.app_root, 'api_provider_session', 'Google Gemini')
+                    
+                    if proveedor == "Groq (Llama 3)":
+                        from groq import Groq
+                        cliente_groq = Groq(api_key=api_key)
+                        chat_completion = cliente_groq.chat.completions.create(
+                            messages=[
+                                {"role": "system", "content": "Eres un asistente de datos experto. Responde en español."},
+                                {"role": "user", "content": prompt_completo}
+                            ],
+                            model="llama-3.1-8b-instant", # Modelo gratuito y ultra rápido
+                            temperature=0.2,
+                        )
+                        texto_ia = chat_completion.choices[0].message.content
+                        
+                    else: # Por defecto: Google Gemini
+                        from google import genai
+                        client = genai.Client(api_key=api_key)
+                        respuesta = client.models.generate_content(
+                            model='gemini-2.0-flash', 
+                            contents=prompt_completo
+                        )
+                        texto_ia = respuesta.text
                     
                     macro_sugerida = None
                     patron_regex = rf'{marcador}json\s*(.*?)\s*{marcador}'
@@ -605,6 +623,8 @@ Pregunta del usuario: {pregunta}"""
                         btn_accion.pack(fill="x", pady=5)
 
                 self.app_root.after(0, actualizar_ui)
+                
+        threading.Thread(target=tarea_ia, daemon=True).start()
             
     def _ordenar_columna(self, col_name):
         """Ordena el DataFrame completo por la columna seleccionada, alternando entre A-Z y Z-A."""

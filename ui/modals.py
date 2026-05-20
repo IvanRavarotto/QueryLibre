@@ -1101,140 +1101,130 @@ class ModalesUI:
         
     @staticmethod
     def mostrar_config_ia(app_root):
-        """Muestra la ventana para configurar la API Key integrándose a la Bóveda Segura."""
+        """Muestra el modal para configurar la API Key y el Proveedor de IA."""
         dialog = ctk.CTkToplevel(app_root)
-        dialog.title("⚙️ Configuración del Analista IA")
-        dialog.geometry("500x380") # <-- Un poco más alta
+        dialog.title("Configuración de IA")
+        dialog.geometry("450x430") # Aumentado para acomodar el botón de Probar Conexión
+        dialog.resizable(False, False)
         dialog.transient(app_root)
         dialog.grab_set()
-        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
-
-        # --- HEADER CON BOTÓN DE AYUDA ---
-        frame_header = ctk.CTkFrame(dialog, fg_color="transparent")
-        frame_header.pack(fill="x", padx=20, pady=(15, 5))
         
-        ctk.CTkLabel(frame_header, text="Conexión con el Cerebro IA", font=ctk.CTkFont(weight="bold", size=16), text_color=("#1a1a1a", "#f5f6fa")).pack(side="left", expand=True)
+        if hasattr(app_root, 'fijar_icono'):
+            app_root.fijar_icono(dialog)
 
-        def abrir_guia():
-            import webbrowser
-            webbrowser.open("https://aistudio.google.com/app/apikey")
-            messagebox.showinfo("Guía de API Key", "Se ha abierto tu navegador en la web oficial de Google AI Studio.\n\n1. Inicia sesión con tu cuenta de Google.\n2. Haz clic en 'Create API Key'.\n3. Copia esa clave y pégala aquí.")
-
-        btn_ayuda = ctk.CTkButton(frame_header, text="❓", width=30, height=30, fg_color="transparent", hover_color="#34495e", text_color="#3498db", font=ctk.CTkFont(size=16), command=abrir_guia)
-        btn_ayuda.pack(side="right")
-
-        ctk.CTkLabel(dialog, text="Configura tu proveedor de Inteligencia Artificial.", text_color="gray").pack(pady=(0, 15))
-
-        # --- FORMULARIO ---
-        frame_form = ctk.CTkFrame(dialog, fg_color="transparent")
-        frame_form.pack(fill="x", padx=40)
-        frame_form.grid_columnconfigure(1, weight=1)
-
-        # 1. Selector de Proveedor
-        ctk.CTkLabel(frame_form, text="Proveedor:").grid(row=0, column=0, sticky="w", pady=5)
-        combo_proveedor = ctk.CTkComboBox(frame_form, values=["Google Gemini", "OpenAI (Próximamente)"], state="readonly")
-        combo_proveedor.grid(row=0, column=1, sticky="ew", padx=(10, 0), pady=5)
-        combo_proveedor.set("Google Gemini")
-
-        # 2. Entrada de API Key
-        ctk.CTkLabel(frame_form, text="API Key:").grid(row=1, column=0, sticky="w", pady=15)
-        entry_key = ctk.CTkEntry(frame_form, placeholder_text="Pega tu API Key secreta aquí...", show="*")
-        entry_key.grid(row=1, column=1, sticky="ew", padx=(10, 0), pady=15)
+        ctk.CTkLabel(dialog, text="Conexión de Inteligencia Artificial", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(20, 10))
         
-        # Leer desde la sesión o las credenciales cargadas
-        if hasattr(app_root, 'api_key_session') and app_root.api_key_session:
-            entry_key.insert(0, app_root.api_key_session)
-        elif "api_key_ia" in app_root.credenciales:
-            entry_key.insert(0, app_root.credenciales["api_key_ia"])
+        # --- SELECTOR DE PROVEEDOR ---
+        ctk.CTkLabel(dialog, text="Motor de IA:").pack(pady=(5, 2), padx=20, anchor="w")
+        var_proveedor = ctk.StringVar(value=app_root.credenciales.get("api_provider_ia", "Google Gemini"))
+        menu_proveedor = ctk.CTkOptionMenu(
+            dialog, 
+            variable=var_proveedor, 
+            values=["Google Gemini", "Groq (Llama 3)"]
+        )
+        menu_proveedor.pack(fill="x", padx=20, pady=(0, 10))
 
-        # --- LÓGICA DE PRUEBA DE CONEXIÓN ---
-        def test_conexion():
+        ctk.CTkLabel(dialog, text="API Key Privada:").pack(pady=(5, 2), padx=20, anchor="w")
+        
+        # SOLUCIÓN AL BUG VISUAL: Asegurarnos de que sea string sí o sí para que no explote el Entry
+        clave_actual = getattr(app_root, 'api_key_session', "") 
+        if clave_actual is None: 
+            clave_actual = ""
+        
+        entry_key = ctk.CTkEntry(dialog, show="*", placeholder_text="Pega tu API Key aquí...")
+        entry_key.insert(0, clave_actual)
+        entry_key.pack(fill="x", padx=20, pady=(0, 15))
+
+        # --- LÓGICA DE PRUEBA DE CONEXIÓN MULTI-IA ---
+        def probar_conexion():
             clave = entry_key.get().strip()
-            proveedor = combo_proveedor.get()
-            
+            proveedor = var_proveedor.get()
             if not clave:
-                return messagebox.showwarning("Faltan Datos", "Pega una API Key primero para poder probarla.")
-            if proveedor != "Google Gemini":
-                return messagebox.showinfo("Información", "Ese proveedor se integrará en futuras actualizaciones.")
-
-            btn_test.configure(state="disabled", text="⏳ Probando...")
+                return messagebox.showwarning("Advertencia", "Ingresa una API Key para probar.", parent=dialog)
+            
+            btn_probar.configure(state="disabled", text="⏳ Probando...")
             dialog.update()
-
-            def ejecutar_prueba():
+            
+            def test_thread():
                 exito = False
-                mensaje = ""
+                msg = ""
                 try:
-                    # Hacemos un ping muy ligero a Gemini
-                    from google import genai
-                    client = genai.Client(api_key=clave)
-                    
-                    respuesta = client.models.generate_content(
-                        model='gemini-2.0-flash', 
-                        contents='Responde únicamente con la palabra "OK" si me recibes.'
-                    )
-                    
-                    if respuesta.text:
+                    if proveedor == "Groq (Llama 3)":
+                        from groq import Groq
+                        cliente_groq = Groq(api_key=clave)
+                        cliente_groq.chat.completions.create(
+                            messages=[{"role": "user", "content": "ping"}],
+                            model="llama-3.1-8b-instant", max_tokens=5
+                        )
                         exito = True
-                        mensaje = "¡Conexión exitosa! La API Key es válida y el modelo responde."
-                except Exception as e:
-                    mensaje = f"Error al conectar con la API:\n{str(e)}"
-
-                def finalizar_prueba():
-                    btn_test.configure(state="normal", text="⚡ Probar Conexión")
-                    if exito:
-                        messagebox.showinfo("✅ Éxito", mensaje, parent=dialog)
                     else:
-                        messagebox.showerror("❌ Fallo de Conexión", mensaje, parent=dialog)
+                        from google import genai
+                        client = genai.Client(api_key=clave)
+                        client.models.generate_content(
+                            model='gemini-1.5-flash-8b', 
+                            contents="ping"
+                        )
+                        exito = True
+                except Exception as e:
+                    msg = str(e)
 
-                app_root.after(0, finalizar_prueba)
+                def finalizar_ui():
+                    btn_probar.configure(state="normal", text="⚡ Probar Conexión")
+                    if exito:
+                        messagebox.showinfo("✅ Éxito", f"¡Conexión establecida exitosamente con {proveedor}!", parent=dialog)
+                    else:
+                        messagebox.showerror("❌ Error", f"Falló la conexión con {proveedor}:\n{msg}", parent=dialog)
+                
+                app_root.after(0, finalizar_ui)
 
-            # Enviamos el ping en un hilo separado para no trabar la UI
             import threading
-            threading.Thread(target=ejecutar_prueba, daemon=True).start()
+            threading.Thread(target=test_thread, daemon=True).start()
 
-        # Botón de Prueba
-        btn_test = ctk.CTkButton(frame_form, text="⚡ Probar Conexión", command=test_conexion, fg_color="#34495e", hover_color="#2c3e50")
-        btn_test.grid(row=2, column=0, columnspan=2, pady=5, sticky="ew")
+        # Botón de Prueba Restaurado
+        btn_probar = ctk.CTkButton(dialog, text="⚡ Probar Conexión", fg_color="#34495e", hover_color="#2c3e50", command=probar_conexion)
+        btn_probar.pack(fill="x", padx=20, pady=(0, 15))
 
         # --- LÓGICA DE GUARDADO ---
         def conectar_temporal():
             clave = entry_key.get().strip()
-            if not clave: return messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
+            if not clave: return messagebox.showwarning("Advertencia", "Ingresa una API Key válida.", parent=dialog)
             app_root.api_key_session = clave 
-            messagebox.showinfo("✅ Conectado", "API Key conectada solo por esta sesión. No se guardará en tu equipo.")
-            
-            app_root.focus_set() # <-- NUEVO: Le devolvemos el foco a la app principal
+            app_root.api_provider_session = var_proveedor.get() # Guardamos el proveedor seleccionado
+            messagebox.showinfo("✅ Conectado", f"Conectado a {var_proveedor.get()} por esta sesión.")
+            app_root.focus_set()
             dialog.withdraw() 
-            dialog.after(500, dialog.destroy) # Le damos 500ms de respiro
+            dialog.after(300, dialog.destroy) 
 
         def guardar_permanente():
             clave = entry_key.get().strip()
-            if not clave: return messagebox.showwarning("Advertencia", "Ingresa una API Key válida.")
+            if not clave: return messagebox.showwarning("Advertencia", "Ingresa una API Key válida.", parent=dialog)
             app_root.api_key_session = clave 
+            app_root.api_provider_session = var_proveedor.get()
             
             def ejecutar_guardado_seguro(pwd):
                 app_root.password_maestra = pwd
                 app_root.credenciales["api_key_ia"] = clave
+                app_root.credenciales["api_provider_ia"] = var_proveedor.get()
                 try:
                     app_root.boveda.guardar_datos(pwd, app_root.credenciales)
-                    messagebox.showinfo("💾 Guardado Seguro", "API Key encriptada con grado militar (AES-256) y guardada exitosamente.")
+                    messagebox.showinfo("💾 Guardado Seguro", "API Key y Proveedor encriptados y guardados exitosamente.")
                 except Exception as e:
                     messagebox.showerror("Error", f"No se pudo encriptar:\n{e}")
 
             if app_root.password_maestra:
                 ejecutar_guardado_seguro(app_root.password_maestra)
-                app_root.focus_set() # <-- NUEVO
+                app_root.focus_set() 
                 dialog.withdraw()
-                dialog.after(500, dialog.destroy)
+                dialog.after(300, dialog.destroy)
             else:
-                app_root.focus_set() # <-- NUEVO
+                app_root.focus_set() 
                 dialog.withdraw()
-                dialog.after(500, dialog.destroy)
+                dialog.after(300, dialog.destroy)
                 ModalesUI.crear_password_maestra(app_root, callback=ejecutar_guardado_seguro)
 
-        # --- BOTONES INFERIORES ---
+        # --- BOTONES INFERIORES RESTAURADOS ---
         frame_btns = ctk.CTkFrame(dialog, fg_color="transparent")
-        frame_btns.pack(pady=(20, 10), fill="x", padx=20)
+        frame_btns.pack(pady=(5, 10), fill="x", padx=20)
         
         ctk.CTkButton(frame_btns, text="Cancelar", command=dialog.destroy, fg_color="#7f8c8d", hover_color="#95a5a6", width=90).pack(side="left", padx=5)
         ctk.CTkButton(frame_btns, text="💾 Guardar", command=guardar_permanente, fg_color="#8e44ad", hover_color="#9b59b6", width=110).pack(side="right", padx=5)
