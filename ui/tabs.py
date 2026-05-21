@@ -48,7 +48,6 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.right_panel = ctk.CTkTabview(self, width=280)
         self.right_panel.pack(side="right", fill="y", padx=(10, 0), pady=0)
         
-        # Creamos las dos pestañas
         self.right_panel.add("Historial")
         self.right_panel.add("✨ Analista IA")
         
@@ -72,17 +71,25 @@ class PestanaTrabajo(ctk.CTkFrame):
         # ==========================================
         # PESTAÑA 2: ANALISTA IA (UI/UX)
         # ==========================================
-        # --- NUEVO: SISTEMA DE BURBUJAS DE CHAT ---
-        self.chat_scroll = ctk.CTkScrollableFrame(self.right_panel.tab("✨ Analista IA"), fg_color="transparent")
-        self.chat_scroll.pack(fill="both", expand=True, padx=5, pady=5)
+        tab_ia = self.right_panel.tab("✨ Analista IA")
         
-        self.frame_acciones_ia = ctk.CTkFrame(self.right_panel.tab("✨ Analista IA"), fg_color="transparent")
-        self.frame_acciones_ia.pack(fill="x", padx=5, pady=(0, 5))
+        # Arquitectura de Grilla (Limpia)
+        tab_ia.grid_rowconfigure(0, weight=1) 
+        tab_ia.grid_rowconfigure(1, weight=0) 
+        tab_ia.grid_rowconfigure(2, weight=0) 
+        tab_ia.grid_rowconfigure(3, weight=0) 
+        tab_ia.grid_rowconfigure(4, weight=0) 
+        tab_ia.grid_columnconfigure(0, weight=1)
 
-        frame_input_ia = ctk.CTkFrame(self.right_panel.tab("✨ Analista IA"), fg_color="transparent")
-        frame_input_ia.pack(fill="x", padx=5, pady=(5, 10))
+        self.chat_scroll = ctk.CTkScrollableFrame(tab_ia, fg_color="transparent")
+        self.chat_scroll.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
+        
+        self.frame_acciones_ia = ctk.CTkFrame(tab_ia, fg_color="transparent")
+        self.frame_acciones_ia.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
 
-        # Textbox multilínea (Adiós al Entry de una línea)
+        frame_input_ia = ctk.CTkFrame(tab_ia, fg_color="transparent")
+        frame_input_ia.grid(row=2, column=0, sticky="ew", padx=5, pady=(5, 10))
+
         self.entry_ia = ctk.CTkTextbox(frame_input_ia, height=60, wrap="word") 
         self.entry_ia.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
@@ -92,32 +99,57 @@ class PestanaTrabajo(ctk.CTkFrame):
         )
         self.btn_enviar_ia.pack(side="right")
         
+        # Botón Informe (Fila 3)
+        self.btn_abrir_informe = ctk.CTkButton(
+            tab_ia,
+            text="📝 Redactar Informe Ejecutivo",
+            fg_color="#2e4053", hover_color="#34495e",
+            command=self.abrir_modulo_informe
+        )
+        self.btn_abrir_informe.grid(row=3, column=0, sticky="ew", padx=5, pady=(0, 5))
+        
+        # Botón Configuración API (Fila 4)
+        self.btn_config_ia = ctk.CTkButton(
+            tab_ia, 
+            text="⚙️ Configurar API Key", 
+            fg_color="#34495e", hover_color="#2c3e50",
+            command=lambda: ModalesUI.mostrar_config_ia(self.app_root)
+        )
+        self.btn_config_ia.grid(row=4, column=0, sticky="ew", padx=5, pady=(0, 10))
+        
         self.entry_ia.bind("<Return>", self._on_enter_pressed)
         self.entry_ia.bind("<Shift-Return>", self._on_shift_enter_pressed)
         
-        # Mensaje de bienvenida inyectado directamente
         self.app_root.after(200, lambda: self._agregar_burbuja_chat("¡Hola! Soy tu Analista IA. Configura tu API Key para empezar a trabajar con tus datos.", "ia"))
-        
-        self.btn_config_ia = ctk.CTkButton(
-            self.right_panel.tab("✨ Analista IA"), 
-            text="⚙️ Configurar API Key", 
-            fg_color="#34495e", 
-            hover_color="#2c3e50",
-            command=lambda: ModalesUI.mostrar_config_ia(self.app_root)
+
+        # ==========================================
+        # PANEL PRINCIPAL (IZQUIERDA) - TABLA DIRECTA
+        # ==========================================
+        self.tree_frame = ctk.CTkFrame(self, fg_color="transparent")
+        self.tree_frame.pack(side="left", expand=True, fill="both", padx=(10, 5), pady=10)
+
+        # Variables del informe (Caché)
+        self.ventana_informe = None
+        self.texto_informe_cache = (
+            "# 📊 RESUMEN EJECUTIVO\n"
+            "====================\n\n"
+            "**Fecha:** \n"
+            "**Dataset:** \n\n"
+            "### 1. Hallazgos Principales:\n"
+            "- \n\n"
+            "### 2. Análisis de Calidad de Datos:\n"
+            "- \n\n"
+            "### 3. Conclusiones y Próximos Pasos:\n"
+            "- \n"
         )
-        self.btn_config_ia.pack(fill="x", padx=5, pady=(0, 10))
 
-        # --- Panel Izquierdo: Tabla de Datos ---
-        self.tree_frame = ctk.CTkFrame(self)
-        self.tree_frame.pack(side="left", expand=True, fill="both")
-
+        # --- PAGINACIÓN ---
         self.pagination_frame = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
         self.pagination_frame.pack(side="bottom", fill="x", pady=(10, 15))
 
         self.btn_prev_page = ctk.CTkButton(self.pagination_frame, text="◀ Anterior", width=80, command=self.pagina_anterior, state="disabled")
         self.btn_prev_page.pack(side="left", padx=10)
 
-        # --- NUEVO: Salto de Página (v1.6.1) ---
         ctk.CTkLabel(self.pagination_frame, text="Página").pack(side="left", padx=(10, 2))
         
         self.entry_pagina = ctk.CTkEntry(self.pagination_frame, width=50, justify="center", height=28)
@@ -126,7 +158,6 @@ class PestanaTrabajo(ctk.CTkFrame):
         
         self.lbl_total_paginas = ctk.CTkLabel(self.pagination_frame, text="de ?")
         self.lbl_total_paginas.pack(side="left", padx=(2, 10))
-        # ----------------------------------------
 
         self.btn_next_page = ctk.CTkButton(self.pagination_frame, text="Siguiente ▶", width=80, command=self.pagina_siguiente, state="disabled")
         self.btn_next_page.pack(side="right", padx=10)
@@ -136,7 +167,7 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.tree_scroll_x = ctk.CTkScrollbar(self.tree_frame, orientation="horizontal")
         self.tree_scroll_x.pack(side="bottom", fill="x")
 
-        # --- NUEVO: Buscador de Columnas (v1.6.2) ---
+        # --- BUSCADOR ---
         self.frame_buscador_cols = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
         self.frame_buscador_cols.pack(fill="x", padx=10, pady=(10, 5))
         
@@ -144,23 +175,21 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.entry_buscar_col = ctk.CTkEntry(self.frame_buscador_cols, width=200, placeholder_text="Ej: ID_Cliente...", height=28)
         self.entry_buscar_col.pack(side="left")
         self.entry_buscar_col.bind("<KeyRelease>", self._filtrar_columnas_visibles)
-        # --------------------------------------------
 
+        # --- TABLA (TREEVIEW) ---
         self.tree = ttk.Treeview(self.tree_frame, yscrollcommand=self.tree_scroll_y.set, xscrollcommand=self.tree_scroll_x.set, selectmode="extended")
         self.tree.pack(expand=True, fill="both")
-        # Conectamos los 3 eventos del mouse
+        
         self.tree.bind("<ButtonPress-1>", self._on_tree_press)
         self.tree.bind("<ButtonRelease-1>", self._on_tree_release)
         self.tree.bind("<Double-1>", self.on_tree_double_click)
         self.tree_scroll_y.configure(command=self.tree.yview)
         self.tree_scroll_x.configure(command=self.tree.xview)
         
-        # --- MENÚ CONTEXTUAL (Clic Derecho) ---
-        self.tree.bind("<Button-3>", self._mostrar_menu_contextual) # Clic derecho en Windows/Linux
+        # --- MENÚ CONTEXTUAL ---
+        self.tree.bind("<Button-3>", self._mostrar_menu_contextual)
         
-        # Diseñamos un menú limpio y con emojis para las acciones directas
         self.menu_contextual = tk.Menu(self.tree_frame, tearoff=0, bg="#2b2b2b", fg="white", activebackground="#1f538d", font=("Arial", 10))
-        
         self.menu_contextual.add_command(label="✏️ Editar Celda", command=self._menu_editar_celda)
         self.menu_contextual.add_command(label="📋 Copiar Valor", command=self._menu_copiar_valor)
         self.menu_contextual.add_separator()
@@ -169,7 +198,6 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.menu_contextual.add_separator()
         self.menu_contextual.add_command(label="🗑️ Eliminar Fila", command=self._menu_eliminar_fila)
 
-        # Variables para saber exactamente dónde hizo clic el usuario
         self.columna_seleccionada_menu = None
         self.fila_seleccionada_menu = None
 
@@ -232,6 +260,74 @@ class PestanaTrabajo(ctk.CTkFrame):
                 self.tree.focus(row_id)
                 
             self.menu_contextual.tk_popup(event.x_root, event.y_root)
+            
+    
+    def abrir_modulo_informe(self):
+        """Abre el informe ejecutivo en una ventana flotante opcional e independiente."""
+        # Si la ventana ya existe y está abierta, la traemos al frente
+        if self.ventana_informe and self.ventana_informe.winfo_exists():
+            self.ventana_informe.lift()
+            self.ventana_informe.focus()
+            return
+
+        # Creamos la ventana compañera flotante
+        self.ventana_informe = ctk.CTkToplevel(self)
+        self.ventana_informe.title("📝 Editor de Informe Ejecutivo - QueryLibre")
+        self.ventana_informe.geometry("650x500")
+        self.ventana_informe.transient(self.app_root)
+        
+        if hasattr(self.app_root, 'fijar_icono'):
+            self.app_root.fijar_icono(self.ventana_informe)
+
+        # Barra de controles de la ventana flotante
+        frame_ctrls = ctk.CTkFrame(self.ventana_informe, fg_color="transparent")
+        frame_ctrls.pack(fill="x", padx=15, pady=(15, 0))
+        
+        ctk.CTkLabel(frame_ctrls, text="Redacta tus hallazgos (Soporta formato Markdown)", text_color="gray").pack(side="left")
+        ctk.CTkButton(frame_ctrls, text="💾 Exportar Documento", width=140, fg_color="#27ae60", hover_color="#2ecc71", command=self.exportar_informe).pack(side="right", padx=5)
+        
+        # El lienzo de texto enriquecido
+        self.editor_informe = ctk.CTkTextbox(
+            self.ventana_informe, 
+            wrap="word", 
+            font=ctk.CTkFont(family="Helvetica", size=14),
+            fg_color="#1e1e1e", text_color="#e0e0e0"
+        )
+        self.editor_informe.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Inyectamos el contenido guardado en caché
+        self.editor_informe.insert("1.0", self.texto_informe_cache)
+
+        # Guardar automáticamente en caché si el usuario cierra la ventana desde la 'X'
+        def al_cerrar_ventana():
+            self.texto_informe_cache = self.editor_informe.get("1.0", "end-1c")
+            self.ventana_informe.destroy()
+
+        self.ventana_informe.protocol("WM_DELETE_WINDOW", al_cerrar_ventana)
+
+    def exportar_informe(self):
+        """Exporta el contenido del lienzo flotante a un archivo Markdown o TXT."""
+        if not hasattr(self, 'editor_informe') or not self.editor_informe.winfo_exists(): return
+        
+        texto = self.editor_informe.get("1.0", "end-1c").strip()
+        if not texto:
+            messagebox.showwarning("Informe Vacío", "No hay nada escrito para exportar.", parent=self.ventana_informe)
+            return
+            
+        archivo_destino = filedialog.asksaveasfilename(
+            defaultextension=".md",
+            filetypes=[("Archivo Markdown", "*.md"), ("Archivo de Texto", "*.txt")],
+            title="Guardar Informe Analítico",
+            parent=self.ventana_informe
+        )
+        
+        if archivo_destino:
+            try:
+                with open(archivo_destino, "w", encoding="utf-8") as f:
+                    f.write(texto)
+                messagebox.showinfo("Éxito", "El informe se ha exportado correctamente.", parent=self.ventana_informe)
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo guardar el archivo:\n{e}", parent=self.ventana_informe)
             
     # ==========================================
     # FUNCIONES DEL MENÚ CONTEXTUAL

@@ -218,7 +218,9 @@ class QueryLibreApp(ctk.CTk):
             fg_color="#2980b9",
             button_color="#1f618d",
             button_hover_color="#154360",
-            font=ctk.CTkFont(weight="bold")
+            font=ctk.CTkFont(weight="bold"),
+            height=35, # <--- ESCUDO DE ALTURA 
+            dynamic_resizing=False # <--- EVITA QUE SE COMPRIMA O DEFORME
         )
         self.btn_guardar_unificado.set("💾 Guardar / Exportar")
         self.btn_guardar_unificado.pack(side="right", padx=10, pady=10)
