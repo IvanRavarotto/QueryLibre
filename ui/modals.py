@@ -1104,7 +1104,7 @@ class ModalesUI:
         """Muestra el modal para configurar la API Key y el Proveedor de IA."""
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("Configuración de IA")
-        dialog.geometry("450x430") # Aumentado para acomodar el botón de Probar Conexión
+        dialog.geometry("450x430")
         dialog.resizable(False, False)
         dialog.transient(app_root)
         dialog.grab_set()
@@ -1112,7 +1112,23 @@ class ModalesUI:
         if hasattr(app_root, 'fijar_icono'):
             app_root.fijar_icono(dialog)
 
-        ctk.CTkLabel(dialog, text="Conexión de Inteligencia Artificial", font=ctk.CTkFont(weight="bold", size=16)).pack(pady=(20, 10))
+        # --- TÍTULO Y BOTÓN DE AYUDA ---
+        frame_titulo = ctk.CTkFrame(dialog, fg_color="transparent")
+        frame_titulo.pack(fill="x", pady=(20, 10), padx=20)
+        
+        ctk.CTkLabel(frame_titulo, text="Conexión de Inteligencia Artificial", font=ctk.CTkFont(weight="bold", size=16)).pack(side="left")
+        
+        def mostrar_ayuda_api():
+            texto_ayuda = (
+                "Para obtener tu API Key gratuita:\n\n"
+                "🔹 Google Gemini: Visita aistudio.google.com\n"
+                "🔹 Groq (Llama 3): Visita console.groq.com\n\n"
+                "Crea un nuevo proyecto/clave, cópiala y pégala aquí."
+            )
+            messagebox.showinfo("¿Cómo obtener una API Key?", texto_ayuda, parent=dialog)
+            
+        ctk.CTkButton(frame_titulo, text="?", width=28, height=28, corner_radius=14, fg_color="#7f8c8d", hover_color="#95a5a6", command=mostrar_ayuda_api).pack(side="right")
+        # -------------------------------
         
         # --- SELECTOR DE PROVEEDOR ---
         ctk.CTkLabel(dialog, text="Motor de IA:").pack(pady=(5, 2), padx=20, anchor="w")
@@ -1268,7 +1284,7 @@ class ModalesUI:
         """Muestra un modal para crear la Contraseña Maestra por primera vez."""
         dialog = ctk.CTkToplevel(app_root)
         dialog.title("🛡️ Crear Bóveda")
-        dialog.geometry("350x250")
+        dialog.geometry("350x275")
         dialog.transient(app_root)
         dialog.grab_set()
         if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
@@ -1282,7 +1298,7 @@ class ModalesUI:
         entry_confirm = ctk.CTkEntry(dialog, show="*", width=250, placeholder_text="Confirmar contraseña...")
         entry_confirm.pack(pady=5)
         
-        usar_pass = ctk.CTkBooleanVar(value=True) # Por defecto, pide contraseña
+        usar_pass = ctk.BooleanVar(value=True)
 
         def toggle_pass():
             if usar_pass.get():

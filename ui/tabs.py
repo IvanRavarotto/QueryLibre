@@ -72,30 +72,31 @@ class PestanaTrabajo(ctk.CTkFrame):
         # ==========================================
         # PESTAÑA 2: ANALISTA IA (UI/UX)
         # ==========================================
-        # Aquí irá el chat. Por ahora armamos el diseño visual.
-        self.chat_history = ctk.CTkTextbox(self.right_panel.tab("✨ Analista IA"), font=("Arial", 12), state="disabled", wrap="word", fg_color="#2b2b2b")
-        self.chat_history.pack(expand=True, fill="both", padx=5, pady=5)
+        # --- NUEVO: SISTEMA DE BURBUJAS DE CHAT ---
+        self.chat_scroll = ctk.CTkScrollableFrame(self.right_panel.tab("✨ Analista IA"), fg_color="transparent")
+        self.chat_scroll.pack(fill="both", expand=True, padx=5, pady=5)
         
         self.frame_acciones_ia = ctk.CTkFrame(self.right_panel.tab("✨ Analista IA"), fg_color="transparent")
         self.frame_acciones_ia.pack(fill="x", padx=5, pady=(0, 5))
-        
-        # Mensaje de bienvenida de la IA
-        self.chat_history.configure(state="normal")
-        self.chat_history.insert("end", "🤖 IA: ¡Hola! Soy tu Analista de Datos. Configura tu API Key para empezar.\n\n")
-        self.chat_history.configure(state="disabled")
 
         frame_input_ia = ctk.CTkFrame(self.right_panel.tab("✨ Analista IA"), fg_color="transparent")
         frame_input_ia.pack(fill="x", padx=5, pady=(5, 10))
 
-        self.entry_ia = ctk.CTkEntry(frame_input_ia, placeholder_text="Pregúntale algo a tus datos...")
+        # Textbox multilínea (Adiós al Entry de una línea)
+        self.entry_ia = ctk.CTkTextbox(frame_input_ia, height=60, wrap="word") 
         self.entry_ia.pack(side="left", fill="x", expand=True, padx=(0, 5))
 
-        # Agrega command=self.enviar_mensaje_ia al botón existente
-        self.btn_enviar_ia = ctk.CTkButton(frame_input_ia, text="➤", width=40, fg_color="#8e44ad", hover_color="#9b59b6", command=self.enviar_mensaje_ia)
+        self.btn_enviar_ia = ctk.CTkButton(
+            frame_input_ia, text="➤", width=40, height=60, 
+            fg_color="#8e44ad", hover_color="#9b59b6", command=self.enviar_mensaje_ia
+        )
         self.btn_enviar_ia.pack(side="right")
         
-        # Haz que al presionar "Enter" en el teclado también se envíe
-        self.entry_ia.bind("<Return>", self.enviar_mensaje_ia)
+        self.entry_ia.bind("<Return>", self._on_enter_pressed)
+        self.entry_ia.bind("<Shift-Return>", self._on_shift_enter_pressed)
+        
+        # Mensaje de bienvenida inyectado directamente
+        self.app_root.after(200, lambda: self._agregar_burbuja_chat("¡Hola! Soy tu Analista IA. Configura tu API Key para empezar a trabajar con tus datos.", "ia"))
         
         self.btn_config_ia = ctk.CTkButton(
             self.right_panel.tab("✨ Analista IA"), 
@@ -157,11 +158,20 @@ class PestanaTrabajo(ctk.CTkFrame):
         # --- MENÚ CONTEXTUAL (Clic Derecho) ---
         self.tree.bind("<Button-3>", self._mostrar_menu_contextual) # Clic derecho en Windows/Linux
         
-        self.menu_contextual = tk.Menu(self.tree_frame, tearoff=0, bg="#2b2b2b", fg="white", activebackground="#1f538d")
-        self.menu_contextual.add_command(label="🔠 Convertir a MAYÚSCULAS", command=lambda: self._aplicar_formato_texto("mayusculas"))
-        self.menu_contextual.add_command(label="🔡 Convertir a minúsculas", command=lambda: self._aplicar_formato_texto("minusculas"))
-        self.menu_contextual.add_command(label="Aa Formato Título", command=lambda: self._aplicar_formato_texto("titulo"))
+        # Diseñamos un menú limpio y con emojis para las acciones directas
+        self.menu_contextual = tk.Menu(self.tree_frame, tearoff=0, bg="#2b2b2b", fg="white", activebackground="#1f538d", font=("Arial", 10))
+        
+        self.menu_contextual.add_command(label="✏️ Editar Celda", command=self._menu_editar_celda)
+        self.menu_contextual.add_command(label="📋 Copiar Valor", command=self._menu_copiar_valor)
+        self.menu_contextual.add_separator()
+        self.menu_contextual.add_command(label="🏷️ Renombrar Columna", command=self._menu_renombrar_columna)
+        self.menu_contextual.add_command(label="❌ Eliminar Columna", command=self._menu_eliminar_columna)
+        self.menu_contextual.add_separator()
+        self.menu_contextual.add_command(label="🗑️ Eliminar Fila", command=self._menu_eliminar_fila)
+
+        # Variables para saber exactamente dónde hizo clic el usuario
         self.columna_seleccionada_menu = None
+        self.fila_seleccionada_menu = None
 
     # --- Funciones Internas de la Pestana ---
     def dispatch_macro(self, eleccion):
@@ -203,18 +213,84 @@ class PestanaTrabajo(ctk.CTkFrame):
         if self.motor.df is None or self.motor.df.empty: return
         
         region = self.tree.identify_region(event.x, event.y)
-        if region in ("cell", "heading"):
+        if region in ("cell", "heading", "tree"):
             col_id = self.tree.identify_column(event.x)
-            if col_id == '#1': return # Protegemos la columna estática '#'
+            row_id = self.tree.identify_row(event.y)
             
-            # Validación de seguridad: Asegurarse de que hizo clic en una columna válida
+            if col_id == '#1': return # Protegemos la columna estática '#'
             if not col_id: return
             
             col_index_visual = int(col_id.replace('#', '')) - 1
             if col_index_visual >= len(self.tree["column"]): return
                 
             self.columna_seleccionada_menu = self.tree["column"][col_index_visual]
+            self.fila_seleccionada_menu = row_id # Guardamos la fila exacta
+            
+            # Efecto visual: Seleccionamos la fila donde se hizo clic derecho
+            if row_id:
+                self.tree.selection_set(row_id)
+                self.tree.focus(row_id)
+                
             self.menu_contextual.tk_popup(event.x_root, event.y_root)
+            
+    # ==========================================
+    # FUNCIONES DEL MENÚ CONTEXTUAL
+    # ==========================================
+    def _menu_editar_celda(self):
+        if not self.fila_seleccionada_menu or not self.columna_seleccionada_menu: return
+        
+        valores = self.tree.item(self.fila_seleccionada_menu, "values")
+        indice_real = int(valores[0]) - 1
+        idx_col_visual = list(self.tree["columns"]).index(self.columna_seleccionada_menu)
+        valor_actual = valores[idx_col_visual + 1]
+
+        dialog = ctk.CTkInputDialog(text=f"Nuevo valor para {self.columna_seleccionada_menu}:", title="✏️ Editar Celda")
+        nuevo_valor = dialog.get_input()
+        
+        if nuevo_valor is not None and str(nuevo_valor) != str(valor_actual):
+            self.motor.editar_celda(indice_real, self.columna_seleccionada_menu, nuevo_valor)
+            self.refrescar_interfaz()
+
+    def _menu_copiar_valor(self):
+        if not self.fila_seleccionada_menu or not self.columna_seleccionada_menu: return
+        
+        valores = self.tree.item(self.fila_seleccionada_menu, "values")
+        idx_col_visual = list(self.tree["columns"]).index(self.columna_seleccionada_menu)
+        valor = str(valores[idx_col_visual + 1])
+        
+        self.app_root.clipboard_clear()
+        self.app_root.clipboard_append(valor)
+        messagebox.showinfo("Copiado", f"Valor copiado al portapapeles:\n\n{valor}")
+
+    def _menu_renombrar_columna(self):
+        if not self.columna_seleccionada_menu: return
+        
+        dialog = ctk.CTkInputDialog(text="Ingresa el nuevo nombre:", title="🏷️ Renombrar Columna")
+        nuevo_nombre = dialog.get_input()
+        
+        if nuevo_nombre and nuevo_nombre != self.columna_seleccionada_menu:
+            self.motor.renombrar_columna(self.columna_seleccionada_menu, nuevo_nombre)
+            self.refrescar_interfaz()
+
+    def _menu_eliminar_columna(self):
+        if not self.columna_seleccionada_menu: return
+        
+        if messagebox.askyesno("Eliminar Columna", f"¿Estás seguro de eliminar la columna '{self.columna_seleccionada_menu}'?"):
+            self.motor.eliminar_columna(self.columna_seleccionada_menu)
+            self.refrescar_interfaz()
+
+    def _menu_eliminar_fila(self):
+        if not self.fila_seleccionada_menu: return
+        
+        valores = self.tree.item(self.fila_seleccionada_menu, "values")
+        indice_real = int(valores[0]) - 1
+        
+        if messagebox.askyesno("Eliminar Fila", f"¿Seguro que deseas eliminar la fila original número {indice_real + 1}?"):
+            # Acción directa en Pandas (con guardado de historial para poder deshacer)
+            self.motor.df_history.append(self.motor.df.copy())
+            self.motor.df = self.motor.df.drop(indice_real).reset_index(drop=True)
+            self.motor.registrar_paso(f"🗑️ Fila {indice_real + 1} eliminada manualmente")
+            self.refrescar_interfaz()
 
     def _aplicar_formato_texto(self, operacion):
         """Ejecuta la transformación de texto llamando al motor en un hilo secundario."""
@@ -483,7 +559,7 @@ class PestanaTrabajo(ctk.CTkFrame):
     
     def enviar_mensaje_ia(self, event=None):
         """Envía la pregunta del usuario y procesa si la IA sugiere una Macro ejecutable."""
-        pregunta = self.entry_ia.get().strip()
+        pregunta = self.entry_ia.get("1.0", "end-1c").strip()
         if not pregunta: return
         
         # 1. Leemos estrictamente desde la memoria RAM de sesión
@@ -492,18 +568,16 @@ class PestanaTrabajo(ctk.CTkFrame):
         if not api_key:
             messagebox.showwarning("Sin Conexión", "Por favor, configura tu API Key primero usando el botón ⚙️.")
             return
-
-        # 2. Actualizar Interfaz (Pregunta)
-        self.chat_history.configure(state="normal")
-        self.chat_history.insert("end", f"👤 Tú: {pregunta}\n\n")
-        self.chat_history.yview("end")
         
-        index_espera = self.chat_history.index("end-1c")
-        self.chat_history.insert("end", "🤖 IA: Analizando...\n\n")
-        self.chat_history.configure(state="disabled")
+        for widget in self.frame_acciones_ia.winfo_children():
+            widget.destroy()
         
-        self.entry_ia.delete(0, "end")
-        self.btn_enviar_ia.configure(state="disabled")
+        # 2. Actualizar Interfaz (Imprimir tu burbuja)
+        self._agregar_burbuja_chat(pregunta, "usuario")
+        
+        # Borramos tu texto escrito y ponemos el botón "pensando"
+        self.entry_ia.yview_moveto(0.0) 
+        self.btn_enviar_ia.configure(state="disabled", text="⏳")
 
         # Limpiar botones de acciones anteriores
         for widget in self.frame_acciones_ia.winfo_children():
@@ -586,8 +660,11 @@ Pregunta del usuario: {pregunta}"""
                     
                     if match_json:
                         try:
-                            macro_sugerida = json.loads(match_json.group(1))
-                            texto_ia = re.sub(patron_regex, '\n*(✨ He generado una acción automatizada para ti)*', texto_ia, flags=re.DOTALL)
+                            parsed_json = json.loads(match_json.group(1))
+                            # NUEVO: Validación estricta anti-alucinaciones
+                            if isinstance(parsed_json, list) and len(parsed_json) > 0 and "action" in parsed_json[0]:
+                                macro_sugerida = parsed_json
+                                texto_ia = re.sub(patron_regex, '\n*(✨ He generado una acción automatizada para ti)*', texto_ia, flags=re.DOTALL)
                         except: pass
                         
                 except Exception as e:
@@ -600,12 +677,8 @@ Pregunta del usuario: {pregunta}"""
                     macro_sugerida = None
 
                 def actualizar_ui():
-                    self.chat_history.configure(state="normal")
-                    self.chat_history.delete(index_espera, "end")
-                    self.chat_history.insert("end", f"🤖 IA: {texto_ia}\n\n")
-                    self.chat_history.yview("end")
-                    self.chat_history.configure(state="disabled")
-                    self.btn_enviar_ia.configure(state="normal")
+                    self._agregar_burbuja_chat(texto_ia, "ia")
+                    self.btn_enviar_ia.configure(state="normal", text="➤")
 
                     if macro_sugerida:
                         def aplicar_magia():
@@ -716,4 +789,39 @@ Pregunta del usuario: {pregunta}"""
         elif region == "cell" or region == "tree":
             # Redirigimos el tráfico a tu función original de edición
             self.editar_celda(event)
+        
+    def _agregar_burbuja_chat(self, texto, emisor="usuario"):
+        """Dibuja una burbuja de chat dinámica en el historial."""
+        frame_burbuja = ctk.CTkFrame(self.chat_scroll, fg_color="transparent")
+        frame_burbuja.pack(fill="x", pady=5, padx=5)
+        
+        if emisor == "usuario":
+            bg_color = "#1f538d" # Azul sutil
+            alineacion = "e" # Derecha
+            etiqueta = "Tú"
+        else:
+            bg_color = "#2b2b2b" # Gris oscuro
+            alineacion = "w" # Izquierda
+            etiqueta = "🤖 IA"
             
+        burbuja = ctk.CTkFrame(frame_burbuja, fg_color=bg_color, corner_radius=10)
+        burbuja.pack(side="right" if alineacion == "e" else "left", fill="x", expand=False)
+        
+        ctk.CTkLabel(burbuja, text=etiqueta, font=ctk.CTkFont(weight="bold", size=10), text_color="gray").pack(anchor=alineacion, padx=10, pady=(5, 0))
+        lbl_texto = ctk.CTkLabel(burbuja, text=texto, justify="left", wraplength=220)
+        lbl_texto.pack(anchor=alineacion, padx=15, pady=(0, 10))
+        
+        # Forzar el scroll hacia abajo para ver el último mensaje
+        self.update_idletasks() 
+        self.chat_scroll._parent_canvas.yview_moveto(1.0)
+        
+    def _on_enter_pressed(self, event):
+        """Envía el mensaje instantáneamente al presionar Enter."""
+        if self.entry_ia.get("1.0", "end-1c").strip():
+            self.enviar_mensaje_ia()
+        return "break" # Evita el salto de línea sucio
+
+    def _on_shift_enter_pressed(self, event):
+        """Permite hacer saltos de línea con Shift + Enter."""
+        self.entry_ia.insert("insert", "\n")
+        return "break"
