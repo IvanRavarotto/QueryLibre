@@ -28,6 +28,7 @@ class MotorDatos:
         self.hay_cambios = False
         
         self.chat_history = []
+        self.informe_ejecutivo = ""
         
         # Pilas de Deshacer (Undo)
         self.df_history = []
@@ -1051,11 +1052,12 @@ class MotorDatos:
         try:
             # 1. Preparamos el "Cerebro" (Metadatos y Chat)
             metadata = {
-                "nombre_archivo": getattr(self, 'nombre_archivo', 'Proyecto_QueryLibre'),
+                "nombre_archivo": self.nombre_archivo,
                 "historial_pasos": self.historial_pasos,
                 "macro_steps": self.macro_steps,
                 "chat_history": self.chat_history,
-                "step_counter": getattr(self, 'step_counter', 0)
+                "step_counter": self.step_counter,
+                "informe_ejecutivo": getattr(self, 'informe_ejecutivo', "")
             }
 
             # 2. Preparamos el "Cuerpo" (La tabla) en RAM usando Parquet
@@ -1095,6 +1097,7 @@ class MotorDatos:
                     self.macro_steps = metadata.get("macro_steps", [])
                     self.chat_history = metadata.get("chat_history", [])
                     self.step_counter = metadata.get("step_counter", 0)
+                    self.informe_ejecutivo = metadata.get("informe_ejecutivo", "") # <-- NUEVO
 
                 # 3. Restaurar Dataset (Parquet)
                 with zf.open('data.parquet') as f:

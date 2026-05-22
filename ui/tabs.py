@@ -295,12 +295,14 @@ class PestanaTrabajo(ctk.CTkFrame):
         )
         self.editor_informe.pack(fill="both", expand=True, padx=15, pady=15)
         
-        # Inyectamos el contenido guardado en caché
-        self.editor_informe.insert("1.0", self.texto_informe_cache)
+        # Inyectamos el contenido guardado en el motor (o la plantilla inicial)
+        contenido_actual = self.motor.informe_ejecutivo if hasattr(self.motor, 'informe_ejecutivo') and self.motor.informe_ejecutivo else self.texto_informe_cache
+        self.editor_informe.insert("1.0", contenido_actual)
 
-        # Guardar automáticamente en caché si el usuario cierra la ventana desde la 'X'
+        # Evento: Guardar automáticamente en el motor de datos al cerrar la ventana con la 'X'
         def al_cerrar_ventana():
-            self.texto_informe_cache = self.editor_informe.get("1.0", "end-1c")
+            self.motor.informe_ejecutivo = self.editor_informe.get("1.0", "end-1c")
+            self.texto_informe_cache = self.motor.informe_ejecutivo # Respaldo local
             self.ventana_informe.destroy()
 
         self.ventana_informe.protocol("WM_DELETE_WINDOW", al_cerrar_ventana)

@@ -202,7 +202,7 @@ class QueryLibreApp(ctk.CTk):
             self.bottom_bar, 
             text="❌ Cerrar Pestaña", 
             command=self.cerrar_pestana_activa,
-            width=120, height=28,
+            width=120, height=30,
             fg_color="#c0392b", hover_color="#e74c3c"
         )
         self.btn_cerrar_tab.pack(side="left")
@@ -219,8 +219,8 @@ class QueryLibreApp(ctk.CTk):
             button_color="#1f618d",
             button_hover_color="#154360",
             font=ctk.CTkFont(weight="bold"),
-            height=35, # <--- ESCUDO DE ALTURA 
-            dynamic_resizing=False # <--- EVITA QUE SE COMPRIMA O DEFORME
+            height=30, 
+            dynamic_resizing=False 
         )
         self.btn_guardar_unificado.set("💾 Guardar / Exportar")
         self.btn_guardar_unificado.pack(side="right", padx=10, pady=10)
@@ -232,9 +232,21 @@ class QueryLibreApp(ctk.CTk):
         style.map('Treeview', background=[('selected', '#1f538d')])
         style.configure("Treeview.Heading", background="#565b5e", foreground="white", relief="flat")
         style.map("Treeview.Heading", background=[('active', '#343638')])
-
+        
+        # --- BOTÓN DEL MANUAL DE USUARIO ---
+        self.btn_manual = ctk.CTkButton(
+            self.sidebar_frame, 
+            text="📖 Manual de Usuario", 
+            command=lambda: ModalesUI.mostrar_manual_usuario(self), 
+            fg_color="transparent", 
+            text_color="gray",
+            hover_color="#34495e"
+        )
+        self.btn_manual.grid(row=9, column=0, pady=(10, 0), sticky="s")
+        
+        # (Asegúrate de que btn_acerca_de siga en el row=10)
         self.btn_acerca_de = ctk.CTkButton(self.sidebar_frame, text="ℹ️ Acerca de", command=self.mostrar_acerca_de, fg_color="transparent", text_color="gray")
-        self.btn_acerca_de.grid(row=10, column=0, pady=(50, 20), sticky="s")
+        self.btn_acerca_de.grid(row=10, column=0, pady=(10, 20), sticky="s")
         
         # --- Atajos de Teclado Globales ---
         self.bind("<Control-w>", lambda event: self.cerrar_pestana_activa())
@@ -766,6 +778,13 @@ class QueryLibreApp(ctk.CTk):
         """Enruta la acción dependiendo de lo que elija el usuario en el menú desplegable."""
         self.btn_guardar_unificado.set("💾 Guardar / Exportar")
         
+        # Obtenemos la pestaña activa dinámicamente
+        tab_activa = self.obtener_pestana_activa()
+        
+        # Forzar sincronización del informe si la ventana está abierta
+        if tab_activa and getattr(tab_activa, 'ventana_informe', None) and tab_activa.ventana_informe.winfo_exists():
+            tab_activa.motor.informe_ejecutivo = tab_activa.editor_informe.get("1.0", "end-1c")
+        
         if "Workspace" in seleccion:
             self.guardar_workspace_ui()
         elif "Exportar" in seleccion:
@@ -874,13 +893,16 @@ class QueryLibreApp(ctk.CTk):
     def cerrar_pestana_activa(self, nombre_pestana=None):
         """Cierra la pestaña indicada o la que esté activa actualmente, verificando cambios sin guardar."""
         if not self.pestanas:
-                self.welcome_frame.pack(expand=True)
+            self.welcome_frame.pack(expand=True)
+            return
         
-        if not nombre_pestana: return
-
+        # --- NUEVO: Si no pasan nombre, obtenemos la pestaña visible actual ---
+        if not nombre_pestana: 
+            nombre_pestana = self.tabview.get()
+            if not nombre_pestana: return 
+            
         try:
             tab_obj = self.pestanas.get(nombre_pestana)
-            
             # --- PROTECCIÓN DE DATOS INTELIGENTE ---
             if tab_obj and hasattr(tab_obj, 'motor'):
                 # Solo preguntamos si la variable hay_cambios es True

@@ -1377,3 +1377,45 @@ class ModalesUI:
             callback(seleccion)
 
         ctk.CTkButton(dialog, text="Continuar", command=confirmar, fg_color="#2980b9", hover_color="#1f618d").pack(pady=30)
+        
+    @staticmethod
+    def mostrar_manual_usuario(app_root):
+        """Muestra el manual interactivo de QueryLibre."""
+        dialog = ctk.CTkToplevel(app_root)
+        dialog.title("📖 Manual de Usuario - QueryLibre")
+        dialog.geometry("550x450")
+        dialog.transient(app_root)
+        dialog.grab_set()
+        
+        if hasattr(app_root, 'fijar_icono'): app_root.fijar_icono(dialog)
+
+        ctk.CTkLabel(dialog, text="Guía Rápida de QueryLibre", font=ctk.CTkFont(weight="bold", size=18)).pack(pady=(15, 5))
+        
+        tabs_ayuda = ctk.CTkTabview(dialog)
+        tabs_ayuda.pack(fill="both", expand=True, padx=15, pady=(5, 15))
+        
+        # Pestaña 1
+        t_datos = tabs_ayuda.add("📊 Datos y Limpieza")
+        ctk.CTkLabel(t_datos, text="1. Cargar Datos: Soporta archivos CSV, Excel (.xlsx) y Parquet.\n\n"
+                                   "2. Menú Rápido: Haz CLIC DERECHO sobre cualquier celda de la tabla para:\n"
+                                   "   - Editar valores individuales.\n"
+                                   "   - Renombrar o Eliminar columnas enteras.\n"
+                                   "   - Borrar filas específicas.\n\n"
+                                   "3. Atajos de Teclado: Doble clic en el borde de una columna auto-ajusta su tamaño.",
+                     justify="left", wraplength=480).pack(padx=10, pady=10, anchor="nw")
+
+        # Pestaña 2
+        t_ia = tabs_ayuda.add("✨ Asistente IA")
+        ctk.CTkLabel(t_ia, text="1. API Key: Configura tu clave gratuita de Groq o Gemini usando el botón del panel derecho.\n\n"
+                                "2. Interacción: Pide a la IA que analice tus datos en lenguaje natural. Ej: 'Limpia los nulos de la columna Precio'.\n\n"
+                                "3. Macros: Si la IA te sugiere una acción (Ej: Eliminar duplicados), verás un botón para aplicarla directamente al dataset.",
+                     justify="left", wraplength=480).pack(padx=10, pady=10, anchor="nw")
+
+        # Pestaña 3
+        t_reporte = tabs_ayuda.add("📝 Informes")
+        ctk.CTkLabel(t_reporte, text="1. Redacción: Abre el Informe Ejecutivo para anotar tus conclusiones.\n\n"
+                                     "2. Formato Markdown: Puedes usar **negritas** o # Títulos.\n\n"
+                                     "3. Persistencia: Tu informe se guarda automáticamente dentro de tu archivo Workspace (.qlp) para que nunca lo pierdas.",
+                     justify="left", wraplength=480).pack(padx=10, pady=10, anchor="nw")
+
+        ctk.CTkButton(dialog, text="Entendido", command=dialog.destroy, width=120).pack(pady=(0, 15))
