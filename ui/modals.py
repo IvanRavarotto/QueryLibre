@@ -22,7 +22,7 @@ class ModalesUI:
             app_root.fijar_icono(dialog)
         
         # Versión y Título Principal
-        ctk.CTkLabel(dialog, text="QueryLibre v2.2.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5), padx=40)
+        ctk.CTkLabel(dialog, text="QueryLibre v2.3.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5), padx=40)
         ctk.CTkLabel(dialog, text="Workspace de Analítica & Transformación de Datos", text_color="gray").pack(pady=(0, 15), padx=40)
         
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5), padx=40)

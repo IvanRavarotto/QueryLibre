@@ -20,12 +20,11 @@ La aplicación está diseñada bajo principios de desacoplamiento estricto, gara
 
 ---
 
-## 🚀 Características Destacadas de la Versión 2.2.0
+## 🚀 Características Destacadas de la Versión 2.3.0
 
-* **🤖 Asistente de Contexto IA:** Integración nativa con modelos de lenguaje masivo (LLM) mediante perfiles de sesión asincrónicos para ejecutar auditorías lógicas sobre las estructuras tabulares.
-* **📊 UX de Tabla Avanzada:** Treeview interactivo optimizado con soporte para reordenamiento de columnas en tiempo real (Drag & Drop) y auto-ajuste de dimensiones adaptativas basado en la longitud de caracteres de las celdas (Estilo Excel).
-* **🔌 Conector SQL Integrado:** Capacidad para interactuar e importar vistas relacionales directamente desde motores SQLite y MySQL a través de abstracciones seguras en SQLAlchemy.
-* **💾 Pipelines de Automatización (Macros):** Motor secuencial capaz de registrar las transformaciones realizadas en una sesión y exportarlas a manifiestos JSON portables, permitiendo replicar el pipeline sobre nuevos datasets de forma homogénea.
+* **🤖 Analista IA Integrado:** Chatea con tus datos en lenguaje natural usando Groq o Gemini. La IA analiza, sugiere transformaciones y ejecuta macros directamente sobre tu dataset.
+* **📝 Informes Ejecutivos Flotantes:** Redacta tus hallazgos en un entorno Markdown dedicado sin salir de la aplicación.
+* **🛡️ Bóveda de Workspaces (.qlp):** Guarda tu progreso, historial de limpiezas y reportes en un solo archivo empaquetado. Configura si deseas proteger tus proyectos con encriptación y Contraseña Maestra o guardarlos de forma libre.
 
 ---
 

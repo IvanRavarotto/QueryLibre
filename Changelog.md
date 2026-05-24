@@ -3,6 +3,27 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
+## [2.3.0] - 2026-05-22
+### Added
+- **Módulo de Informes Ejecutivos**: Nueva ventana flotante compañera con soporte para redacción en formato Markdown y exportación a `.md`/`.txt`.
+- **Persistencia Total (Workspace .qlp)**: El motor de datos ahora guarda y restaura el Informe Ejecutivo, el historial de chat y las macros dentro del archivo de proyecto centralizado.
+- **Arquitectura Multi-IA**: Integración de selector de perfiles (Gemini Pro, Gemini Flash, y preparación para Modo Local).
+- **Manual de Usuario Integrado**: Guía interactiva y estructurada en pestañas accesible desde el panel lateral.
+- **Menú Contextual Inteligente**: Soporte para clic derecho sobre el grid de datos (Editar celda, Renombrar/Eliminar columnas, Borrar filas).
+- **Gestión de Proyectos**: Creación automática de la carpeta `QueryLibre/Proyectos` para centralizar los Workspaces, con opciones de protección por Contraseña Maestra según la preferencia del usuario.
+
+### Changed
+- Rediseño absoluto del chat del Analista IA, reemplazando las cajas de texto estáticas por burbujas dinámicas (`CTkScrollableFrame`).
+- Reestructuración geométrica del panel derecho, migrando de `.pack()` a `.grid()` para evitar el aplastamiento de la barra inferior.
+- La tabla de datos vuelve a ocupar el 100% del lienzo izquierdo para maximizar la visibilidad analítica.
+
+### Fixed
+- Prevención de inyección de código alucinado por la IA mediante validación estricta de estructuras JSON.
+- Corrección de bugs de renderizado al saltar entre pestañas y al cerrar ventanas con procesos pendientes.
+- Implementación de control seguro de carga de perfiles, manejando correctamente la ausencia de datasets sin crashear la aplicación.
+  
+---
+
 ## [2.2.0] - 2026-05-16
 ### English
 #### Added
