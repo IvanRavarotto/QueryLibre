@@ -545,7 +545,7 @@ class PestanaTrabajo(ctk.CTkFrame):
         backup_steps = list(self.motor.macro_steps)
         backup_historial_pasos = list(self.motor.historial_pasos)
 
-        errores_macro = [] # <-- Llevaremos un registro de los pasos que fallan
+        errores_macro = []
 
         try:
             for paso in pasos:
@@ -560,6 +560,7 @@ class PestanaTrabajo(ctk.CTkFrame):
                     LOGGER.error(f"Macro bloqueada por seguridad: params inválidos para acción {nombre_funcion}")
                     continue
 
+                # Validación de parámetros maliciosos (claves peligrosas)
                 if any(
                     not isinstance(key, str) or key.startswith("__") or key in self.DISALLOWED_MACRO_PARAM_KEYS
                     for key in parametros.keys()
@@ -567,30 +568,40 @@ class PestanaTrabajo(ctk.CTkFrame):
                     LOGGER.error(f"Macro bloqueada por seguridad: parámetros maliciosos en acción {nombre_funcion}")
                     continue
 
+                # Validación de valores inseguros (inyección de objetos)
                 if not all(self._is_safe_value(v) for v in parametros.values()):
                     LOGGER.error(f"Macro bloqueada por seguridad: valores de parámetros no seguros en acción {nombre_funcion}")
                     continue
 
+                # --- NUEVA VALIDACIÓN DE RUTAS MALICIOSAS ---
+                ruta_peligrosa = False
+                for key, value in parametros.items():
+                    if isinstance(value, str):
+                        if any(bad in value for bad in ["..", ":", "/", "\\", "C:", "D:"]):
+                            LOGGER.error(f"Macro bloqueada: parámetro '{key}' contiene ruta potencialmente maliciosa: {value}")
+                            ruta_peligrosa = True
+                            break
+                if ruta_peligrosa:
+                    continue
+
                 if hasattr(self.motor, nombre_funcion):
                     metodo = getattr(self.motor, nombre_funcion)
-                    
-                    # --- NUEVO: Bloque Try-Continue individual por paso ---
+
                     try:
                         metodo(**parametros)
                     except Exception as e:
                         LOGGER.warning(f"El paso '{nombre_funcion}' falló y fue omitido: {e}")
                         errores_macro.append(f"Paso '{nombre_funcion}' omitido: {e}")
-                        continue # Salta este paso pero sigue ejecutando el resto de la macro
+                        continue
 
         except Exception as e:
-            # Si ocurre un error catastrofico a nivel general, restauramos la memoria
+            # Error catastrófico: restaurar todo el estado
             self.motor.df = backup_df
             self.motor.df_history = backup_history
             self.motor.macro_steps = backup_steps
             self.motor.historial_pasos = backup_historial_pasos
             raise e
-            
-        # Si la macro terminó pero hubo pasos omitidos, le avisamos al usuario amablemente
+
         if errores_macro:
             msg = "La macro se aplicó exitosamente, pero algunos pasos no eran compatibles con este archivo y fueron omitidos:\n\n• " + "\n• ".join(errores_macro[:5])
             if len(errores_macro) > 5:

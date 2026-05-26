@@ -66,6 +66,7 @@ class QueryLibreApp(ctk.CTk):
             shutil.rmtree(self.master_cache, ignore_errors=True)
         
         self.pestanas = {} 
+        self.tarea_en_curso = False
 
         self.title("QueryLibre - Motor de Transformación de Datos")
         self.geometry("1280x720") # Más grande por defecto
@@ -600,17 +601,25 @@ class QueryLibreApp(ctk.CTk):
         
     def ejecutar_tarea_pesada(self, funcion, *args, **kwargs):
         """Ejecuta una tarea en un hilo separado mostrando un modal con barra de progreso."""
+        if self.tarea_en_curso:
+            messagebox.showwarning("Espera", "Ya hay una operación en curso. Por favor, espera a que termine.")
+            return
+
+        self.tarea_en_curso = True
+        self.configurar_estado_botones("disabled")
+
         pantalla_carga = ctk.CTkToplevel(self)
         pantalla_carga.title("⏳ Procesando...")
         pantalla_carga.geometry("300x120")
         pantalla_carga.resizable(False, False)
         pantalla_carga.transient(self)
         pantalla_carga.grab_set()
-        
-        if hasattr(self, 'fijar_icono'): self.fijar_icono(pantalla_carga)
-        
-        # --- NUEVO: Matemática para centrar el modal ---
-        pantalla_carga.update_idletasks() # Obliga a Tkinter a calcular los tamaños reales
+
+        if hasattr(self, 'fijar_icono'):
+            self.fijar_icono(pantalla_carga)
+
+        # Centrar el modal
+        pantalla_carga.update_idletasks()
         px = self.winfo_rootx()
         py = self.winfo_rooty()
         pw = self.winfo_width()
@@ -620,13 +629,41 @@ class QueryLibreApp(ctk.CTk):
         x = px + (pw // 2) - (dw // 2)
         y = py + (ph // 2) - (dh // 2)
         pantalla_carga.geometry(f"+{x}+{y}")
-        # -----------------------------------------------
 
         ctk.CTkLabel(pantalla_carga, text="Ejecutando operación en memoria...", font=ctk.CTkFont(weight="bold", size=14)).pack(pady=(20, 10))
-        
+
         barra = ctk.CTkProgressBar(pantalla_carga, width=200, mode="indeterminate", fg_color="#34495e", progress_color="#2ecc71")
         barra.pack(pady=10)
-        barra.start() 
+        barra.start()
+
+        def tarea_hilo():
+            error_msg = None
+            try:
+                funcion(*args, **kwargs)
+            except Exception as e:
+                error_msg = str(e)
+                LOGGER.error(f"Error en tarea: {e}")
+
+            def finalizar_ui():
+                pantalla_carga.grab_release()
+                pantalla_carga.withdraw()
+
+                tab = self.obtener_pestana_activa()
+                if tab:
+                    tab.refrescar_interfaz()
+
+                if error_msg:
+                    messagebox.showerror("Error", f"Ocurrió un error:\n{error_msg}")
+                elif funcion.__name__ in ['cargar_archivo', 'cargar_proyecto'] and tab and tab.motor.df is not None:
+                    ModalesUI.mostrar_health_check(self, tab)
+
+                self.tarea_en_curso = False
+                self.configurar_estado_botones("normal")
+                self.after(250, pantalla_carga.destroy)
+
+            self.after(0, finalizar_ui)
+
+        threading.Thread(target=tarea_hilo, daemon=True).start()
 
         def tarea_hilo():
             error_msg = None

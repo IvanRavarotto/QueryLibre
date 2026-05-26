@@ -116,12 +116,26 @@ class MotorDatos:
         return True
     
     def _rollback_error(self):
-        """Restaura el DataFrame desde el disco si una operación falla a la mitad."""
         if self.df_history:
+        # Eliminar el punto de guardado fallido (el último)
             last_file = self.df_history.pop()
             if os.path.exists(last_file):
-                self.df = pd.read_parquet(last_file)
                 os.remove(last_file)
+
+        # Restaurar desde el estado anterior válido, si existe
+            if self.df_history:
+                previous_file = self.df_history[-1]
+                self.df = pd.read_parquet(previous_file)
+
+            # Limpiar los pasos registrados después del punto de fallo
+            # (el último paso corresponde a la operación fallida)
+            if self.historial_pasos:
+                    self.historial_pasos.pop()
+            if self.macro_steps:
+                self.macro_steps.pop()
+
+        else:
+            self.df = None
     
     def _check_df(self):
         if self.df is None:
@@ -421,7 +435,9 @@ class MotorDatos:
         if cond == "Es Igual a":
             self.df = self.df[self.df[col].astype(str).str.lower() == str(val).lower()]
         elif cond == "Contiene el texto":
-            self.df = self.df[self.df[col].astype(str).str.contains(str(val), case=False, na=False, regex=False)]
+        # Escapar caracteres especiales para evitar inyección de regex
+            val_seguro = re.escape(str(val))
+            self.df = self.df[self.df[col].astype(str).str.contains(val_seguro, case=False, na=False, regex=False)]
         elif cond == "Es Mayor que (>)":
             val_num = pd.to_numeric(val, errors='coerce')
             if pd.isna(val_num):
@@ -547,24 +563,19 @@ class MotorDatos:
         try:
             self.df = pd.merge(self.df, self.df2, left_on=k1, right_on=k2, how=how_join)
         except ValueError as e:
-            # Si hay incompatibilidad de tipos (str vs int etc.), forzamos ambos lados a string y volvemos a intentar.
-            # Esto permite un comportamiento más robusto en datasets mixtos generados con datos "caóticos".
             if k1 in self.df.columns and k2 in self.df2.columns:
                 self.df[k1] = self.df[k1].astype(str).replace('nan', '', regex=False)
                 self.df2[k2] = self.df2[k2].astype(str).replace('nan', '', regex=False)
                 try:
                     self.df = pd.merge(self.df, self.df2, left_on=k1, right_on=k2, how=how_join)
                 except Exception as e2:
-                    if self.df_history:
-                        self.df = self._rollback_error()
+                    self._rollback_error()
                     raise e2
             else:
-                if self.df_history:
-                    self.df = self._rollback_error()
+                self._rollback_error()
                 raise e
         except Exception as e:
-            if self.df_history:
-                self.df = self._rollback_error()
+            self._rollback_error()
             raise e
 
         self.registrar_paso(f"Unión ({how_join}): usando '{k1}' = '{k2}'")
@@ -682,16 +693,18 @@ class MotorDatos:
         ext = os.path.splitext(filepath)[1].lower()
         try:
             if ext == '.csv':
-                df_sanitizado = self._sanitize_for_export(self.df)
-                df_sanitizado.to_csv(filepath, index=False, encoding='utf-8')
+                # Para CSV grande (>100k filas) usar escritura fragmentada
+                if len(self.df) > 100000:
+                    self.exportar_csv_seguro(filepath)
+                else:
+                    df_sanitizado = self._sanitize_for_export(self.df)
+                    df_sanitizado.to_csv(filepath, index=False, encoding='utf-8')
             elif ext in ['.xlsx', '.xls']:
                 df_sanitizado = self._sanitize_for_export(self.df)
                 df_sanitizado.to_excel(filepath, index=False)
             elif ext == '.json':
-                # orient='records' es el estándar ideal para APIs y bases NoSQL
                 self.df.to_json(filepath, orient='records', indent=4, force_ascii=False)
             elif ext == '.parquet':
-                # Formato columnar ultrarrápido y comprimido
                 self.df.to_parquet(filepath, index=False)
             elif ext in ['.sqlite', '.db']:
                 import sqlite3
@@ -700,7 +713,7 @@ class MotorDatos:
                 conn.close()
             else:
                 raise ValueError(f"Extensión no soportada: {ext}")
-                
+
             self.registrar_paso(f"💾 Dataset exportado como {ext.upper()}")
             self.hay_cambios = False
         except Exception as e:
@@ -959,13 +972,7 @@ class MotorDatos:
             self.registrar_paso(f"Condicional: {nueva_columna} basada en {columna_origen}")
             
         except Exception as e:
-            # Reversión segura: Leemos el archivo Parquet desde el disco
-            if getattr(self, 'df_history', None) and len(self.df_history) > 0:
-                archivo_cache = self.df_history.pop()
-                if isinstance(archivo_cache, str) and os.path.exists(archivo_cache):
-                    self.df = pd.read_parquet(archivo_cache) # Recuperamos la tabla real
-                else:
-                    self.df = archivo_cache # Respaldo por si es un DataFrame en RAM
+            self._rollback_error()
             raise RuntimeError(f"Error al evaluar la lógica:\n{e}")
         
     
