@@ -13,6 +13,8 @@ from sqlalchemy.exc import SQLAlchemyError
 import urllib.parse
 import numpy as np
 
+PATRON_NORMALIZAR = re.compile(r"[^\w\s]+")
+
 LOGGER = logging.getLogger("QueryLibre")
 class MotorDatos:
     """
@@ -149,14 +151,18 @@ class MotorDatos:
         if self.df2 is not None:
             self.df2.columns = self._normalize_columns_generic(self.df2.columns)
 
+# Al inicio del archivo, después de los imports
+
+
+# Luego, modifica el método
     def _normalize_columns_generic(self, columns):
         new_columns = []
         counts = {}
         for col in columns:
             if isinstance(col, str):
                 col_normal = col.strip()
-                col_normal = re.sub(r"[^\w\s]+", "_", col_normal)
-                if col_normal == "":
+                col_normal = PATRON_NORMALIZAR.sub("_", col_normal)
+                if not col_normal:
                     col_normal = "columna"
                 if col_normal in counts:
                     counts[col_normal] += 1
@@ -235,7 +241,6 @@ class MotorDatos:
         
         # --- OPTIMIZACIÓN DE MEMORIA RAM ---
         self.df = self._optimizar_memoria(self.df)
-        self.df2 = self.df.copy() # Respaldo limpio
         
         self.historial_pasos = []
         self.df_history = []
@@ -252,25 +257,30 @@ class MotorDatos:
         self.hay_cambios = False
 
     def _optimizar_memoria(self, df):
-        """Reduce el consumo de RAM del DataFrame convirtiendo tipos de datos (Downcasting)."""
+        """Reduce el consumo de RAM del DataFrame utilizando downcasting y categorías."""
         mem_antes = df.memory_usage(deep=True).sum() / 1024**2
-        
+
         for col in df.columns:
             tipo = df[col].dtype
-            
-            if tipo != object:
-                # Downcast de números (Ej: int64 a int16 si los números son pequeños)
-                if 'int' in str(tipo):
+
+            if tipo != 'object':
+                if pd.api.types.is_integer_dtype(tipo):
                     df[col] = pd.to_numeric(df[col], downcast='integer')
-                elif 'float' in str(tipo):
+                elif pd.api.types.is_float_dtype(tipo):
                     df[col] = pd.to_numeric(df[col], downcast='float')
             else:
-                # Convertir a 'category' los textos repetitivos (Ej: "Masculino"/"Femenino" o "Aprobado")
-                num_unicos = len(df[col].unique())
+                # Optimización de textos: convertir a 'category' si la ganancia es real
+                num_unicos = df[col].nunique()
                 num_total = len(df[col])
-                if num_total > 0 and (num_unicos / num_total) < 0.10:
-                    df[col] = df[col].astype('category')
-                    
+                if num_total > 0 and (num_unicos / num_total) < 0.50:
+                    # Calcular uso de memoria actual vs. como categoría
+                    mem_actual = df[col].memory_usage(deep=True)
+                    mem_categoria = df[col].astype('category').memory_usage(deep=True)
+                    # Aplicar solo si el ahorro es significativo (más del 20%)
+                    if mem_categoria < mem_actual * 0.8:
+                        df[col] = df[col].astype('category')
+                        LOGGER.info(f"Columna '{col}' convertida a 'category'. Ahorro estimado: {mem_actual - mem_categoria} bytes.")
+
         mem_despues = df.memory_usage(deep=True).sum() / 1024**2
         LOGGER.info(f"Memoria optimizada: de {mem_antes:.2f} MB a {mem_despues:.2f} MB")
         return df
@@ -779,22 +789,23 @@ class MotorDatos:
             bloque.to_csv(filepath, mode=modo_escritura, header=escribir_cabecera, index=False, encoding='utf-8')
             
     def generar_reporte_salud(self):
-        """Genera un diccionario con métricas globales de salud del dataset (Data Profiling)."""
         if self.df is None or self.df.empty: return None
-        
+
         total_filas = len(self.df)
         total_cols = len(self.df.columns)
         total_celdas = total_filas * total_cols
         celdas_nulas = self.df.isna().sum().sum()
-        
-        # Calcular el porcentaje de celdas con datos reales
         porcentaje_nulos = (celdas_nulas / total_celdas) * 100 if total_celdas > 0 else 0
-        
+
         cols_numericas = len(self.df.select_dtypes(include='number').columns)
         cols_texto = total_cols - cols_numericas
-        
-        # Calcular cuánto pesa este dataframe en la memoria RAM
-        memoria_mb = self.df.memory_usage(deep=False).sum() / (1024 * 1024)
+
+        # Medición de memoria más precisa
+        if total_filas > 100000:
+            # Estimación para datasets grandes
+            memoria_mb = self.df.memory_usage(deep=True).sum() / (1024 * 1024)
+        else:
+            memoria_mb = self.df.memory_usage(deep=True).sum() / (1024 * 1024)
 
         return {
             "Filas": f"{total_filas:,}".replace(',', '.'),

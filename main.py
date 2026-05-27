@@ -979,27 +979,21 @@ class QueryLibreApp(ctk.CTk):
             LOGGER.error(f"Error al cerrar pestaña: {e}")
             
     def iniciar_autoguardado(self):
-        """Lanza un bucle infinito en segundo plano para salvar el progreso."""
-        def bucle_guardado():
-            import time
-            while True:
-                # Esperamos 5 minutos entre guardados
-                time.sleep(300) 
-                
-                # Solo guardamos si hay pestañas abiertas y cambios pendientes
-                for nombre, tab in self.pestanas.items():
-                    if tab.motor.hay_cambios:
-                        try:
-                            # Generamos una ruta temporal de respaldo
-                            backup_path = os.path.join(CARPETA_MADRE, f"backup_{nombre}.qlp")
-                            tab.motor.guardar_proyecto(backup_path)
-                            LOGGER.info(f"Autoguardado exitoso para: {nombre}")
-                        except Exception as e:
-                            LOGGER.error(f"Error en autoguardado: {e}")
+        """Programa un guardado automático para la pestaña activa cada 5 minutos."""
+        def guardar_pestana_activa():
+            if not self.pestanas:
+                return
+            tab_activa = self.pestanas.get(self.tabview.get())
+            if tab_activa and tab_activa.motor.hay_cambios:
+                try:
+                    backup_path = os.path.join(CARPETA_MADRE, f"backup_{tab_activa.motor.nombre_archivo}.qlp")
+                    tab_activa.motor.guardar_proyecto(backup_path)
+                    LOGGER.info(f"Autoguardado exitoso para: {tab_activa.motor.nombre_archivo}")
+                except Exception as e:
+                    LOGGER.error(f"Error en autoguardado: {e}")
+            self.after(300000, guardar_pestana_activa)
 
-        # Lo lanzamos como un hilo 'daemon' para que muera cuando cierres la app
-        hilo_save = threading.Thread(target=bucle_guardado, daemon=True)
-        hilo_save.start()
+        self.after(300000, guardar_pestana_activa)
         
         # --- SISTEMA DE WORKSPACES (v2.2.0) ---
 
