@@ -5,6 +5,40 @@ import matplotlib.pyplot as plt
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg, NavigationToolbar2Tk
 
 
+class BaseModal:
+    """Clase base para ventanas modales con comportamiento común."""
+    def __init__(self, app_root, title, width, height, resizable=(False, False)):
+        self.app_root = app_root
+        self.dialog = ctk.CTkToplevel(app_root)
+        self.dialog.title(title)
+        self.dialog.geometry(f"{width}x{height}")
+        self.dialog.resizable(*resizable)
+        self.dialog.transient(app_root)
+        self.dialog.grab_set()
+        if hasattr(app_root, 'fijar_icono'):
+            app_root.fijar_icono(self.dialog)
+        self.centrar()
+    
+    def centrar(self):
+        self.dialog.update_idletasks()
+        px = self.app_root.winfo_rootx()
+        py = self.app_root.winfo_rooty()
+        pw = self.app_root.winfo_width()
+        ph = self.app_root.winfo_height()
+        dw = self.dialog.winfo_width()
+        dh = self.dialog.winfo_height()
+        x = px + (pw // 2) - (dw // 2)
+        y = py + (ph // 2) - (dh // 2)
+        self.dialog.geometry(f"+{x}+{y}")
+    
+    def mostrar(self):
+        self.dialog.deiconify()
+    
+    def cerrar(self):
+        self.dialog.grab_release()
+        self.dialog.withdraw()
+        self.dialog.after(250, self.dialog.destroy)
+
 class ModalesUI:
     """Clase estática para gestionar todas las ventanas emergentes de QueryLibre"""
 

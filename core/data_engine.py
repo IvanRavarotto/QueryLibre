@@ -468,55 +468,50 @@ class MotorDatos:
         self.macro_steps.append({"action": "filtrar_datos", "params": {"col": col, "cond": cond, "val": val}})
 
     def cambiar_tipo_dato(self, col_name, nuevo_tipo, forzar=False):
-        """Cambia el tipo de dato. Si forzar=True, ignora los errores y los convierte en NaN."""
         self._check_df()
         if col_name not in self.df.columns:
             raise KeyError("Columna no encontrada")
-
         self._savepoint()
-
         try:
             if nuevo_tipo == "Texto":
-                self.df[col_name] = self.df[col_name].astype(str).fillna("").replace('nan', '')
-
-            elif nuevo_tipo in ["Número Entero", "Número Decimal"]:
-                s = self.df[col_name].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
-                s = s.replace(['', 'nan', 'None', '<NA>'], pd.NA)
-                converted = pd.to_numeric(s, errors='coerce')
-                total_non_null = s.notna().sum()
-                valid = converted.notna().sum()
-                invalid = total_non_null - valid
-                
-                # Si hay inválidos y no forzamos, lanzamos el error (protección activa)
-                if invalid > 0 and not forzar:
-                    raise RuntimeError(f"No se pudo convertir a número: {invalid} valores inválidos. Ejemplo (fila, valor): [...]")
-
-                if nuevo_tipo == "Número Entero":
-                    self.df[col_name] = converted.round().astype('Int64')
-                else:
-                    self.df[col_name] = converted.astype('float64')
-
-            elif nuevo_tipo == 'Fecha':
-                converted = pd.to_datetime(self.df[col_name], errors='coerce', format='mixed')
-                total_non_null = self.df[col_name].notna().sum()
-                valid = converted.notna().sum()
-                invalid = total_non_null - valid
-                
-                if invalid > 0 and not forzar:
-                    raise RuntimeError(f"No se pudo convertir a Fecha: {invalid} valores inválidos. Ejemplo (fila, valor): [...]")
-                    
-                self.df[col_name] = converted
-
+                self._convertir_a_texto(col_name)
+            elif nuevo_tipo == "Número Entero":
+                self._convertir_a_numero(col_name, es_entero=True, forzar=forzar)
+            elif nuevo_tipo == "Número Decimal":
+                self._convertir_a_numero(col_name, es_entero=False, forzar=forzar)
+            elif nuevo_tipo == "Fecha":
+                self._convertir_a_fecha(col_name, forzar=forzar)
             else:
                 raise ValueError("Tipo de conversión desconocido")
-
             self.registrar_paso(f"Tipo cambiado: '{col_name}' ➔ {nuevo_tipo}")
             self.macro_steps.append({"action": "cambiar_tipo_dato", "params": {"col_name": col_name, "nuevo_tipo": nuevo_tipo, "forzar": forzar}})
             return True
-
         except Exception as e:
-            self._rollback_error() 
-            raise e 
+            self._rollback_error()
+            raise e
+
+    def _convertir_a_texto(self, col_name):
+        self.df[col_name] = self.df[col_name].astype(str).fillna("").replace('nan', '')
+
+    def _convertir_a_numero(self, col_name, es_entero=True, forzar=False):
+        s = self.df[col_name].astype(str).str.replace('$', '', regex=False).str.replace(',', '', regex=False).str.strip()
+        s = s.replace(['', 'nan', 'None', '<NA>'], pd.NA)
+        converted = pd.to_numeric(s, errors='coerce')
+        total_non_null = s.notna().sum()
+        invalid = total_non_null - converted.notna().sum()
+        if invalid > 0 and not forzar:
+            raise RuntimeError(f"No se pudo convertir a número: {invalid} valores inválidos.")
+        if es_entero:
+            self.df[col_name] = converted.round().astype('Int64')
+        else:
+            self.df[col_name] = converted.astype('float64')
+
+    def _convertir_a_fecha(self, col_name, forzar=False):
+        converted = pd.to_datetime(self.df[col_name], errors='coerce', format='mixed')
+        invalid = self.df[col_name].notna().sum() - converted.notna().sum()
+        if invalid > 0 and not forzar:
+            raise RuntimeError(f"No se pudo convertir a Fecha: {invalid} valores inválidos.")
+        self.df[col_name] = converted
 
     def previsualizar_casteo(self, col_name, nuevo_tipo):
         """Simula el casteo en memoria RAM y devuelve un listado de valores que van a fallar."""

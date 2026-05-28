@@ -6,190 +6,129 @@ from tkinter import filedialog, messagebox, ttk
 import customtkinter as ctk
 import logging
 
+from ui.chat_ia_handler import ChatIAHandler
+from ui.macro_manager import MacroManager
 from core.data_engine import MotorDatos
 
 LOGGER = logging.getLogger("QueryLibre")
 
 class PestanaTrabajo(ctk.CTkFrame):
-    ALLOWED_MACRO_ACTIONS = {
-        "eliminar_duplicados",
-        "limpiar_nulos",
-        "eliminar_columna",
-        "renombrar_columna",
-        "editar_celda",
-        "calcular_columna",
-        "combinar_columnas",
-        "dividir_columna",
-        "filtrar_datos",
-        "cambiar_tipo_dato",
-        "aplicar_union",
-        "agrupar_datos",
-        "buscar_reemplazar",
-        "aplicar_autocasteo_confirmado",
-        "anular_dinamizacion",
-        "agregar_columna_condicional",
-        "transformar_texto", # <--- NUEVO
-    }
-
-    DISALLOWED_MACRO_PARAM_KEYS = {
-        "__class__", "__dict__", "__bases__", "__globals__", "__code__",
-        "__closure__", "__func__", "__self__", "__module__"
-    }
-
     def __init__(self, master, app_root):
         super().__init__(master, fg_color="transparent")
-        self.app_root = app_root 
+        self.app_root = app_root
         
         self.motor = MotorDatos()
+        self.chat_handler = ChatIAHandler(self, self.app_root)
+        self.macro_manager = MacroManager(self.motor, self.app_root)
         self.pagina_actual = 1
         self.filas_por_pagina = 200
 
         # --- Panel Derecho: Tabview (Historial / IA) ---
         self.right_panel = ctk.CTkTabview(self, width=280)
         self.right_panel.pack(side="right", fill="y", padx=(10, 0), pady=0)
-        
         self.right_panel.add("Historial")
         self.right_panel.add("✨ Analista IA")
-        
-        # ==========================================
-        # PESTAÑA 1: HISTORIAL Y MACROS
-        # ==========================================
+
+        # ========== PESTAÑA HISTORIAL ==========
         self.history_text = ctk.CTkTextbox(self.right_panel.tab("Historial"), font=("Arial", 11), state="disabled", wrap="word")
         self.history_text.pack(expand=True, fill="both", padx=5, pady=5)
 
-        self.btn_deshacer = ctk.CTkButton(self.right_panel.tab("Historial"), text="↩️ Deshacer", command=self.deshacer_paso, state="disabled", fg_color="#e74c3c", hover_color="#c0392b")
-        self.btn_deshacer.pack(pady=(5, 5), padx=5, fill="x")
+        self.btn_deshacer = ctk.CTkButton(
+            self.right_panel.tab("Historial"), text="↩️ Deshacer",
+            command=self.deshacer_paso, state="disabled",
+            fg_color="#e74c3c", hover_color="#c0392b"
+        )
+        self.btn_deshacer.pack(pady=(5,5), padx=5, fill="x")
 
         self.btn_macro = ctk.CTkOptionMenu(
-            self.right_panel.tab("Historial"), fg_color="#27ae60", button_color="#2ecc71", dynamic_resizing=False,
+            self.right_panel.tab("Historial"),
             values=["💾 Guardar Macro actual", "▶️ Ejecutar Macro en Dataset"],
-            command=self.dispatch_macro
+            command=self.dispatch_macro,
+            fg_color="#27ae60", button_color="#2ecc71", dynamic_resizing=False
         )
         self.btn_macro.set("🤖 Macros")
-        self.btn_macro.pack(pady=(2, 10), padx=5, fill="x")
+        self.btn_macro.pack(pady=(2,10), padx=5, fill="x")
 
-        # ==========================================
-        # PESTAÑA 2: ANALISTA IA (UI/UX)
-        # ==========================================
+        # ========== PESTAÑA ANALISTA IA ==========
         tab_ia = self.right_panel.tab("✨ Analista IA")
+        # El handler construye todo el chat (burbujas, entrada, botón)
+        self.chat_handler.build_ui(tab_ia)
+
+        # Agregar los botones adicionales (Informe y Configuración)
+        # Usamos grid en la misma pestaña, respetando la estructura del handler.
+        # El handler ya usó las filas 0,1,2 para chat_scroll, frame_acciones, input.
+        # Nosotros usamos filas 3 y 4.
+        tab_ia.grid_rowconfigure(3, weight=0)
+        tab_ia.grid_rowconfigure(4, weight=0)
         
-        # Arquitectura de Grilla (Limpia)
-        tab_ia.grid_rowconfigure(0, weight=1) 
-        tab_ia.grid_rowconfigure(1, weight=0) 
-        tab_ia.grid_rowconfigure(2, weight=0) 
-        tab_ia.grid_rowconfigure(3, weight=0) 
-        tab_ia.grid_rowconfigure(4, weight=0) 
-        tab_ia.grid_columnconfigure(0, weight=1)
-
-        self.chat_scroll = ctk.CTkScrollableFrame(tab_ia, fg_color="transparent")
-        self.chat_scroll.grid(row=0, column=0, sticky="nsew", padx=5, pady=5)
-        
-        self.frame_acciones_ia = ctk.CTkFrame(tab_ia, fg_color="transparent")
-        self.frame_acciones_ia.grid(row=1, column=0, sticky="ew", padx=5, pady=(0, 5))
-
-        frame_input_ia = ctk.CTkFrame(tab_ia, fg_color="transparent")
-        frame_input_ia.grid(row=2, column=0, sticky="ew", padx=5, pady=(5, 10))
-
-        self.entry_ia = ctk.CTkTextbox(frame_input_ia, height=60, wrap="word") 
-        self.entry_ia.pack(side="left", fill="x", expand=True, padx=(0, 5))
-
-        self.btn_enviar_ia = ctk.CTkButton(
-            frame_input_ia, text="➤", width=40, height=60, 
-            fg_color="#8e44ad", hover_color="#9b59b6", command=self.enviar_mensaje_ia
-        )
-        self.btn_enviar_ia.pack(side="right")
-        
-        # Botón Informe (Fila 3)
         self.btn_abrir_informe = ctk.CTkButton(
-            tab_ia,
-            text="📝 Redactar Informe Ejecutivo",
-            fg_color="#2e4053", hover_color="#34495e",
-            command=self.abrir_modulo_informe
+            tab_ia, text="📝 Redactar Informe Ejecutivo",
+            fg_color="#2e4053", command=self.abrir_modulo_informe
         )
-        self.btn_abrir_informe.grid(row=3, column=0, sticky="ew", padx=5, pady=(0, 5))
+        self.btn_abrir_informe.grid(row=3, column=0, sticky="ew", padx=5, pady=(5,0))
         
-        # Botón Configuración API (Fila 4)
         self.btn_config_ia = ctk.CTkButton(
-            tab_ia, 
-            text="⚙️ Configurar API Key", 
-            fg_color="#34495e", hover_color="#2c3e50",
-            command=lambda: ModalesUI.mostrar_config_ia(self.app_root)
+            tab_ia, text="⚙️ Configurar API Key",
+            fg_color="#34495e", command=lambda: ModalesUI.mostrar_config_ia(self.app_root)
         )
-        self.btn_config_ia.grid(row=4, column=0, sticky="ew", padx=5, pady=(0, 10))
-        
-        self.entry_ia.bind("<Return>", self._on_enter_pressed)
-        self.entry_ia.bind("<Shift-Return>", self._on_shift_enter_pressed)
-        
-        self.app_root.after(200, lambda: self._agregar_burbuja_chat("¡Hola! Soy tu Analista IA. Configura tu API Key para empezar a trabajar con tus datos.", "ia"))
+        self.btn_config_ia.grid(row=4, column=0, sticky="ew", padx=5, pady=(5,10))
 
-        # ==========================================
-        # PANEL PRINCIPAL (IZQUIERDA) - TABLA DIRECTA
-        # ==========================================
+        # ========== PANEL PRINCIPAL (TABLA) ==========
         self.tree_frame = ctk.CTkFrame(self, fg_color="transparent")
-        self.tree_frame.pack(side="left", expand=True, fill="both", padx=(10, 5), pady=10)
+        self.tree_frame.pack(side="left", expand=True, fill="both", padx=(10,5), pady=10)
 
-        # Variables del informe (Caché)
+        # Variables del informe
         self.ventana_informe = None
         self.texto_informe_cache = (
-            "# 📊 RESUMEN EJECUTIVO\n"
-            "====================\n\n"
-            "**Fecha:** \n"
-            "**Dataset:** \n\n"
-            "### 1. Hallazgos Principales:\n"
-            "- \n\n"
-            "### 2. Análisis de Calidad de Datos:\n"
-            "- \n\n"
-            "### 3. Conclusiones y Próximos Pasos:\n"
-            "- \n"
+            "# 📊 RESUMEN EJECUTIVO\n====================\n\n"
+            "**Fecha:** \n**Dataset:** \n\n### 1. Hallazgos Principales:\n- \n\n"
+            "### 2. Análisis de Calidad de Datos:\n- \n\n### 3. Conclusiones:\n- \n"
         )
 
-        # --- PAGINACIÓN ---
+        # --- Paginación ---
         self.pagination_frame = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
-        self.pagination_frame.pack(side="bottom", fill="x", pady=(10, 15))
+        self.pagination_frame.pack(side="bottom", fill="x", pady=(10,15))
 
         self.btn_prev_page = ctk.CTkButton(self.pagination_frame, text="◀ Anterior", width=80, command=self.pagina_anterior, state="disabled")
         self.btn_prev_page.pack(side="left", padx=10)
 
-        ctk.CTkLabel(self.pagination_frame, text="Página").pack(side="left", padx=(10, 2))
-        
+        ctk.CTkLabel(self.pagination_frame, text="Página").pack(side="left", padx=(10,2))
         self.entry_pagina = ctk.CTkEntry(self.pagination_frame, width=50, justify="center", height=28)
         self.entry_pagina.pack(side="left", padx=2)
-        self.entry_pagina.bind("<Return>", self._saltar_a_pagina) 
-        
+        self.entry_pagina.bind("<Return>", self._saltar_a_pagina)
+
         self.lbl_total_paginas = ctk.CTkLabel(self.pagination_frame, text="de ?")
-        self.lbl_total_paginas.pack(side="left", padx=(2, 10))
+        self.lbl_total_paginas.pack(side="left", padx=(2,10))
 
         self.btn_next_page = ctk.CTkButton(self.pagination_frame, text="Siguiente ▶", width=80, command=self.pagina_siguiente, state="disabled")
         self.btn_next_page.pack(side="right", padx=10)
 
+        # Scrollbars
         self.tree_scroll_y = ctk.CTkScrollbar(self.tree_frame)
         self.tree_scroll_y.pack(side="right", fill="y")
         self.tree_scroll_x = ctk.CTkScrollbar(self.tree_frame, orientation="horizontal")
         self.tree_scroll_x.pack(side="bottom", fill="x")
 
-        # --- BUSCADOR ---
+        # --- Buscador de columnas ---
         self.frame_buscador_cols = ctk.CTkFrame(self.tree_frame, fg_color="transparent")
-        self.frame_buscador_cols.pack(fill="x", padx=10, pady=(10, 5))
-        
+        self.frame_buscador_cols.pack(fill="x", padx=10, pady=(10,5))
         ctk.CTkLabel(self.frame_buscador_cols, text="🔍 Buscar Columna:").pack(side="left", padx=(0,5))
         self.entry_buscar_col = ctk.CTkEntry(self.frame_buscador_cols, width=200, placeholder_text="Ej: ID_Cliente...", height=28)
         self.entry_buscar_col.pack(side="left")
         self.entry_buscar_col.bind("<KeyRelease>", self._filtrar_columnas_visibles)
 
-        # --- TABLA (TREEVIEW) ---
+        # --- Treeview ---
         self.tree = ttk.Treeview(self.tree_frame, yscrollcommand=self.tree_scroll_y.set, xscrollcommand=self.tree_scroll_x.set, selectmode="extended")
         self.tree.pack(expand=True, fill="both")
-        
         self.tree.bind("<ButtonPress-1>", self._on_tree_press)
         self.tree.bind("<ButtonRelease-1>", self._on_tree_release)
         self.tree.bind("<Double-1>", self.on_tree_double_click)
         self.tree_scroll_y.configure(command=self.tree.yview)
         self.tree_scroll_x.configure(command=self.tree.xview)
-        
-        # --- MENÚ CONTEXTUAL ---
+
+        # Menú contextual
         self.tree.bind("<Button-3>", self._mostrar_menu_contextual)
-        
-        self.menu_contextual = tk.Menu(self.tree_frame, tearoff=0, bg="#2b2b2b", fg="white", activebackground="#1f538d", font=("Arial", 10))
+        self.menu_contextual = tk.Menu(self.tree_frame, tearoff=0, bg="#2b2b2b", fg="white", activebackground="#1f538d", font=("Arial",10))
         self.menu_contextual.add_command(label="✏️ Editar Celda", command=self._menu_editar_celda)
         self.menu_contextual.add_command(label="📋 Copiar Valor", command=self._menu_copiar_valor)
         self.menu_contextual.add_separator()
@@ -201,254 +140,68 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.columna_seleccionada_menu = None
         self.fila_seleccionada_menu = None
 
-    # --- Funciones Internas de la Pestana ---
+    # -------------------- Macros --------------------
     def dispatch_macro(self, eleccion):
-        self.btn_macro.set("🤖 Macros") 
-        
-        if "Guardar" in eleccion: 
-            self.after(150, self.guardar_macro)
-        elif "Ejecutar" in eleccion: 
-            self.after(150, self.ejecutar_macro)
+        self.btn_macro.set("🤖 Macros")
+        if "Guardar" in eleccion:
+            self.after(150, lambda: self.macro_manager.guardar_macro(self.motor.macro_steps))
+        elif "Ejecutar" in eleccion:
+            self.after(150, self.macro_manager.ejecutar_macro)
 
+    # -------------------- Actualización de UI --------------------
     def refrescar_interfaz(self):
-        """Actualiza la tabla, el historial y los botones de la pestaña."""
         self.actualizar_vista_previa()
-        
-        # Actualizar cuadro de texto de historial
         self.history_text.configure(state="normal")
         self.history_text.delete("1.0", "end")
         for i, paso in enumerate(self.motor.historial_pasos, 1):
             self.history_text.insert("end", f"{i}. {paso}\n\n")
         self.history_text.configure(state="disabled")
-        
-        # Habilitar deshacer si hay algo más que el origen
         self.btn_deshacer.configure(state="normal" if len(self.motor.historial_pasos) > 1 else "disabled")
-        
-        # Refrescar la barra de estado inferior
         self.app_root.actualizar_lbl_dimensiones()
-        
-        nombre_base = self.motor.nombre_archivo if hasattr(self.motor, 'nombre_archivo') else "Sin Título"
-        if self.motor.hay_cambios:
-            nuevo_titulo = f"{nombre_base} *"
-        else:
-            nuevo_titulo = nombre_base
-            
-        # Llamamos a un método de la app principal para renombrar el tab
+        nombre_base = getattr(self.motor, 'nombre_archivo', "Sin Título")
+        nuevo_titulo = f"{nombre_base} *" if self.motor.hay_cambios else nombre_base
         self.app_root.actualizar_titulo_pestana(self, nuevo_titulo)
 
-    def _mostrar_menu_contextual(self, event):
-        """Detecta dónde hizo clic el usuario y despliega el menú contextual flotante."""
-        if self.motor.df is None or self.motor.df.empty: return
-        
-        region = self.tree.identify_region(event.x, event.y)
-        if region in ("cell", "heading", "tree"):
-            col_id = self.tree.identify_column(event.x)
-            row_id = self.tree.identify_row(event.y)
-            
-            if col_id == '#1': return # Protegemos la columna estática '#'
-            if not col_id: return
-            
-            col_index_visual = int(col_id.replace('#', '')) - 1
-            if col_index_visual >= len(self.tree["column"]): return
-                
-            self.columna_seleccionada_menu = self.tree["column"][col_index_visual]
-            self.fila_seleccionada_menu = row_id # Guardamos la fila exacta
-            
-            # Efecto visual: Seleccionamos la fila donde se hizo clic derecho
-            if row_id:
-                self.tree.selection_set(row_id)
-                self.tree.focus(row_id)
-                
-            self.menu_contextual.tk_popup(event.x_root, event.y_root)
-            
-    
-    def abrir_modulo_informe(self):
-        """Abre el informe ejecutivo en una ventana flotante opcional e independiente."""
-        # Si la ventana ya existe y está abierta, la traemos al frente
-        if self.ventana_informe and self.ventana_informe.winfo_exists():
-            self.ventana_informe.lift()
-            self.ventana_informe.focus()
-            return
-
-        # Creamos la ventana compañera flotante
-        self.ventana_informe = ctk.CTkToplevel(self)
-        self.ventana_informe.title("📝 Editor de Informe Ejecutivo - QueryLibre")
-        self.ventana_informe.geometry("650x500")
-        self.ventana_informe.transient(self.app_root)
-        
-        if hasattr(self.app_root, 'fijar_icono'):
-            self.app_root.fijar_icono(self.ventana_informe)
-
-        # Barra de controles de la ventana flotante
-        frame_ctrls = ctk.CTkFrame(self.ventana_informe, fg_color="transparent")
-        frame_ctrls.pack(fill="x", padx=15, pady=(15, 0))
-        
-        ctk.CTkLabel(frame_ctrls, text="Redacta tus hallazgos (Soporta formato Markdown)", text_color="gray").pack(side="left")
-        ctk.CTkButton(frame_ctrls, text="💾 Exportar Documento", width=140, fg_color="#27ae60", hover_color="#2ecc71", command=self.exportar_informe).pack(side="right", padx=5)
-        
-        # El lienzo de texto enriquecido
-        self.editor_informe = ctk.CTkTextbox(
-            self.ventana_informe, 
-            wrap="word", 
-            font=ctk.CTkFont(family="Helvetica", size=14),
-            fg_color="#1e1e1e", text_color="#e0e0e0"
-        )
-        self.editor_informe.pack(fill="both", expand=True, padx=15, pady=15)
-        
-        # Inyectamos el contenido guardado en el motor (o la plantilla inicial)
-        contenido_actual = self.motor.informe_ejecutivo if hasattr(self.motor, 'informe_ejecutivo') and self.motor.informe_ejecutivo else self.texto_informe_cache
-        self.editor_informe.insert("1.0", contenido_actual)
-
-        # Evento: Guardar automáticamente en el motor de datos al cerrar la ventana con la 'X'
-        def al_cerrar_ventana():
-            self.motor.informe_ejecutivo = self.editor_informe.get("1.0", "end-1c")
-            self.texto_informe_cache = self.motor.informe_ejecutivo # Respaldo local
-            self.ventana_informe.destroy()
-
-        self.ventana_informe.protocol("WM_DELETE_WINDOW", al_cerrar_ventana)
-
-    def exportar_informe(self):
-        """Exporta el contenido del lienzo flotante a un archivo Markdown o TXT."""
-        if not hasattr(self, 'editor_informe') or not self.editor_informe.winfo_exists(): return
-        
-        texto = self.editor_informe.get("1.0", "end-1c").strip()
-        if not texto:
-            messagebox.showwarning("Informe Vacío", "No hay nada escrito para exportar.", parent=self.ventana_informe)
-            return
-            
-        archivo_destino = filedialog.asksaveasfilename(
-            defaultextension=".md",
-            filetypes=[("Archivo Markdown", "*.md"), ("Archivo de Texto", "*.txt")],
-            title="Guardar Informe Analítico",
-            parent=self.ventana_informe
-        )
-        
-        if archivo_destino:
-            try:
-                with open(archivo_destino, "w", encoding="utf-8") as f:
-                    f.write(texto)
-                messagebox.showinfo("Éxito", "El informe se ha exportado correctamente.", parent=self.ventana_informe)
-            except Exception as e:
-                messagebox.showerror("Error", f"No se pudo guardar el archivo:\n{e}", parent=self.ventana_informe)
-            
-    # ==========================================
-    # FUNCIONES DEL MENÚ CONTEXTUAL
-    # ==========================================
-    def _menu_editar_celda(self):
-        if not self.fila_seleccionada_menu or not self.columna_seleccionada_menu: return
-        
-        valores = self.tree.item(self.fila_seleccionada_menu, "values")
-        indice_real = int(valores[0]) - 1
-        idx_col_visual = list(self.tree["columns"]).index(self.columna_seleccionada_menu)
-        valor_actual = valores[idx_col_visual + 1]
-
-        dialog = ctk.CTkInputDialog(text=f"Nuevo valor para {self.columna_seleccionada_menu}:", title="✏️ Editar Celda")
-        nuevo_valor = dialog.get_input()
-        
-        if nuevo_valor is not None and str(nuevo_valor) != str(valor_actual):
-            self.motor.editar_celda(indice_real, self.columna_seleccionada_menu, nuevo_valor)
-            self.refrescar_interfaz()
-
-    def _menu_copiar_valor(self):
-        if not self.fila_seleccionada_menu or not self.columna_seleccionada_menu: return
-        
-        valores = self.tree.item(self.fila_seleccionada_menu, "values")
-        idx_col_visual = list(self.tree["columns"]).index(self.columna_seleccionada_menu)
-        valor = str(valores[idx_col_visual + 1])
-        
-        self.app_root.clipboard_clear()
-        self.app_root.clipboard_append(valor)
-        messagebox.showinfo("Copiado", f"Valor copiado al portapapeles:\n\n{valor}")
-
-    def _menu_renombrar_columna(self):
-        if not self.columna_seleccionada_menu: return
-        
-        dialog = ctk.CTkInputDialog(text="Ingresa el nuevo nombre:", title="🏷️ Renombrar Columna")
-        nuevo_nombre = dialog.get_input()
-        
-        if nuevo_nombre and nuevo_nombre != self.columna_seleccionada_menu:
-            self.motor.renombrar_columna(self.columna_seleccionada_menu, nuevo_nombre)
-            self.refrescar_interfaz()
-
-    def _menu_eliminar_columna(self):
-        if not self.columna_seleccionada_menu: return
-        
-        if messagebox.askyesno("Eliminar Columna", f"¿Estás seguro de eliminar la columna '{self.columna_seleccionada_menu}'?"):
-            self.motor.eliminar_columna(self.columna_seleccionada_menu)
-            self.refrescar_interfaz()
-
-    def _menu_eliminar_fila(self):
-        if not self.fila_seleccionada_menu: return
-        
-        valores = self.tree.item(self.fila_seleccionada_menu, "values")
-        indice_real = int(valores[0]) - 1
-        
-        if messagebox.askyesno("Eliminar Fila", f"¿Seguro que deseas eliminar la fila original número {indice_real + 1}?"):
-            # Acción directa en Pandas (con guardado de historial para poder deshacer)
-            self.motor.df_history.append(self.motor.df.copy())
-            self.motor.df = self.motor.df.drop(indice_real).reset_index(drop=True)
-            self.motor.registrar_paso(f"🗑️ Fila {indice_real + 1} eliminada manualmente")
-            self.refrescar_interfaz()
-
-    def _aplicar_formato_texto(self, operacion):
-        """Ejecuta la transformación de texto llamando al motor en un hilo secundario."""
-        if not self.columna_seleccionada_menu: return
-        try:
-            self.app_root.ejecutar_tarea_pesada(self.motor.transformar_texto, self.columna_seleccionada_menu, operacion)
-        except Exception as e:
-            messagebox.showerror("Error", f"No se pudo aplicar el formato:\n{e}")
-
     def actualizar_vista_previa(self):
-        # Limpiamos cualquier selección visual antes de recargar
         self.tree.selection_remove(self.tree.selection())
         self.tree.delete(*self.tree.get_children())
-        
         if self.motor.df is not None and not self.motor.df.empty:
             total_filas = len(self.motor.df)
             total_paginas = math.ceil(total_filas / self.filas_por_pagina)
-            if self.pagina_actual > total_paginas: self.pagina_actual = max(1, total_paginas)
-            
+            if self.pagina_actual > total_paginas:
+                self.pagina_actual = max(1, total_paginas)
             inicio = (self.pagina_actual - 1) * self.filas_por_pagina
             fin = inicio + self.filas_por_pagina
-            # --- NUEVO CÓDIGO DE RENDERIZADO SEGURO ---
-            # 1. Extraemos la porción de datos que vamos a mostrar
             df_pagina = self.motor.df.iloc[inicio:fin].copy()
-        
-            # 2. Convertimos temporalmente las columnas categóricas a texto normal
-            # para que Pandas nos permita inyectar espacios vacíos ("") en la UI
-            columnas_categoricas = df_pagina.select_dtypes(['category']).columns
-            for col in columnas_categoricas:
+            for col in df_pagina.select_dtypes(['category']).columns:
                 df_pagina[col] = df_pagina[col].astype('object')
-            
-            # 3. Ahora sí, reemplazamos los nulos por texto vacío para Tkinter
             df_pagina = df_pagina.fillna("")
-            # ------------------------------------------
-
             columnas_visuales = ["#"] + list(df_pagina.columns)
             self.tree["column"] = columnas_visuales
             self.tree["show"] = "headings"
             self.tree.heading("#", text="#")
             self.tree.column("#", width=40, anchor="center", stretch=False)
-
             for col in df_pagina.columns:
-                # Al hacer clic en la cabecera, llama a la función de ordenar
                 self.tree.heading(col, text=col, command=lambda c=col: self._ordenar_columna(c))
                 self.tree.column(col, width=120, anchor="center")
-
-            df_pagina_filled = df_pagina.fillna("")
-            for i, (index, row) in enumerate(df_pagina_filled.iterrows(), start=inicio + 1):
+            for i, (_, row) in enumerate(df_pagina.iterrows(), start=inicio + 1):
                 self.tree.insert("", "end", values=[i] + list(row))
-
             self.entry_pagina.delete(0, 'end')
             self.entry_pagina.insert(0, str(self.pagina_actual))
             self.lbl_total_paginas.configure(text=f"de {total_paginas}")
-
             self.btn_prev_page.configure(state="normal" if self.pagina_actual > 1 else "disabled")
             self.btn_next_page.configure(state="normal" if self.pagina_actual < total_paginas else "disabled")
         else:
-            self.lbl_pagina.configure(text="Página 0 de 0")
+            # Si no hay datos, mostramos un mensaje en el treeview (opcional)
+            self.tree["column"] = ["#"]
+            self.tree["show"] = "headings"
+            self.tree.heading("#", text="Sin datos")
+            self.tree.insert("", "end", values=["Carga un dataset..."])
             self.btn_prev_page.configure(state="disabled")
             self.btn_next_page.configure(state="disabled")
+            self.entry_pagina.delete(0, 'end')
+            self.entry_pagina.insert(0, "1")
+            self.lbl_total_paginas.configure(text="de 0")
 
     def pagina_anterior(self):
         if self.pagina_actual > 1:
@@ -459,6 +212,23 @@ class PestanaTrabajo(ctk.CTkFrame):
         self.pagina_actual += 1
         self.actualizar_vista_previa()
 
+    def _saltar_a_pagina(self, event=None):
+        if self.motor.df is None:
+            return
+        try:
+            pag = int(self.entry_pagina.get())
+            total = math.ceil(len(self.motor.df) / self.filas_por_pagina)
+            if 1 <= pag <= total:
+                self.pagina_actual = pag
+                self.actualizar_vista_previa()
+            else:
+                messagebox.showwarning("Página Inválida", f"Ingresa un número entre 1 y {total}.")
+                self.entry_pagina.delete(0, 'end')
+                self.entry_pagina.insert(0, str(self.pagina_actual))
+        except ValueError:
+            pass
+
+    # -------------------- Deshacer/Rehacer --------------------
     def deshacer_paso(self, event=None):
         if self.motor.deshacer():
             self.refrescar_interfaz()
@@ -467,470 +237,221 @@ class PestanaTrabajo(ctk.CTkFrame):
         if self.motor.rehacer():
             self.refrescar_interfaz()
 
+    # -------------------- Edición y menú contextual --------------------
     def editar_celda(self, event):
-        if self.motor.df is None or self.motor.df.empty: return
+        if self.motor.df is None:
+            return
         region = self.tree.identify_region(event.x, event.y)
-        if region != "cell": return
+        if region != "cell":
+            return
         col_id = self.tree.identify_column(event.x)
         row_id = self.tree.identify_row(event.y)
-        if not col_id or not row_id: return
-        
-        col_index_visual = int(col_id.replace('#', '')) - 1
-        if col_index_visual == 0: return
-        
-        col_name = self.tree["column"][col_index_visual]
-        valores_fila = self.tree.item(row_id, "values")
-        indice_real = int(valores_fila[0]) - 1
-
-        x, y, width, height = self.tree.bbox(row_id, col_id)
+        if not col_id or not row_id:
+            return
+        col_index = int(col_id.replace('#', '')) - 1
+        if col_index == 0:
+            return  # columna índice
+        col_name = self.tree["column"][col_index]
+        valores = self.tree.item(row_id, "values")
+        indice_real = int(valores[0]) - 1
+        x, y, w, h = self.tree.bbox(row_id, col_id)
         valor_actual = self.tree.set(row_id, col_id)
-
-        entry = ttk.Entry(self.tree, font=("Arial", 10))
-        entry.place(x=x, y=y, width=width, height=height)
+        entry = ttk.Entry(self.tree, font=("Arial",10))
+        entry.place(x=x, y=y, width=w, height=h)
         entry.insert(0, valor_actual)
         entry.focus()
         entry.select_range(0, 'end')
-
-        def guardar_edicion(e=None):
-            nuevo_valor = entry.get()
-            if nuevo_valor != str(valor_actual):
-                self.motor.editar_celda(indice_real, col_name, nuevo_valor)
+        def guardar(e=None):
+            nuevo = entry.get()
+            if nuevo != str(valor_actual):
+                self.motor.editar_celda(indice_real, col_name, nuevo)
                 self.refrescar_interfaz()
             entry.destroy()
-
-        entry.bind("<Return>", guardar_edicion)
-        entry.bind("<FocusOut>", guardar_edicion)
+        entry.bind("<Return>", guardar)
+        entry.bind("<FocusOut>", guardar)
         entry.bind("<Escape>", lambda e: entry.destroy())
 
-    def guardar_macro(self):
-        # NUEVO: Aviso visual si no hay nada que guardar
-        if not self.motor.macro_steps: 
-            messagebox.showinfo("Macros", "No hay acciones registradas para guardar.\nRealiza alguna transformación (ej. eliminar nulos) primero.")
-            return 
-            
-        carpeta_docs = os.path.join(os.path.expanduser('~'), 'Documents')
-        # Guardamos dentro de la carpeta madre de QueryLibre
-        carpeta_macros = os.path.join(carpeta_docs, 'QueryLibre', 'Macros') 
-        if not os.path.exists(carpeta_macros):
-            try: os.makedirs(carpeta_macros)
-            except: carpeta_macros = os.path.expanduser('~') 
-            
-        file_path = filedialog.asksaveasfilename(
-            initialdir=carpeta_macros, defaultextension=".json", 
-            filetypes=[("QueryLibre Macro", "*.json")], title="Guardar Macro"
-        )
-        if file_path:
-            import json
-            try:
-                with open(file_path, 'w', encoding='utf-8') as f:
-                    json.dump(self.motor.macro_steps, f, indent=4)
-                self.motor.registrar_paso(f"🤖 Macro Guardada: {os.path.basename(file_path)}")
-                self.refrescar_interfaz()
-            except Exception as e:
-                LOGGER.error(f"Error al guardar macro: {e}")
-
-    def _is_safe_value(self, value):
-        """Valida que el valor sea de tipo seguro para evitar inyección."""
-        if isinstance(value, (str, int, float, bool)):
-            return True
-        elif isinstance(value, list):
-            return all(self._is_safe_value(item) for item in value)
-        elif isinstance(value, dict):
-            return all(isinstance(k, str) and self._is_safe_value(v) for k, v in value.items())
-        return False
-
-    def _apply_macro_steps(self, pasos):
-        backup_df = self.motor.df.copy(deep=True)
-        backup_history = list(self.motor.df_history)
-        backup_steps = list(self.motor.macro_steps)
-        backup_historial_pasos = list(self.motor.historial_pasos)
-
-        errores_macro = []
-
-        try:
-            for paso in pasos:
-                nombre_funcion = paso.get("action")
-                parametros = paso.get("params", {})
-
-                if nombre_funcion not in self.ALLOWED_MACRO_ACTIONS:
-                    LOGGER.error(f"Macro bloqueada por seguridad: acción no permitida {nombre_funcion}")
-                    continue
-
-                if not isinstance(parametros, dict):
-                    LOGGER.error(f"Macro bloqueada por seguridad: params inválidos para acción {nombre_funcion}")
-                    continue
-
-                # Validación de parámetros maliciosos (claves peligrosas)
-                if any(
-                    not isinstance(key, str) or key.startswith("__") or key in self.DISALLOWED_MACRO_PARAM_KEYS
-                    for key in parametros.keys()
-                ):
-                    LOGGER.error(f"Macro bloqueada por seguridad: parámetros maliciosos en acción {nombre_funcion}")
-                    continue
-
-                # Validación de valores inseguros (inyección de objetos)
-                if not all(self._is_safe_value(v) for v in parametros.values()):
-                    LOGGER.error(f"Macro bloqueada por seguridad: valores de parámetros no seguros en acción {nombre_funcion}")
-                    continue
-
-                # --- NUEVA VALIDACIÓN DE RUTAS MALICIOSAS ---
-                ruta_peligrosa = False
-                for key, value in parametros.items():
-                    if isinstance(value, str):
-                        if any(bad in value for bad in ["..", ":", "/", "\\", "C:", "D:"]):
-                            LOGGER.error(f"Macro bloqueada: parámetro '{key}' contiene ruta potencialmente maliciosa: {value}")
-                            ruta_peligrosa = True
-                            break
-                if ruta_peligrosa:
-                    continue
-
-                if hasattr(self.motor, nombre_funcion):
-                    metodo = getattr(self.motor, nombre_funcion)
-
-                    try:
-                        metodo(**parametros)
-                    except Exception as e:
-                        LOGGER.warning(f"El paso '{nombre_funcion}' falló y fue omitido: {e}")
-                        errores_macro.append(f"Paso '{nombre_funcion}' omitido: {e}")
-                        continue
-
-        except Exception as e:
-            # Error catastrófico: restaurar todo el estado
-            self.motor.df = backup_df
-            self.motor.df_history = backup_history
-            self.motor.macro_steps = backup_steps
-            self.motor.historial_pasos = backup_historial_pasos
-            raise e
-
-        if errores_macro:
-            msg = "La macro se aplicó exitosamente, pero algunos pasos no eran compatibles con este archivo y fueron omitidos:\n\n• " + "\n• ".join(errores_macro[:5])
-            if len(errores_macro) > 5:
-                msg += f"\n... y {len(errores_macro) - 5} errores más."
-            messagebox.showwarning("Macro finalizada con omisiones", msg)
-
-    def ejecutar_macro(self):
-        # NUEVO: Aviso visual si intentan ejecutar una macro en el aire
+    def _mostrar_menu_contextual(self, event):
         if self.motor.df is None:
-            messagebox.showinfo("Macros", "Por favor, carga un dataset primero para poder aplicarle una macro.")
             return
-
-        carpeta_docs = os.path.join(os.path.expanduser('~'), 'Documents')
-        carpeta_macros = os.path.join(carpeta_docs, 'QueryLibre', 'Macros') 
-        if not os.path.exists(carpeta_macros):
-            carpeta_macros = os.path.expanduser('~')
-
-        file_path = filedialog.askopenfilename(
-            initialdir=carpeta_macros, title="Seleccionar Macro",
-            filetypes=[("QueryLibre Macro", "*.json")]
-        )
-        if file_path:
-            import json
-            try:
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    pasos = json.load(f)
-
-                self._apply_macro_steps(pasos)
-                self.refrescar_interfaz()
-            except Exception as e:
-                LOGGER.error(f"Error al ejecutar macro: {e}")
-                messagebox.showerror("Error al ejecutar macro", f"Macro abortada y estado restaurado.\n\n{e}")
-                self.refrescar_interfaz()
-                
-    def _filtrar_columnas_visibles(self, event=None):
-        """Oculta las columnas del Treeview que no coinciden con la búsqueda."""
-        if self.motor.df is None: return
-        busqueda = self.entry_buscar_col.get().lower()
-        
-        if busqueda.strip() == "":
-            self.tree["displaycolumns"] = "#all" # Mostrar todas
-        else:
-            todas_las_cols = list(self.motor.df.columns)
-            cols_filtradas = [col for col in todas_las_cols if busqueda in str(col).lower()]
-            # --- CORRECCIÓN: Agregar la columna "#" estática al inicio de la lista ---
-            self.tree["displaycolumns"] = ["#"] + cols_filtradas
-    
-    def _saltar_a_pagina(self, event=None):
-        """Salta a la página ingresada por el usuario al presionar Enter."""
-        if self.motor.df is None: return
-        try:
-            pag_deseada = int(self.entry_pagina.get())
-            total_pags = math.ceil(len(self.motor.df) / self.filas_por_pagina)
-            
-            if 1 <= pag_deseada <= total_pags:
-                self.pagina_actual = pag_deseada
-                self.actualizar_vista_previa() # Llama a tu función que refresca el Treeview
-            else:
-                messagebox.showwarning("Página Inválida", f"Por favor, ingresa un número entre 1 y {total_pags}.")
-                self.entry_pagina.delete(0, 'end')
-                self.entry_pagina.insert(0, str(self.pagina_actual))
-        except ValueError:
-            pass # Si escribe letras, lo ignoramos
-    
-    def enviar_mensaje_ia(self, event=None):
-        """Envía la pregunta del usuario y procesa si la IA sugiere una Macro ejecutable."""
-        pregunta = self.entry_ia.get("1.0", "end-1c").strip()
-        if not pregunta: return
-        
-        # 1. Leemos estrictamente desde la memoria RAM de sesión
-        api_key = getattr(self.app_root, 'api_key_session', None)
-        
-        if not api_key:
-            messagebox.showwarning("Sin Conexión", "Por favor, configura tu API Key primero usando el botón ⚙️.")
+        region = self.tree.identify_region(event.x, event.y)
+        if region not in ("cell", "heading", "tree"):
             return
-        
-        for widget in self.frame_acciones_ia.winfo_children():
-            widget.destroy()
-        
-        # 2. Actualizar Interfaz (Imprimir tu burbuja)
-        self._agregar_burbuja_chat(pregunta, "usuario")
-        
-        # Borramos tu texto escrito y ponemos el botón "pensando"
-        self.entry_ia.yview_moveto(0.0) 
-        self.btn_enviar_ia.configure(state="disabled", text="⏳")
+        col_id = self.tree.identify_column(event.x)
+        row_id = self.tree.identify_row(event.y)
+        if col_id == '#1':
+            return
+        if not col_id:
+            return
+        col_index = int(col_id.replace('#', '')) - 1
+        if col_index >= len(self.tree["column"]):
+            return
+        self.columna_seleccionada_menu = self.tree["column"][col_index]
+        self.fila_seleccionada_menu = row_id
+        if row_id:
+            self.tree.selection_set(row_id)
+            self.tree.focus(row_id)
+        self.menu_contextual.tk_popup(event.x_root, event.y_root)
 
-        # Limpiar botones de acciones anteriores
-        for widget in self.frame_acciones_ia.winfo_children():
-            widget.destroy()
+    def _menu_editar_celda(self):
+        if not self.fila_seleccionada_menu or not self.columna_seleccionada_menu:
+            return
+        valores = self.tree.item(self.fila_seleccionada_menu, "values")
+        indice_real = int(valores[0]) - 1
+        idx_col = list(self.tree["columns"]).index(self.columna_seleccionada_menu)
+        valor_actual = valores[idx_col + 1]
+        dialog = ctk.CTkInputDialog(text=f"Nuevo valor para {self.columna_seleccionada_menu}:", title="✏️ Editar Celda")
+        nuevo = dialog.get_input()
+        if nuevo is not None and str(nuevo) != str(valor_actual):
+            self.motor.editar_celda(indice_real, self.columna_seleccionada_menu, nuevo)
+            self.refrescar_interfaz()
 
-        import threading
-        import re
-        import json
+    def _menu_copiar_valor(self):
+        if not self.fila_seleccionada_menu or not self.columna_seleccionada_menu:
+            return
+        valores = self.tree.item(self.fila_seleccionada_menu, "values")
+        idx_col = list(self.tree["columns"]).index(self.columna_seleccionada_menu)
+        valor = str(valores[idx_col + 1])
+        self.app_root.clipboard_clear()
+        self.app_root.clipboard_append(valor)
+        messagebox.showinfo("Copiado", f"Valor copiado:\n{valor}")
 
-        def tarea_ia():
-                try:
-                    # 1. Importamos el NUEVO SDK oficial
-                    from google import genai
-                    client = genai.Client(api_key=api_key)
-                    
-                    # --- NUEVA OPTIMIZACIÓN DE PAYLOAD (Prevención Error 429) ---
-                    esquema_columnas = self.motor.df.dtypes.to_string()
-                    total_filas = len(self.motor.df)
-                    # Solo enviamos 5 filas en formato CSV para ahorrar miles de tokens
-                    muestra_ligera = self.motor.df.head(5).to_csv(index=False)
-                    
-                    contexto_reducido = (
-                        f"ESTRUCTURA TÉCNICA DEL DATASET:\n"
-                        f"- Total de registros: {total_filas}\n\n"
-                        f"- Esquema (Columnas y Tipos de Dato Pandas):\n{esquema_columnas}\n\n"
-                        f"MUESTRA EXACTA (Primeras 5 filas):\n{muestra_ligera}\n"
-                    )
-                    # -------------------------------------------------------------
-                    
-                    marcador = "`" * 3
-                    
-                    prompt_completo = f"""Eres el 'Analista IA', un experto en ciencia de datos en la app QueryLibre.
-Responde de forma concisa y técnica. 
-Aquí tienes el resumen del dataset actual del usuario:
-{contexto_reducido}
+    def _menu_renombrar_columna(self):
+        if not self.columna_seleccionada_menu:
+            return
+        dialog = ctk.CTkInputDialog(text="Ingresa el nuevo nombre:", title="Renombrar Columna")
+        nuevo = dialog.get_input()
+        if nuevo and nuevo != self.columna_seleccionada_menu:
+            self.motor.renombrar_columna(self.columna_seleccionada_menu, nuevo)
+            self.refrescar_interfaz()
 
-REGLA CRÍTICA DE AUTOMATIZACIÓN:
-Si el usuario te pide realizar una acción directa sobre los datos (limpiar, renombrar, eliminar), DEBES responder incluyendo un bloque de código JSON con este formato exacto:
-{marcador}json
-[
-    {{"action": "nombre_de_la_accion", "params": {{"param1": "valor"}}}}
-]
-{marcador}
-Acciones permitidas y sus parámetros exactos: 
-- eliminar_duplicados (sin params)
-- limpiar_nulos (params: "modo": "all" o "any")
-- eliminar_columna (params: "col_name": "nombre")
-- renombrar_columna (params: "old_name": "viejo", "new_name": "nuevo")
+    def _menu_eliminar_columna(self):
+        if not self.columna_seleccionada_menu:
+            return
+        if messagebox.askyesno("Eliminar Columna", f"¿Eliminar '{self.columna_seleccionada_menu}'?"):
+            self.motor.eliminar_columna(self.columna_seleccionada_menu)
+            self.refrescar_interfaz()
 
-Pregunta del usuario: {pregunta}"""
-                    
-                    # 2. Llamada actualizada con el modelo 1.5 Flash
-                    proveedor = getattr(self.app_root, 'api_provider_session', 'Google Gemini')
-                    
-                    if proveedor == "Groq (Llama 3)":
-                        from groq import Groq
-                        cliente_groq = Groq(api_key=api_key)
-                        chat_completion = cliente_groq.chat.completions.create(
-                            messages=[
-                                {"role": "system", "content": "Eres un asistente de datos experto. Responde en español."},
-                                {"role": "user", "content": prompt_completo}
-                            ],
-                            model="llama-3.1-8b-instant", # Modelo gratuito y ultra rápido
-                            temperature=0.2,
-                        )
-                        texto_ia = chat_completion.choices[0].message.content
-                        
-                    else: # Por defecto: Google Gemini
-                        from google import genai
-                        client = genai.Client(api_key=api_key)
-                        respuesta = client.models.generate_content(
-                            model='gemini-2.0-flash', 
-                            contents=prompt_completo
-                        )
-                        texto_ia = respuesta.text
-                    
-                    macro_sugerida = None
-                    patron_regex = rf'{marcador}json\s*(.*?)\s*{marcador}'
-                    match_json = re.search(patron_regex, texto_ia, re.DOTALL)
-                    
-                    if match_json:
-                        try:
-                            parsed_json = json.loads(match_json.group(1))
-                            # NUEVO: Validación estricta anti-alucinaciones
-                            if isinstance(parsed_json, list) and len(parsed_json) > 0 and "action" in parsed_json[0]:
-                                macro_sugerida = parsed_json
-                                texto_ia = re.sub(patron_regex, '\n*(✨ He generado una acción automatizada para ti)*', texto_ia, flags=re.DOTALL)
-                        except: pass
-                        
-                except Exception as e:
-                    import traceback
-                    error_real = traceback.format_exc()
-                    LOGGER.error(f"Error CRÍTICO en el chat de IA:\n{error_real}")
-                    
-                    # Le pasamos un mensaje más amigable a la UI, pero guardamos el traceback en el log
-                    texto_ia = f"❌ Ocurrió un error al procesar la solicitud. Revisa tu conexión o la API Key.\nDetalle técnico: {str(e)}"
-                    macro_sugerida = None
+    def _menu_eliminar_fila(self):
+        if not self.fila_seleccionada_menu:
+            return
+        valores = self.tree.item(self.fila_seleccionada_menu, "values")
+        indice_real = int(valores[0]) - 1
+        if messagebox.askyesno("Eliminar Fila", f"¿Eliminar fila {indice_real+1}?"):
+            self.motor.df_history.append(self.motor.df.copy())
+            self.motor.df = self.motor.df.drop(indice_real).reset_index(drop=True)
+            self.motor.registrar_paso(f"🗑️ Fila {indice_real+1} eliminada")
+            self.refrescar_interfaz()
 
-                def actualizar_ui():
-                    self._agregar_burbuja_chat(texto_ia, "ia")
-                    self.btn_enviar_ia.configure(state="normal", text="➤")
-
-                    if macro_sugerida:
-                        def aplicar_magia():
-                            self._apply_macro_steps(macro_sugerida)
-                            self.refrescar_interfaz()
-                            for widget in self.frame_acciones_ia.winfo_children(): widget.destroy()
-                            messagebox.showinfo("IA", "¡Acción ejecutada con éxito!")
-
-                        btn_accion = ctk.CTkButton(
-                            self.frame_acciones_ia, 
-                            text="✨ Aplicar sugerencia de la IA", 
-                            fg_color="#2980b9", hover_color="#3498db",
-                            command=aplicar_magia
-                        )
-                        btn_accion.pack(fill="x", pady=5)
-
-                self.app_root.after(0, actualizar_ui)
-                
-        threading.Thread(target=tarea_ia, daemon=True).start()
-            
+    # -------------------- Ordenamiento y drag&drop --------------------
     def _ordenar_columna(self, col_name):
-        """Ordena el DataFrame completo por la columna seleccionada, alternando entre A-Z y Z-A."""
-        if self.motor.df is None or col_name not in self.motor.df.columns: return
-
-        # Si ya estábamos ordenando por esta columna, invertimos el orden
+        if self.motor.df is None or col_name not in self.motor.df.columns:
+            return
         ascendente = True
         if hasattr(self, '_ultima_columna_ordenada') and self._ultima_columna_ordenada == col_name:
             ascendente = not getattr(self, '_ultimo_orden_ascendente', True)
-
         try:
-            self.app_root.configurar_estado_botones("disabled") # Congela la UI un segundito
-            
-            # Ordenamos el DataFrame de verdad
+            self.app_root.configurar_estado_botones("disabled")
             self.motor.df = self.motor.df.sort_values(by=col_name, ascending=ascendente, na_position='last')
-            
-            # Guardamos el estado para el próximo clic
             self._ultima_columna_ordenada = col_name
             self._ultimo_orden_ascendente = ascendente
-            
-            # Refrescamos la vista
             self.pagina_actual = 1
             self.refrescar_interfaz()
         except Exception as e:
-            messagebox.showerror("Error", f"No se pudo ordenar la columna:\n{e}")
+            messagebox.showerror("Error", f"No se pudo ordenar:\n{e}")
         finally:
             self.app_root.configurar_estado_botones("normal")
-            
+
     def _on_tree_press(self, event):
-        """Detecta si el usuario hizo clic en el título para empezar a arrastrar."""
-        region = self.tree.identify_region(event.x, event.y)
-        if region == "heading":
-            # Guardamos qué columna agarró
+        if self.tree.identify_region(event.x, event.y) == "heading":
             self._drag_col = self.tree.identify_column(event.x)
         else:
             self._drag_col = None
 
     def _on_tree_release(self, event):
-        """Decide si fue un clic simple (Ordenar) o un arrastre (Mover Columna)."""
         if getattr(self, '_drag_col', None) is None:
             return
-            
-        region = self.tree.identify_region(event.x, event.y)
-        if region == "heading":
-            target_col = self.tree.identify_column(event.x)
-            
-            # 1. Si soltó en una columna diferente -> ARRASTRAR Y SOLTAR
-            if target_col and target_col != self._drag_col:
+        if self.tree.identify_region(event.x, event.y) == "heading":
+            target = self.tree.identify_column(event.x)
+            if target and target != self._drag_col:
                 cols = list(self.tree["displaycolumns"])
                 if not cols or cols[0] == "#all":
                     cols = list(self.tree["columns"])
-                
-                # Reordenamos visualmente las columnas
                 try:
-                    idx_src = cols.index(self._drag_col)
-                    idx_dst = cols.index(target_col)
-                    cols.insert(idx_dst, cols.pop(idx_src))
+                    src = cols.index(self._drag_col)
+                    dst = cols.index(target)
+                    cols.insert(dst, cols.pop(src))
                     self.tree["displaycolumns"] = cols
                 except ValueError:
-                    pass # Evita errores si hay desincronización
-                    
-            # 2. Si soltó en la misma columna -> CLIC SIMPLE (ORDENAR)
+                    pass
             else:
                 col_name = self.tree.heading(self._drag_col)["text"]
                 self._ordenar_columna(col_name)
-        
         self._drag_col = None
 
     def on_tree_double_click(self, event):
-        """Enrutador de doble clic: Auto-ajusta (separador) o Edita (celda)."""
         region = self.tree.identify_region(event.x, event.y)
-        
-        # 1. Si hace doble clic en la línea divisoria (Auto-Ajuste Estilo Excel)
         if region == "separator":
             col_id = self.tree.identify_column(event.x)
             col_name = self.tree.heading(col_id)["text"]
-            
             if self.motor.df is not None and col_name in self.motor.df.columns:
                 muestra = self.motor.df[col_name].head(200).astype(str)
-                max_len_datos = muestra.map(len).max() if not muestra.empty else 0
-                max_len = max(len(col_name), max_len_datos)
-                
-                nuevo_ancho = min((max_len * 9) + 20, 500) 
+                max_len = muestra.map(len).max() if not muestra.empty else 0
+                max_len = max(len(col_name), max_len)
+                nuevo_ancho = min((max_len * 9) + 20, 500)
                 self.tree.column(col_id, width=int(nuevo_ancho))
-            
-            return "break" # Detiene el evento aquí para que no interfiera más
-            
-        # 2. Si hace doble clic adentro de una celda (Editar Celda)
-        elif region == "cell" or region == "tree":
-            # Redirigimos el tráfico a tu función original de edición
+            return "break"
+        elif region in ("cell", "tree"):
             self.editar_celda(event)
-        
-    def _agregar_burbuja_chat(self, texto, emisor="usuario"):
-        """Dibuja una burbuja de chat dinámica en el historial."""
-        frame_burbuja = ctk.CTkFrame(self.chat_scroll, fg_color="transparent")
-        frame_burbuja.pack(fill="x", pady=5, padx=5)
-        
-        if emisor == "usuario":
-            bg_color = "#1f538d" # Azul sutil
-            alineacion = "e" # Derecha
-            etiqueta = "Tú"
-        else:
-            bg_color = "#2b2b2b" # Gris oscuro
-            alineacion = "w" # Izquierda
-            etiqueta = "🤖 IA"
-            
-        burbuja = ctk.CTkFrame(frame_burbuja, fg_color=bg_color, corner_radius=10)
-        burbuja.pack(side="right" if alineacion == "e" else "left", fill="x", expand=False)
-        
-        ctk.CTkLabel(burbuja, text=etiqueta, font=ctk.CTkFont(weight="bold", size=10), text_color="gray").pack(anchor=alineacion, padx=10, pady=(5, 0))
-        lbl_texto = ctk.CTkLabel(burbuja, text=texto, justify="left", wraplength=220)
-        lbl_texto.pack(anchor=alineacion, padx=15, pady=(0, 10))
-        
-        # Forzar el scroll hacia abajo para ver el último mensaje
-        self.update_idletasks() 
-        self.chat_scroll._parent_canvas.yview_moveto(1.0)
-        
-    def _on_enter_pressed(self, event):
-        """Envía el mensaje instantáneamente al presionar Enter."""
-        if self.entry_ia.get("1.0", "end-1c").strip():
-            self.enviar_mensaje_ia()
-        return "break" # Evita el salto de línea sucio
 
-    def _on_shift_enter_pressed(self, event):
-        """Permite hacer saltos de línea con Shift + Enter."""
-        self.entry_ia.insert("insert", "\n")
-        return "break"
+    # -------------------- Funciones auxiliares --------------------
+    def _filtrar_columnas_visibles(self, event=None):
+        if self.motor.df is None:
+            return
+        busqueda = self.entry_buscar_col.get().lower().strip()
+        if not busqueda:
+            self.tree["displaycolumns"] = "#all"
+        else:
+            todas = list(self.motor.df.columns)
+            filtradas = [c for c in todas if busqueda in str(c).lower()]
+            self.tree["displaycolumns"] = ["#"] + filtradas
+
+    def abrir_modulo_informe(self):
+        if self.ventana_informe and self.ventana_informe.winfo_exists():
+            self.ventana_informe.lift()
+            self.ventana_informe.focus()
+            return
+        self.ventana_informe = ctk.CTkToplevel(self)
+        self.ventana_informe.title("📝 Editor de Informe Ejecutivo - QueryLibre")
+        self.ventana_informe.geometry("650x500")
+        self.ventana_informe.transient(self.app_root)
+        if hasattr(self.app_root, 'fijar_icono'):
+            self.app_root.fijar_icono(self.ventana_informe)
+        frame_ctrls = ctk.CTkFrame(self.ventana_informe, fg_color="transparent")
+        frame_ctrls.pack(fill="x", padx=15, pady=(15,0))
+        ctk.CTkLabel(frame_ctrls, text="Redacta tus hallazgos (Soporta Markdown)", text_color="gray").pack(side="left")
+        ctk.CTkButton(frame_ctrls, text="💾 Exportar", width=140, fg_color="#27ae60", command=self.exportar_informe).pack(side="right", padx=5)
+        self.editor_informe = ctk.CTkTextbox(self.ventana_informe, wrap="word", font=ctk.CTkFont(family="Helvetica",size=14), fg_color="#1e1e1e", text_color="#e0e0e0")
+        self.editor_informe.pack(fill="both", expand=True, padx=15, pady=15)
+        contenido = getattr(self.motor, 'informe_ejecutivo', self.texto_informe_cache)
+        self.editor_informe.insert("1.0", contenido)
+        def al_cerrar():
+            self.motor.informe_ejecutivo = self.editor_informe.get("1.0", "end-1c")
+            self.ventana_informe.destroy()
+        self.ventana_informe.protocol("WM_DELETE_WINDOW", al_cerrar)
+
+    def exportar_informe(self):
+        if not hasattr(self, 'editor_informe') or not self.editor_informe.winfo_exists():
+            return
+        texto = self.editor_informe.get("1.0", "end-1c").strip()
+        if not texto:
+            messagebox.showwarning("Informe Vacío", "No hay contenido para exportar.")
+            return
+        archivo = filedialog.asksaveasfilename(defaultextension=".md", filetypes=[("Markdown","*.md"),("Texto","*.txt")])
+        if archivo:
+            try:
+                with open(archivo, "w", encoding="utf-8") as f:
+                    f.write(texto)
+                messagebox.showinfo("Éxito", "Informe exportado.")
+            except Exception as e:
+                messagebox.showerror("Error", f"No se pudo guardar:\n{e}")
