@@ -1095,7 +1095,7 @@ def asegurar_instancia_unica():
     _lock_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     try:
         # Intentamos reservar el puerto 54321
-        _lock_socket.bind(('127.0.0.1', 54321))
+        _lock_socket.bind(('127.0.0.1', 0))
         _lock_socket.listen(1)
     except socket.error:
         # Si falla, hay otra instancia activa

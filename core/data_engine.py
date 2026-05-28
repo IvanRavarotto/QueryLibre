@@ -119,23 +119,16 @@ class MotorDatos:
     
     def _rollback_error(self):
         if self.df_history:
-        # Eliminar el punto de guardado fallido (el último)
             last_file = self.df_history.pop()
             if os.path.exists(last_file):
                 os.remove(last_file)
-
-        # Restaurar desde el estado anterior válido, si existe
             if self.df_history:
                 previous_file = self.df_history[-1]
                 self.df = pd.read_parquet(previous_file)
-
-            # Limpiar los pasos registrados después del punto de fallo
-            # (el último paso corresponde a la operación fallida)
-            if self.historial_pasos:
+                if self.historial_pasos:
                     self.historial_pasos.pop()
-            if self.macro_steps:
-                self.macro_steps.pop()
-
+                if self.macro_steps:
+                    self.macro_steps.pop()
         else:
             self.df = None
     
