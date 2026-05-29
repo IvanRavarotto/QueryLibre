@@ -22,12 +22,15 @@ class MotorDatos:
     Se encarga exclusivamente de la lógica de procesamiento de datos con Pandas.
     Aislado completamente de la interfaz gráfica (Tkinter).
     """
-    def __init__(self):
+    def __init__(self, on_change_callback=None):
         self.df = None
         self.df2 = None  
         self.historial_pasos = []
         self.macro_steps = []
-        self.hay_cambios = False
+        
+        # --- NUEVO: Variables para el Patrón Observador ---
+        self._hay_cambios = False
+        self.on_change_callback = on_change_callback
         
         self.chat_history = []
         self.informe_ejecutivo = ""
@@ -44,6 +47,18 @@ class MotorDatos:
         master_cache = os.path.join(tempfile.gettempdir(), "QueryLibre_Cache")
         self.cache_dir = os.path.join(master_cache, f"tab_{id(self)}")
         os.makedirs(self.cache_dir, exist_ok=True)
+        
+    @property
+    def hay_cambios(self):
+        return self._hay_cambios
+
+    @hay_cambios.setter
+    def hay_cambios(self, valor):
+        if self._hay_cambios != valor: # Solo reacciona si el estado realmente cambia
+            self._hay_cambios = valor
+            # Si hay un callback configurado, le avisa a la interfaz gráfica al instante
+            if self.on_change_callback:
+                self.on_change_callback(valor)
 
     def registrar_paso(self, descripcion):
         self.historial_pasos.append(descripcion)

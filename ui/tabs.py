@@ -17,7 +17,9 @@ class PestanaTrabajo(ctk.CTkFrame):
         super().__init__(master, fg_color="transparent")
         self.app_root = app_root
         
-        self.motor = MotorDatos()
+        
+        # Le pasamos nuestra función oyente al motor
+        self.motor = MotorDatos(on_change_callback=self._actualizar_titulo_pestana)
         self.chat_handler = ChatIAHandler(self, self.app_root)
         self.macro_manager = MacroManager(self.motor, self.app_root)
         self.pagina_actual = 1
@@ -455,3 +457,11 @@ class PestanaTrabajo(ctk.CTkFrame):
                 messagebox.showinfo("Éxito", "Informe exportado.")
             except Exception as e:
                 messagebox.showerror("Error", f"No se pudo guardar:\n{e}")
+                
+    def _actualizar_titulo_pestana(self, hay_cambios):
+        """Escucha al Motor de Datos y actualiza el título visualmente usando la función existente de la app."""
+        if hasattr(self.app_root, 'actualizar_titulo_pestana'):
+            nombre_base = getattr(self.motor, 'nombre_archivo', "Sin Título")
+            nuevo_titulo = f"{nombre_base} *" if hay_cambios else nombre_base
+            # Envolvemos en .after() por seguridad de hilos en Tkinter
+            self.app_root.after(0, lambda: self.app_root.actualizar_titulo_pestana(self, nuevo_titulo))
