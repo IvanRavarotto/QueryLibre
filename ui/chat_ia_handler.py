@@ -73,14 +73,13 @@ class ChatIAHandler:
     
     def enviar_mensaje_ia(self, event=None):
         pregunta = self.entry_ia.get("1.0", "end-1c").strip()
-        if not pregunta:
-            return
-        api_key = getattr(self.app_root, 'api_key_session', None)
-        if not api_key:
-            messagebox.showwarning("Sin Conexión", "Configura tu API Key primero.")
-            return
+        if not pregunta: 
+            return "break"
+        
+        # Limpiamos botones de acciones anteriores para evitar acumulaciones
         for widget in self.frame_acciones_ia.winfo_children():
             widget.destroy()
+            
         self._agregar_burbuja_chat(pregunta, "usuario")
         self.entry_ia.delete("1.0", "end")
         self.btn_enviar_ia.configure(state="disabled", text="⏳")
@@ -88,20 +87,71 @@ class ChatIAHandler:
         import threading
         def tarea_ia():
             try:
-                from google import genai
-                client = genai.Client(api_key=api_key)
-                esquema = self.motor.df.dtypes.to_string()
-                muestra = self.motor.df.head(5).to_csv(index=False)
-                contexto = f"Dataset: {len(self.motor.df)} filas\nEsquema:\n{esquema}\nMuestra:\n{muestra}"
-                prompt = f"Eres analista de datos. Contexto:\n{contexto}\nPregunta: {pregunta}"
-                respuesta = client.models.generate_content(model='gemini-2.0-flash', contents=prompt)
-                texto_ia = respuesta.text
+                # 1. Recuperamos el perfil seleccionado y las llaves desde la aplicación
+                # (Se asume que estas variables se setean al configurar la API o elegir el perfil)
+                perfil_actual = getattr(self.app_root, 'perfil_ia_activo', 'Gemini Flash (Procesamiento Rápido)')
+                api_key = getattr(self.app_root, 'api_key_actual', '')
+
+                # 2. Construcción dinámica del contexto del dataset
+                if self.motor.df is not None and not self.motor.df.empty:
+                    esquema = self.motor.df.dtypes.to_string()
+                    muestra = self.motor.df.head(5).to_csv(index=False)
+                    contexto = f"Dataset: {len(self.motor.df)} filas\nEsquema:\n{esquema}\nMuestra:\n{muestra}"
+                else:
+                    contexto = "No hay ningún dataset cargado actualmente en el espacio de trabajo."
+
+                prompt_sistema = (
+                    "Eres un analista de datos experto para la aplicación QueryLibre. "
+                    "Si sugieres cambios estructurales o limpiezas sobre el dataset, incluye siempre "
+                    "la estructura JSON correspondiente al inicio o final de tu respuesta."
+                )
+                prompt_final = f"{prompt_sistema}\n\nContexto:\n{contexto}\nPregunta: {pregunta}"
+
+                # 3. ENRUTADOR MULTI-IA (Aquí se integra el nuevo bloque)
+                if "Gemini" in perfil_actual:
+                    from google import genai
+                    client = genai.Client(api_key=api_key)
+                    # Selección del modelo según la variante del perfil
+                    modelo_target = 'gemini-2.0-pro-exp-02-15' if "Pro" in perfil_actual else 'gemini-2.0-flash'
+                    
+                    respuesta = client.models.generate_content(
+                        model=modelo_target, 
+                        contents=prompt_final
+                    )
+                    texto_ia = respuesta.text
+
+                elif "DeepSeek" in perfil_actual:
+                    # Requiere la instalación previa del SDK compatible: pip install openai
+                    from openai import OpenAI
+                    
+                    client = OpenAI(
+                        api_key=api_key,
+                        base_url="https://api.deepseek.com"
+                    )
+                    respuesta = client.chat.completions.create(
+                        model="deepseek-chat",
+                        messages=[
+                            {"role": "user", "content": prompt_final}
+                        ],
+                        stream=False
+                    )
+                    texto_ia = respuesta.choices[0].message.content
+
+                else:
+                    texto_ia = "🔒 Modo Local Activo: Los datos no han sido enviados a servidores externos por motivos de privacidad."
+
             except Exception as e:
-                texto_ia = f"Error: {str(e)}"
+                texto_ia = f"Error en la comunicación con el proveedor de IA:\n{str(e)}"
+                
             def actualizar():
                 self._agregar_burbuja_chat(texto_ia, "ia")
+                # Aquí se llama al validador de macros para inyectar los botones dinámicos si aplica
+                if hasattr(self, '_procesar_posible_macro'):
+                    self._procesar_posible_macro(texto_ia)
                 self.btn_enviar_ia.configure(state="normal", text="➤")
+                
             self.app_root.after(0, actualizar)
+            
         threading.Thread(target=tarea_ia, daemon=True).start()
     
     def _on_enter_pressed(self, event):

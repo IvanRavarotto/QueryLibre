@@ -1396,9 +1396,9 @@ class ModalesUI:
         perfiles = [
             "Gemini Pro (Análisis Profundo)",
             "Gemini Flash (Procesamiento Rápido)",
+            "DeepSeek Chat (Experto en Pandas)", # <--- NUEVO
             "Modo Local (Sin IA - Privacidad Estricta)"
         ]
-
         # Generamos las opciones dinámicamente
         for perfil in perfiles:
             ctk.CTkRadioButton(
