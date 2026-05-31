@@ -28,6 +28,17 @@ La aplicación está diseñada bajo principios de desacoplamiento estricto, gara
 
 ---
 
+## 🚀 Próximas Mejoras (Roadmap v2.5.0)
+
+El desarrollo de QueryLibre continúa de manera ágil. El próximo ciclo de iteración se enfocará en:
+* **🖥️ Ventanas Desacoplables (Dual Monitor):** Separación dinámica del Chat IA y Reportes para aprovechar setups multi-pantalla.
+* **🏠 Dashboard Centralizado de Bienvenida:** Panel de inicio rápido para conectar Bases de Datos SQL, cargar CSV o abrir un Workspace Reciente de inmediato.
+* **📐 Cinta de Opciones Retráctil (Ribbon):** Capacidad de ocultar la barra superior para aprovechar el 100% del espacio vertical al explorar datasets masivos.
+* **🔗 Relocalización Inteligente de Archivos:** Detección automática y re-vinculación si el archivo fuente original (`.csv` / `.xlsx`) cambia de carpeta en el sistema operativo.
+* **💾 Autoguardado Silencioso:** Respaldo iterativo en segundo plano (caché) para prevenir cualquier pérdida de datos ante cortes de energía sin generar micro-congelamientos.
+
+--
+
 ## 📦 Distribución y Despliegue de Producción
 
 Para entornos donde no se disponga de intérpretes de Python configurados, QueryLibre se distribuye como un binario nativo e independiente de 64 bits optimizado para arquitecturas Windows.
@@ -68,6 +79,29 @@ Para clonar la solución, auditar las capas criptográficas o ejecutar contribuc
 4. **Lanzamiento del Hilo Principal:**
    ```bash
    python main.py
+   ```
+
+## 🐧 Instalación en Linux (CachyOS / Arch Linux)
+
+QueryLibre es nativamente compatible con entornos Linux. Para asegurar el correcto funcionamiento de la interfaz gráfica y el portapapeles, sigue estos pasos:
+
+1. **Instalar dependencias del sistema:**
+   Necesitarás las librerías gráficas de Tkinter y el gestor de portapapeles para poder copiar/pegar celdas.
+   ```bash
+   sudo pacman -S tk xclip
+   ```
+2. **Crear y activar el entorno virtual:**
+   Clona el repositorio y crea un entorno aislado. (Nota: Si usas la terminal `fish`, asegúrate de usar el activador correcto).
+   ```bash
+   python -m venv venv source venv/bin/activate.fish  # Usa 'activate' a secas si usas bash o zsh
+   ```
+3. **Instalar dependencias del proyecto:**
+   ```bash
+   pip install -r requirements.txt
+   ```
+   Opcional: Si el sistema lanza advertencias de módulos no encontrados en tu editor, fuerza la instalación de los pilares gráficos y de IA:
+   ```bash
+   pip install customtkinter pandas numpy sqlalchemy cryptography openai
    ```
 
 ## 🧪 Suite de Pruebas Unitarias (QA)

@@ -56,22 +56,22 @@ class ModalesUI:
             app_root.fijar_icono(dialog)
         
         # Versión y Título Principal
-        ctk.CTkLabel(dialog, text="QueryLibre v2.3.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5), padx=40)
+        ctk.CTkLabel(dialog, text="QueryLibre v2.4.0", font=ctk.CTkFont(weight="bold", size=20)).pack(pady=(20, 5), padx=40)
         ctk.CTkLabel(dialog, text="Workspace de Analítica & Transformación de Datos", text_color="gray").pack(pady=(0, 15), padx=40)
         
         ctk.CTkLabel(dialog, text="📜 Licencias y Herramientas:", font=ctk.CTkFont(weight="bold")).pack(pady=(5, 5), padx=40)
         legal_text = ("Este software se distribuye bajo la Licencia MIT.\nConstruido con orgullo utilizando:\n• Python & Pandas Engine\n• PyArrow Columnar Storage\n• CustomTkinter UI\n• Cryptography (AES-256)")
         ctk.CTkLabel(dialog, text=legal_text, text_color="gray", justify="center").pack(pady=(0, 10), padx=40)
         
-        # NUEVO ROADMAP: Planificación Estratégica v2.3.0
-        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión v2.3.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5), padx=40)
+        # NUEVO ROADMAP: Planificación Estratégica v2.4.0
+        ctk.CTkLabel(dialog, text="🚀 ROADMAP (Próxima Versión v2.5.0):", font=ctk.CTkFont(weight="bold")).pack(pady=(10, 5), padx=40)
 
         roadmap_text = (
-            "• Single-Instance App: Bloqueo de instancias duplicadas para proteger la RAM y la Bóveda.\n"
-            "• Canvas de Informes Ejecutivos: Editor de reportes con inserción directa de gráficos generados.\n"
-            "• Menú Contextual Avanzado: Clic derecho dinámico en tablas para acelerar la edición de celdas.\n"
-            "• AI Payload Optimization: Rediseño del envío de tokens para máxima estabilidad y velocidad.\n"
-            "• Sistema de Ayuda Integrado: Módulo interactivo en pestaña para documentación de procesos."
+            "• Ventanas Desacoplables (Dual Monitor): Extrae el chat y los informes a una segunda pantalla.\n"
+            "• Dashboard Centralizado: Nueva pantalla de bienvenida para inicio rápido de proyectos.\n"
+            "• Menú Ribbon Retráctil: Maximiza el 100% del espacio vertical para el análisis de tablas.\n"
+            "• Relocalización Inteligente: Prevención de roturas al mover los CSV originales de ruta.\n"
+            "• Autoguardado Silencioso: Respaldo temporal iterativo (caché) sin interrumpir el flujo."
         )
 
         ctk.CTkLabel(dialog, text=roadmap_text, text_color="gray", justify="left").pack(pady=(0, 20), padx=40)

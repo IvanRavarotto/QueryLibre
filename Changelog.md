@@ -3,16 +3,71 @@
 All notable changes to the **QueryLibre** project will be documented in this file.
 Todos los cambios notables en el proyecto **QueryLibre** serán documentados en este archivo.
 
-## [2.3.0] - 2026-05-22
-### Added
-- **Módulo de Informes Ejecutivos**: Nueva ventana flotante compañera con soporte para redacción en formato Markdown y exportación a `.md`/`.txt`.
-- **Persistencia Total (Workspace .qlp)**: El motor de datos ahora guarda y restaura el Informe Ejecutivo, el historial de chat y las macros dentro del archivo de proyecto centralizado.
-- **Arquitectura Multi-IA**: Integración de selector de perfiles (Gemini Pro, Gemini Flash, y preparación para Modo Local).
-- **Manual de Usuario Integrado**: Guía interactiva y estructurada en pestañas accesible desde el panel lateral.
-- **Menú Contextual Inteligente**: Soporte para clic derecho sobre el grid de datos (Editar celda, Renombrar/Eliminar columnas, Borrar filas).
-- **Gestión de Proyectos**: Creación automática de la carpeta `QueryLibre/Proyectos` para centralizar los Workspaces, con opciones de protección por Contraseña Maestra según la preferencia del usuario.
+## [2.4.0] - 2026-05-31
+### English
+#### Added
+- **Native Linux Support:** Verified compatibility for Arch-based distributions (CachyOS) with full clipboard support (`xclip`).
+- **Multi-AI Architecture:** Integration of the DeepSeek API (Chat/Coder model) alongside Gemini Pro and Flash, utilizing the OpenAI SDK standard.
+- **Executive Reports in Markdown:** New floating window to draft and export analytical findings directly to `.md` or `.txt`.
+- **Total Persistence (.qlp Workspaces):** The engine now saves the dataset in `.parquet`format, along with chat histories, macros, and executive reports in a single compressed file.
+- **Observer Pattern (Reactive UX):** Real-time synchronization between the data engine and the graphical interface; the tab title now instantly displays an asterisk (`*`) upon detecting unsaved changes.
 
-### Changed
+#### Changed
+- Total restructuring of the right panel, migrating to a chat system with dynamic bubbles (`CTkScrollableFrame`).
+- Real memory usage calculation (`deep=True`) in the health report now runs on a background thread, preventing the interface from freezing with massive datasets.
+
+#### Fixed
+- Prevention of hallucinated code injection through strict JSON validation in the macro manager.
+- Correction of unsafe visual updates by implementing `.after(0)` calls to protect the main Tkinter thread.
+
+### Español
+#### Añadido
+- **Soporte Nativo en Linux:** Compatibilidad verificada para distribuciones basadas en Arch (CachyOS) con soporte completo de portapapeles (`xclip`).
+- **Arquitectura Multi-IA:** Integración de la API de DeepSeek (modelo Chat/Coder) junto con Gemini Pro y Flash, utilizando el estándar SDK de OpenAI.
+- **Informes Ejecutivos en Markdown:** Nueva ventana flotante para redactar y exportar hallazgos analíticos directamente a `.md` o `.txt`.
+- **Persistencia Total (Workspaces .qlp):** El motor ahora guarda el dataset en formato `.parquet`, junto con los historiales de chat, macros y reportes ejecutivos en un solo archivo comprimido.
+- **Patrón Observador (UX Reactiva):** Sincronización en tiempo real entre el motor de datos y la interfaz gráfica; el título de la pestaña ahora muestra un asterisco (`*`) instantáneamente al detectar cambios sin guardar.
+
+#### Cambios
+- Reestructuración total del panel derecho, migrando a un sistema de chat con burbujas dinámicas (`CTkScrollableFrame`).
+- El cálculo de uso de memoria real (`deep=True`) en el reporte de salud ahora se ejecuta en un hilo secundario, evitando que la interfaz se congele con datasets masivos.
+
+#### Corregido
+- Prevención de inyección de código alucinado mediante validación estricta de JSON en el gestor de macros.
+- Corrección de actualizaciones visuales inseguras implementando llamadas `.after(0)` para proteger el hilo principal de Tkinter.
+
+---
+
+## [2.3.0] - 2026-05-22
+### English
+#### Added
+- **Executive Reports Module:** New companion floating window with support for drafting in Markdown format and exporting to `.md`/`.txt`.
+- **Total Persistence (.qlp Workspace):** The data engine now saves and restores the Executive Report, chat history, and macros within the centralized project file.
+- **Multi-AI Architecture:** Integration of a profile selector (Gemini Pro, Gemini Flash, and preparation for Local Mode).
+- **Integrated User Manual:** Interactive and tab-structured guide accessible from the side panel.
+- **Smart Context Menu:** Right-click support on the data grid (Edit cell, Rename/Delete columns, Delete rows).
+- **Project Management:** Automatic creation of the `QueryLibre/Proyectos` folder to centralize Workspaces, with Master Password protection options based on user preference.
+
+#### Changed
+- Absolute redesign of the AI Analyst chat, replacing static text boxes with dynamic bubbles (`CTkScrollableFrame`).
+- Geometric restructuring of the right panel, migrating from `.pack()` to `.grid()` to prevent crushing the bottom bar.
+- The data table once again occupies 100% of the left canvas to maximize analytical visibility.
+
+### Fixed
+- Prevention of hallucinated code injection by the AI through strict validation of JSON structures.
+- Correction of rendering bugs when switching between tabs and closing windows with pending processes.
+- Implementation of safe profile loading control, properly handling the absence of datasets without crashing the application.
+
+### Español
+#### Añadido
+- **Módulo de Informes Ejecutivos:** Nueva ventana flotante compañera con soporte para redacción en formato Markdown y exportación a `.md`/`.txt`.
+- **Persistencia Total (Workspace .qlp):** El motor de datos ahora guarda y restaura el Informe Ejecutivo, el historial de chat y las macros dentro del archivo de proyecto centralizado.
+- **Arquitectura Multi-IA:** Integración de selector de perfiles (Gemini Pro, Gemini Flash, y preparación para Modo Local).
+- **Manual de Usuario Integrado:** Guía interactiva y estructurada en pestañas accesible desde el panel lateral.
+- **Menú Contextual Inteligente:** Soporte para clic derecho sobre el grid de datos (Editar celda, Renombrar/Eliminar columnas, Borrar filas).
+- **Gestión de Proyectos:** Creación automática de la carpeta `QueryLibre/Proyectos` para centralizar los Workspaces, con opciones de protección por Contraseña Maestra según la preferencia del usuario.
+
+### Corregido
 - Rediseño absoluto del chat del Analista IA, reemplazando las cajas de texto estáticas por burbujas dinámicas (`CTkScrollableFrame`).
 - Reestructuración geométrica del panel derecho, migrando de `.pack()` a `.grid()` para evitar el aplastamiento de la barra inferior.
 - La tabla de datos vuelve a ocupar el 100% del lienzo izquierdo para maximizar la visibilidad analítica.
