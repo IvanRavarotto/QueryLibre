@@ -9,6 +9,7 @@ import zipfile
 import json      
 import io
 from sqlalchemy import inspect
+from core.db_connector import MotorBaseDatos
 import urllib.parse
 import numpy as np
 
