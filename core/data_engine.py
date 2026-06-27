@@ -8,8 +8,7 @@ import tempfile
 import zipfile  
 import json      
 import io
-from sqlalchemy import create_engine, text, inspect
-from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy import inspect
 import urllib.parse
 import numpy as np
 
@@ -866,10 +865,9 @@ class MotorDatos:
         self.registrar_paso(f"✨ Auto-Casteo: {len(propuestas)} columnas")
         self.macro_steps.append({"action": "aplicar_autocasteo_confirmado", "params": {"propuestas": propuestas}})
         
-    def probar_conexion_sql(self, motor_bd, host, puerto, usuario, password, base_datos):
-        """Intenta establecer una conexión con el servidor SQL y devuelve un mensaje de estado."""
         
-        # Codificamos la contraseña para que los caracteres especiales (@, #, /, etc.) no rompan la URL
+    def probar_conexion_sql(self, motor_bd, host, puerto, usuario, password, base_datos):
+        """Intenta establecer una conexión delegando en db_connector."""
         pass_segura = urllib.parse.quote_plus(password) if password else ""
         
         if motor_bd == "MySQL":
@@ -881,19 +879,23 @@ class MotorDatos:
         else:
             return False, "Motor de base de datos no soportado."
 
-        try:
-            engine = create_engine(url, connect_args={'connect_timeout': 5})
-            # Inspeccionamos el motor para extraer los nombres de las tablas
-            inspector = inspect(engine)
-            tablas = inspector.get_table_names()
-            return True, tablas
-        except SQLAlchemyError as e:
-            # Corrección: Un solo corchete [-1] para acceder al último elemento de la lista
-            mensaje_limpio = str(e).split(']')[-1].strip() if ']' in str(e) else str(e)
-            return False, f"Error de conexión:\n{mensaje_limpio}"
+        conector = MotorBaseDatos()
+        if conector.conectar(url):
+            try:
+                # Extraemos las tablas usando el engine validado
+                inspector = inspect(conector.engine)
+                tablas = inspector.get_table_names()
+                conector.desconectar()
+                return True, tablas
+            except Exception as e:
+                conector.desconectar()
+                mensaje_limpio = str(e).split(']')[-1].strip() if ']' in str(e) else str(e)
+                return False, f"Error al inspeccionar la base de datos:\n{mensaje_limpio}"
+        else:
+            return False, "Credenciales inválidas o servidor inalcanzable."
         
     def importar_tabla_sql(self, motor_bd, host, puerto, usuario, password, base_datos, tabla):
-        """Conecta a la base de datos e importa la tabla seleccionada al DataFrame principal."""
+        """Conecta a la base de datos e importa la tabla seleccionada usando db_connector."""
         pass_segura = urllib.parse.quote_plus(password) if password else ""
 
         if motor_bd == "MySQL":
@@ -905,23 +907,27 @@ class MotorDatos:
         else:
             raise ValueError("Motor de base de datos no soportado.")
 
-        # Creamos el motor de conexión
-        engine = create_engine(url)
+        conector = MotorBaseDatos()
+        if not conector.conectar(url):
+            raise RuntimeError("No se pudo establecer conexión para importar la tabla.")
 
-        # ¡AQUÍ OCURRE LA MAGIA! Pandas lee directamente desde SQL
-        self.df = pd.read_sql_table(tabla, con=engine)
+        try:
+            # Pandas lee directamente desde la conexión establecida por MotorBaseDatos
+            self.df = pd.read_sql_table(tabla, con=conector.engine)
+            
+            # Reseteamos el entorno como si fuera un archivo nuevo
+            self.nombre_archivo = f"SQL: {base_datos}.{tabla}"
+            self._normalize_columns()
+            self.historial_pasos = []
+            self.df_history = []
+            self.redo_history.clear()
+            self.macro_steps = []
 
-        # Reseteamos el entorno como si fuera un archivo nuevo
-        self.nombre_archivo = f"SQL: {base_datos}.{tabla}"
-        self._normalize_columns()
-        self.historial_pasos = []
-        self.df_history = []
-        self.redo_history.clear()
-        self.macro_steps = []
-
-        self._savepoint()
-        self.registrar_paso(f"Origen SQL: {tabla}")
-        self.hay_cambios = False
+            self._savepoint()
+            self.registrar_paso(f"Origen SQL: {tabla}")
+            self.hay_cambios = False
+        finally:
+            conector.desconectar() # Nos aseguramos de no dejar conexiones fantasma abiertas
     
     def anular_dinamizacion(self, columnas_ancla, columnas_valor, nombre_variable="Atributo", nombre_valor="Valor"):
         """Transforma columnas en filas usando pandas.melt (Unpivot)."""
